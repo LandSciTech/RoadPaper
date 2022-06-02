@@ -1,15 +1,11 @@
 ## Running projections on full TSA using subsets (to do high resolution)
 
-#set working directory
-#setwd("C:/Users/LapinsD/Desktop/Dlapins_rstudio/RoadAnalysis")
-
 #set path for data
-data_path <- "data/"
+data_path_raw <- "analysis/data/raw_data/"
+data_path_drvd <- "analysis/data/derived_data/"
 
 ###### Source scripts ######
 # load in required libraries
-## Library source for TSA road projection metric script
-
 library(dplyr)
 library(sf)
 library(roads)
@@ -29,25 +25,29 @@ library(rgeos)
 library(data.table)
 library(pfocal)
 
-# load functions used in script - source script
-source("davidfolder/functionsSource.R")
+# load functions used in script
+devtools::load_all()
+
+# set rasterOptions to allow higher memory usage
+prevOpts <- rasterOptions(chunksize = 1e+09, maxmemory = 8e+09, memfrac = 0.9)
 
 ######### load in data for projections ########################################
 
 #forest harvest cutblocks
-cutblocks <- st_make_valid(st_read(paste0(data_path, "revelstoke/cutblocks_revelstoke.shp")))
+cutblocks <- st_make_valid(st_read(paste0(data_path_raw, "cutblocks_revelstoke.shp")))
 #modern observed roads
-roads <- st_read(paste0(data_path, "revelstoke/roads_revelstoke.shp"))
+roads <- st_read(paste0(data_path_raw, "roads_revelstoke.shp"))
 #boundary for running projection
-tsaBoundary <- st_read(paste0(data_path, "revelstoke/new_tsa27_boundaries.shp"))
+tsaBoundary <- st_read(paste0(data_path_raw, "new_tsa27_boundaries.shp"))
 #cost surface raster layer
-bc_cost_surface <- raster::raster(paste0(data_path, "cost_surface_bc_ha.tif"))
+bc_cost_surface <- raster::raster(paste0(data_path_raw, "cost_surface_bc_ha.tif"))
 #subsets of TSA (in order to run high resolution across large TSA)
-tsbs <- map(list.files("data/revelstoke/subs/", pattern = ".shp",
+tsbs <- map(list.files(paste0(data_path_raw, "subs/"), pattern = ".shp",
                        full.names = TRUE), st_read)
-#tsbs <- (tsbs[1:3]) #for testing on smaller area
+tsbs <- (tsbs[1:3]) #for testing on smaller area
 #Klement QGIS projection results shapefile
-klementProj <- st_read(paste0(data_path, "revelstoke/klementProjection.shp"))
+klementProj <- st_read(paste0(data_path_drvd,
+                              "klementProjection.shp"))
 
 ###### Parameters #############################################################
 
@@ -86,17 +86,15 @@ tsaCost <- crop(bc_cost_surface, tsaBoundary)
 
 tsaCost <- raster::aggregate(tsaCost, fact = aggFact, fun = raster::mean)
 
-tsaCost_st <- stars::st_as_stars(tsaCost)
-tmplt <- stars::st_as_stars(st_bbox(tsaCost_st), nx = raster::ncol(tsaCost),
-                            ny = raster::nrow(tsaCost), values = 1)
-roadsExist_st <- stars::st_rasterize(roadsExist %>% dplyr::select(-AWARD_DATE), template = tmplt,
-                                     options = "ALL_TOUCHED=TRUE") == 1
-tsaCost_st <- tsaCost_st * roadsExist_st
-tsaCost_st <- as(tsaCost_st, "Raster")
+# burn roads into cost raster
+roadsExist_rast <- terra::rasterize(terra::vect(roadsExist), terra::rast(tsaCost),
+                                    background = 0) == 0
+
+tsaCost_st <- terra::rast(tsaCost) * roadsExist_rast
 roadsExist <- roadsExist %>%  st_transform(st_crs(tsaCost_st))
 
 # setting lake values high because they are blocking paths if NA - not necessary for all landscapes
-tsaCost_st[is.na(tsaCost_st[])] <- lakeValue
+tsaCost_st[is.na(tsaCost_st)] <- lakeValue
 
 #Running projections and creating raster layers of the various metrics
 allResults <- projectAll(tsbs = tsbs, paramTable = paramTable,
@@ -119,3 +117,7 @@ meanTable$sampleDens <-c("low sample density","high sample density",
 
 
 meanTable #resulting table with all mean values from the metrics (overall & cutover)
+
+# set rasterOptions back to previous value
+rasterOptions(chunksize = prevOpts$chunksize, maxmemory = prevOpts$maxmemory,
+              memfrac = prevOpts$memfrac)

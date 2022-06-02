@@ -2,8 +2,9 @@ Package: RoadPaper
 Title: What the Package Does (One Line, Title Case)
 Version: 0.0.0.9000
 Authors@R:
-    person("Sarah", "Endicott", , "sarah.endicott@canada.ca", role = c("aut", "cre"),
-           comment = c(ORCID = "0000-0001-9644-5343"))
+    c(person("Josie", "Hughes", role = c("aut"), email = "josie.hughes@canada.ca"),
+      person("Sarah", "Endicott", , "sarah.endicott@canada.ca", role = c("aut"),
+             comment = c(ORCID = "0000-0001-9644-5343")))
 Description: What the package does (one paragraph).
 License: MIT + file LICENSE
 ByteCompile: true
@@ -12,6 +13,27 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 Imports: bookdown,
-    here
+    here,
+    caribouMetrics (>= 0.1.1.9000),
+    data.table (>= 1.14.2),
+    dplyr (>= 1.0.8),
+    forcats (>= 0.5.1),
+    ggplot2 (>= 3.3.5),
+    gridExtra (>= 2.3),
+    knitr (>= 1.38),
+    pfocal (>= 1.0.0),
+    purrr (>= 0.3.4),
+    raster (>= 3.5-15),
+    rgdal (>= 1.5-28),
+    rgeos (>= 0.5-9),
+    rmarkdown (>= 2.11),
+    roads (>= 1.0.0),
+    sf (>= 1.0-5),
+    spex (>= 0.7.1),
+    stars (>= 0.5-5),
+    starsExtra (>= 0.2.7),
+    tidyr (>= 1.1.4),
+    tmap (>= 3.3-3),
+    units (>= 0.7-2)
 Suggests: devtools,
     git2r
