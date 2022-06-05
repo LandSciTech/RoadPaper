@@ -84,7 +84,9 @@ cutblocks <- filter(cutblocks, HARVESTYR > cutblocksYear)
 ### prepare cost surface layer
 tsaCost <- crop(bc_cost_surface, tsaBoundary)
 
-tsaCost <- raster::aggregate(tsaCost, fact = aggFact, fun = raster::mean)
+if(aggFact > 1){
+  tsaCost <- raster::aggregate(tsaCost, fact = aggFact, fun = raster::mean)
+}
 
 # burn roads into cost raster
 roadsExist_rast <- terra::rasterize(terra::vect(roadsExist), terra::rast(tsaCost),
@@ -97,7 +99,7 @@ roadsExist <- roadsExist %>%  st_transform(st_crs(tsaCost_st))
 tsaCost_st <- terra::subst(tsaCost_st, from = NA, to = lakeValue)
 
 #Running projections
-allResults <- projectAll(tsbs = tsbs, paramTable = paramTable,
+allResults <- projectAll(tsbs = tsbs, paramTable = paramTable[c(3,5),],
                          costSurface = tsaCost_st,
                          cutblocks = cutblocks,
                          existingRoads = roadsExist,
@@ -107,8 +109,9 @@ allResults <- projectAll(tsbs = tsbs, paramTable = paramTable,
 allMetrics <- calcMetrics(paramTable = allResults,
                           boundary = tsaBoundary,
                           nonAggregatedCostSurface = bc_cost_surface,
-                          observedRoads = roads,
-                          klementProj = klementProj,
+                          observedRoads = paste0(data_path_raw, "roads_revelstoke.shp"),
+                          klementProj = paste0(data_path_drvd,
+                                               "klementProjection.shp"),
                           cutblocks = cutblocks,
                           costSurface = tsaCost_st)
 
@@ -126,5 +129,10 @@ meanTable <-  mutate(meanTable,
 
 meanTable #resulting table with all mean values from the metrics (overall & cutover)
 
+meanTable <- mutate(meanTable, across(where(is.list), unlist))
+
+write.csv(meanTable, paste0(data_path_drvd, "mean_table_1e-06.csv"))
+
 # set rasterOptions back to previous value
 terraOptions(memfrac = prevOpts$memfrac)
+print(Sys.time())

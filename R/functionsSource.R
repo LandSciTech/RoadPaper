@@ -94,8 +94,8 @@ fineResProject <- function(TSAsubset, cutblockPoylgons, sampleDensity,
                                        cost = costRaster,
                                        roads = existingRoads,
                                        roadMethod = projectionMethod)
-  subProjectionResults_roads <- subProjectionResults$roads
-  return(subProjectionResults_roads)
+
+  return(subProjectionResults$roads)
 
 }
 
@@ -265,12 +265,14 @@ projectAll<-function(tsbs,paramTable, costSurface,
     projections <- do.call(rbind, projectionsList)
 
 
-    paramTable$output[[i]] <- projections
+    paramTable$output[[i]] <- paste0(fileLocation, "_", cRow$sampleType, "_",
+                                     cRow$sampleDens, ".shp")
 
     # save the projected roads to a file
-    sf::write_sf(projections,
-                 paste0(fileLocation, "_", cRow$sampleType, "_",
-                        cRow$sampleDens, ".shp"))
+    sf::write_sf(projections, paramTable$output[[i]])
+
+    rm(projectionsList, projections)
+    gc(verbose = TRUE)
 
   }
   paramTable
@@ -298,14 +300,16 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
     # i = 1
     cRow = paramTable[i,]
 
-    roadDisturbanceResults <- map(cRow$output,
+    out <- list(sf::read_sf(cRow$output))
+
+    roadDisturbanceResults <- map(out,
                                   roadDisturbanceFootprint,
                                   r = costSurface,
                                   b = boundary)
 
     paramTable$roadDisturbance[[i]] <- roadDisturbanceResults[[1]]
 
-    roadDensityResults <- map(cRow$output,
+    roadDensityResults <- map(out,
                               rasterizeLineDensity,
                               r = as(costSurface, "Raster"))
 
@@ -321,7 +325,7 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
     paramTable$roadPresence[[i]] <- roadPresenceResults
 
     forestryDisturanceResults <- disturbanceMetrics(
-      cRow$output,
+      out,
       landCover = as(nonAggregatedCostSurface, "Raster"),
                      projectPoly = boundary,
                      anthroDist = as(cutblocksRaster, "Raster")

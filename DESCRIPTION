@@ -35,8 +35,6 @@ Imports: bookdown,
     tidyr (>= 1.1.4),
     tmap (>= 3.3-3),
     units (>= 0.7-2),
-    geom,
-    greenbrown,
     maptools (>= 1.1-3),
     terra (>= 1.5-21)
 Suggests: devtools,
