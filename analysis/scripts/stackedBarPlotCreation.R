@@ -1,25 +1,45 @@
 # Creating stacked bar plots for matching roaded and roadless
 
 # data
+data_path_drvd <- "analysis/data/derived_data/"
 
-data_path <- "data/"
-####################################
+library(tidyverse)
 
-source("davidfolder/roadsLibrarySource.R")
+# load csv
+matchData <- read.csv(paste0(data_path_drvd, "agree_table_1e-06.csv"))
 
+matchData <- matchData %>% ungroup() %>%
+  mutate(agreement = factor(agreement,
+                            levels = c("False negative", "False positive",
+                                       "Agree roaded","Agree roadless",
+                                       "Pre-existing roads")),
+         sampleDens = paste(sampleType, sampleDens) %>%
+           str_replace("1e-06", "low density") %>%
+           str_replace("1e-04", "high density") %>%
+           str_replace("centroid low density", "centroid") %>%
+           str_replace("klementQGIS NA", "klementQGIS") %>%
+           factor(levels = c("centroid",
+                             "random low density",
+                             "random high density",
+                             "regular low density",
+                             "regular high density",
+                             "klementQGIS"),
+                  labels = c("Centroid", "Random low density", "Random high density",
+                             "Regular low density",
+                             "Regular high density",
+                             "Klement QGIS")),
+         metric = factor(metric,
+                         levels = c("roadPresence",
+                                    "forestryDisturbance",
+                                    "roadDisturbance"),
+                         labels = c("Road presence",
+                                    "Forestry disturbance footprint",
+                                    "Road disturbance footprint"))) %>%
+  group_by(metric, sampleDens, agreement) %>%
+  summarise(count = sum(count), .groups = "drop_last") %>%
+  mutate(perc = count/sum(count)*100)
 
-# load csv for plot(1km buffer)
-
-matchData_1km <- read.csv("data/revelstoke/nonAggregated/results/roaded.csv")
-
-Match_1km <- factor(matchData_1km$MatchType,
-                     levels = c("Project roadless & observe roaded",
-                                "Project roaded & observe roadless",
-                                "Agree roaded after 1990",
-                                "Agree roadless",
-                                "Roaded prior to 1990"))
-
-stackedBar_1km <- ggplot(matchData_1km, aes(x = factor(Projection.Method, levels = c("Centroid", "Random Low Density", "Regular Low Density", "Random High Density", "Regular High Density", "klementQGIS")), Percent, fill = Match_1km))+
+stackedBar <- ggplot(matchData, aes(x = sampleDens, y =perc, fill = agreement))+
   geom_col(position = "stack", width = 0.75)+
   theme_classic()+
   theme(axis.text.x=element_text(color = "black", size=11, angle=50, vjust=1, hjust=1))+
@@ -27,8 +47,7 @@ stackedBar_1km <- ggplot(matchData_1km, aes(x = factor(Projection.Method, levels
   theme(text = element_text(size = 15), axis.title.x = element_blank())+
   theme(legend.position="none")+
   labs(y = "Percent of Landscape")+
-  ggtitle("Road disturbance footprint")+
-  theme(plot.title = element_text(size = 16))
+  facet_wrap(~metric)
 
 
 stackedBar_1km

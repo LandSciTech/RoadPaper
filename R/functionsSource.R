@@ -94,6 +94,7 @@ fineResProject <- function(TSAsubset, cutblockPoylgons, sampleDensity,
                                        cost = costRaster,
                                        roads = existingRoads,
                                        roadMethod = projectionMethod)
+  gc(verbose = TRUE)
 
   return(subProjectionResults$roads)
 
@@ -427,6 +428,63 @@ getMetricMeans <- function(paramTable, cutblocks){
 }
 
 
+###
+#' compute agreement metrics
+#'
+#' @param obs_rast raster of observed disturbance 0/100
+#' @param proj_rast raster of projected disturbance 0/1
+#' @param prex_rast raster of pre-existing disturbance 0/10
+#'
+#' @return a table
+#' @noRd
+calcAgree <- function(obs_rast, proj_rast, prex_rast){
+  proj_rast <- terra::crop(proj_rast, obs_rast)
+  res <- obs_rast + prex_rast + proj_rast
+
+  lu_tbl <- tibble::tribble(~value, ~agreement,
+                            0, "Agree roadless",
+                            1, "False positive",
+                            10, "Pre-existing roads",
+                            11, "Pre-existing roads",
+                            100, "False negative",
+                            101, "Agree roaded",
+                            110, "Pre-existing roads",
+                            111, "Pre-existing roads")
+
+  res_tbl <- terra::freq(res) %>% as.data.frame() %>%
+    left_join(lu_tbl, by = "value")
+}
+
+#' compute agreement metrics for all metrics
+#'
+#' @param obs_rast raster of observed disturbance 0/1
+#' @param proj_rast a list of rasters of projected disturbance 0/1
+#' @param prex_rast raster of pre-existing disturbance 0/1
+#' @param boundary polygon boundary to mask rasters
 
 
+agreeMetricsAll <- function(paramTable, prex_rast, boundary){
+  obs_tbl <- paramTable %>% filter(sampleType == "observed") %>%
+    dplyr::select(roadDisturbance, roadPresence, forestryDisturbance) %>%
+    tidyr::pivot_longer(everything(), names_to = "metric", values_to = "obs_rast") %>%
+    mutate(obs_rast = obs_rast %>%
+             map(~terra::subst(.x, from = 1, to = 100)) %>%
+             map(~terra::mask(.x, terra::vect(boundary))) %>%
+             map(~terra::crop(.x, prex_rast)))
+
+  prex_rast <- terra::subst(prex_rast, from = 1, to = 10)
+
+  prex_tbl <- data.frame(metric = c("roadDisturbance", "roadPresence",
+                                    "forestryDisturbance"),
+                         prex_rast = list(roadDisturbanceFootprint))
+
+  paramTable %>% filter(sampleType != "observed") %>%
+    dplyr::select(sampleType, sampleDens, roadDisturbance, roadPresence, forestryDisturbance) %>%
+    tidyr::pivot_longer(-contains("Sample"), names_to = "metric", values_to = "rast") %>%
+    left_join(obs_tbl, by = "metric") %>%
+    mutate(res = map2(obs_rast, rast, calcAgree, prex_rast = prex_rast)) %>%
+    tidyr::unnest(res) %>%
+    dplyr::select(-rast, -obs_rast, -layer)
+
+}
 

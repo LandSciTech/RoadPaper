@@ -105,6 +105,11 @@ allResults <- projectAll(tsbs = tsbs, paramTable = paramTable[c(3,5),],
                          existingRoads = roadsExist,
                          fileLocation = paste0(data_path_drvd, "TSA27"))
 
+# recreate allResults after a restart using saved files
+# allResults <- paramTable[c(1,3,5),] %>%
+#   mutate(output = paste0(data_path_drvd, "TSA27", "_", sampleType, "_",
+#                          sampleDens, ".shp"))
+
 # creating raster layers of the various metrics
 allMetrics <- calcMetrics(paramTable = allResults,
                           boundary = tsaBoundary,
@@ -131,7 +136,12 @@ meanTable #resulting table with all mean values from the metrics (overall & cuto
 
 meanTable <- mutate(meanTable, across(where(is.list), unlist))
 
-write.csv(meanTable, paste0(data_path_drvd, "mean_table_1e-06.csv"))
+write.csv(meanTable, paste0(data_path_drvd, "mean_table_1e-06.csv"), row.names = FALSE)
+
+# compare spatially explicit agreement
+agreeTable <- agreeMetricsAll(allMetrics, roadsExist_rast == 0, tsaBoundary)
+
+write.csv(agreeTable, paste0(data_path_drvd, "agree_table_1e-06.csv"), row.names = FALSE)
 
 # set rasterOptions back to previous value
 terraOptions(memfrac = prevOpts$memfrac)
