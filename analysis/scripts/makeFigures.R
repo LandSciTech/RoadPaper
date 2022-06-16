@@ -1,13 +1,19 @@
 ##### Metric table bar plots
 library(ggplot2)
-library(tidyverse)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(purrr)
 library(ggpubr)
+library(MetBrewer)
 
 data_path_drvd <- "analysis/data/derived_data/"
 
 fig_path <- "analysis/figures/"
 
 fig_dev <- "jpeg"
+
+pal_nm <- "Egypt"
 
 
 # Figure 3 #====================================================================
@@ -53,13 +59,15 @@ fig3 <- projected_values %>% group_by(areaMean) %>% nest() %>% ungroup() %>%
                                  .y, color = "black", linetype = "dashed")+
                       facet_wrap(~metric, scales = "free_y", ncol = 1)+
                       theme_classic()+
-                      scale_fill_manual(values = c("#D55E00", "#F0E442", "#0072B2", "#009E73"))+
+                      scale_fill_manual(values = met.brewer(pal_nm, 4))+
                       theme(text = element_text(size = 15), axis.title.x = element_blank(),
                             axis.title.y = element_blank(),
                             legend.position = "none")+
                       ggtitle(str_to_title(areaMean)))) %>%
   pull(plot) %>%
   {ggarrange(plotlist = .)}
+
+fig3
 
 ggsave(paste0(fig_path, "Figure3_road_metrics.", fig_dev), fig3,
        width = 7.5, height = 9)
@@ -104,9 +112,10 @@ stackedBar <- ggplot(matchData, aes(x = sampleDens, y =perc, fill = agreement))+
   geom_col(position = "stack", width = 0.75)+
   theme_classic()+
   theme(axis.text.x=element_text(color = "black", size=11, angle=50, vjust=1, hjust=1))+
-  scale_fill_manual(values = c("#D55E00", "#F0E442", "#0072B2", "#009E73", "#999999"))+
+  scale_fill_manual(values = c(met.brewer(pal_nm, 4, direction = -1)[c(1,4,3,2)],
+                               "#999999"))+
   theme(text = element_text(size = 15), axis.title.x = element_blank())+
-  theme(legend.position="none")+
+  theme(legend.position="bottome", legend.direction = "horizontal")+
   labs(y = "Percent of Landscape")+
   facet_wrap(~metric)
 
