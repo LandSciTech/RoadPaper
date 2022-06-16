@@ -139,7 +139,9 @@ meanTable <- mutate(meanTable, across(where(is.list), unlist))
 write.csv(meanTable, paste0(data_path_drvd, "mean_table_1e-06.csv"), row.names = FALSE)
 
 # compare spatially explicit agreement
-agreeTable <- agreeMetricsAll(allMetrics, roadsExist_rast == 0, tsaBoundary)
+agreeTable <- agreeMetricsAll(allMetrics, prex_rast = roadsExist_rast == 0,
+                              prex_vect = roadsExist, boundary = tsaBoundary,
+                              cutblocks = cutblocksPrior)
 
 write.csv(agreeTable, paste0(data_path_drvd, "agree_table_1e-06.csv"), row.names = FALSE)
 
