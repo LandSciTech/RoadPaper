@@ -9,23 +9,7 @@
 # rasterize line density
 
 rasterizeLineDensity <- function(x, r) {
-  # r[] <- 1:ncell(r)
-  #
-  # rPoly <- spex::polygonize(r) %>% purrr::set_names("ID", "geometry") %>%
-  #   st_set_agr("constant")
-  #
-  # rp2 <- st_intersection(rPoly, st_set_agr(x, "constant")) %>%
-  #   mutate(length = st_length(geometry) %>% units::drop_units()) %>%
-  #   dplyr::select(ID, length, geometry) %>% st_drop_geometry() %>%
-  #   group_by(ID) %>%
-  #   summarise(length = round(sum(length, na.rm = TRUE)/(res(r)[1]*res(r)[2]/10000), digits = 1))
-  #
-  # rp2 <- left_join(rPoly %>% st_drop_geometry(), rp2, by = "ID") %>%
-  #   mutate(length = tidyr::replace_na(length, 0))
-  #
-  # r[] <- rp2$length
-
-  spst_im <- spatstat.geom::pixellate(x = spatstat.geom::as.psp(sf::st_geometry(x)),
+   spst_im <- spatstat.geom::pixellate(x = spatstat.geom::as.psp(sf::st_geometry(x)),
                                       W = maptools::as.im.RasterLayer(r),
                                       DivideByPixelArea = F)
   spst_rast <- raster::raster(spst_im)/(res(r)[1]*res(r)[2]/10000)
@@ -90,6 +74,10 @@ fineResProject <- function(TSAsubset, cutblockPoylgons, sampleDensity,
   subLandings <- getLandingsFromTarget(subCutblocks,
                                        landingDens = sampleDensity,
                                        sampleType = sampleType)
+  if(nrow(subCutblocks) == 0){
+    return(NULL)
+  }
+
   subProjectionResults <- projectRoads(subLandings,
                                        cost = costRaster,
                                        roads = existingRoads,
