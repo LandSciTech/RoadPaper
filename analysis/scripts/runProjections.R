@@ -6,23 +6,14 @@ data_path_drvd <- "analysis/data/derived_data/"
 
 ###### Source scripts ######
 # load in required libraries
+library(raster)
 library(dplyr)
 library(sf)
 library(roads)
-library(stars)
 library(terra)
 library(tmap)
-library(rgdal)
-library(spex)
 library(purrr)
-library(starsExtra)
-library(ggplot2)
-library(gridExtra)
 library(caribouMetrics)
-library(raster)
-library(forcats)
-library(rgeos)
-library(data.table)
 library(pfocal)
 
 # load functions used in script
@@ -42,8 +33,9 @@ tsaBoundary <- st_read(paste0(data_path_raw, "new_tsa27_boundaries.shp"))
 #cost surface raster layer
 bc_cost_surface <- terra::rast(paste0(data_path_raw, "cost_surface_bc_ha.tif"))
 #subsets of TSA (in order to run high resolution across large TSA)
-tsbs <- map(list.files(paste0(data_path_raw, "subs/"), pattern = ".shp",
-                       full.names = TRUE), st_read)
+# tsbs <- map(list.files(paste0(data_path_raw, "subs/"), pattern = ".shp",
+                       # full.names = TRUE), st_read)
+
 # tsbs <- (tsbs[1:3]) #for testing on smaller area
 #Klement QGIS projection results shapefile
 klementProj <- st_read(paste0(data_path_drvd,
@@ -99,7 +91,7 @@ roadsExist <- roadsExist %>%  st_transform(st_crs(tsaCost_st))
 tsaCost_st <- terra::subst(tsaCost_st, from = NA, to = lakeValue)
 
 #Running projections
-allResults <- projectAll(tsbs = tsbs, paramTable = paramTable[c(3,5),],
+allResults <- projectAll(tsbs = tsa_parts, paramTable = paramTable,
                          costSurface = tsaCost_st,
                          cutblocks = cutblocks,
                          existingRoads = roadsExist,
