@@ -4,3 +4,4 @@ analysis/data
 .Rdata
 .httr-oauth
 .DS_Store
+*.docx
