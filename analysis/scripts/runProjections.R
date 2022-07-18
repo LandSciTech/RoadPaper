@@ -119,6 +119,16 @@ allResults <- projectAll(tsbs = tsbs, paramTable = paramTable,
 #   mutate(output = paste0(data_path_drvd, "TSA27", "_", sampleType, "_",
 #                          sampleDens, ".shp"))
 
+# Using David's saved results
+allResults <- paramTable %>%
+  mutate(output = paste0(data_path_drvd, "combinedTSBRoads", "_",
+                         dplyr::case_when(sampleType == "centroid" ~ "C",
+                                   sampleType == "random" & sampleDens == 1e-04 ~ "RA2",
+                                   sampleType == "random" & sampleDens == 1e-06 ~ "RA1",
+                                   sampleType == "regular" & sampleDens == 1e-04 ~ "RE2",
+                                   sampleType == "regular" & sampleDens == 1e-06 ~ "RE1"),
+                         ".shp"))
+
 # creating raster layers of the various metrics
 allMetrics <- calcMetrics(paramTable = allResults,
                           boundary = tsaBoundary,
@@ -145,15 +155,16 @@ meanTable #resulting table with all mean values from the metrics (overall & cuto
 
 meanTable <- mutate(meanTable, across(where(is.list), unlist))
 
-write.csv(meanTable, paste0(data_path_drvd, "mean_table_1e-06.csv"), row.names = FALSE)
+write.csv(meanTable, paste0(data_path_drvd, "mean_table.csv"), row.names = FALSE)
 
 # compare spatially explicit agreement
 agreeTable <- agreeMetricsAll(allMetrics, prex_rast = roadsExist_rast == 0,
                               prex_vect = roadsExist, boundary = tsaBoundary,
                               cutblocks = cutblocksPrior)
 
-write.csv(agreeTable, paste0(data_path_drvd, "agree_table_1e-06.csv"), row.names = FALSE)
+write.csv(agreeTable, paste0(data_path_drvd, "agree_table.csv"), row.names = FALSE)
 
+beepr::beep()
 # set rasterOptions back to previous value
 terraOptions(memfrac = prevOpts$memfrac)
 print(Sys.time())

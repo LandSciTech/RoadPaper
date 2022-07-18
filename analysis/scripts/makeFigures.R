@@ -19,7 +19,7 @@ pal_nm <- "Egypt"
 # Figure 3 #====================================================================
 
 # data (from "meanTable") in the runProjections script
-meanTable <- read.csv(paste0(data_path_drvd, "mean_table_1e-06.csv"))
+meanTable <- read.csv(paste0(data_path_drvd, "mean_table.csv"))
 
 # organize data for ggplot
 meanTable_long <- meanTable %>%
@@ -75,7 +75,7 @@ ggsave(paste0(fig_path, "Figure3_road_metrics.", fig_dev), fig3,
 # Figure 4 #====================================================================
 
 # load csv
-matchData <- read.csv(paste0(data_path_drvd, "agree_table_1e-06.csv"))
+matchData <- read.csv(paste0(data_path_drvd, "agree_table.csv"))
 
 matchData <- matchData %>% ungroup() %>%
   mutate(agreement = factor(agreement,
