@@ -32,11 +32,19 @@ roads <- st_read(paste0(data_path_raw, "roads_revelstoke.shp"))
 tsaBoundary <- st_read(paste0(data_path_raw, "new_tsa27_boundaries.shp"))
 #cost surface raster layer
 bc_cost_surface <- terra::rast(paste0(data_path_raw, "cost_surface_bc_ha.tif"))
-#subsets of TSA (in order to run high resolution across large TSA)
-# tsbs <- map(list.files(paste0(data_path_raw, "subs/"), pattern = ".shp",
-                       # full.names = TRUE), st_read)
 
-# tsbs <- (tsbs[1:3]) #for testing on smaller area
+
+#Use subsets of TSA (in order to avoid memory issues)?
+use_sub <- FALSE
+
+if(use_sub){
+  tsbs <- map(list.files(paste0(data_path_raw, "subs/"), pattern = ".shp",
+                         full.names = TRUE), st_read)
+  # tsbs <- tsbs[1:3] #for testing on smaller area
+} else {
+  tsbs <- list(tsaBoundary)
+}
+
 #Klement QGIS projection results shapefile
 klementProj <- st_read(paste0(data_path_drvd,
                               "klementProjection.shp"))
@@ -90,8 +98,17 @@ roadsExist <- roadsExist %>%  st_transform(st_crs(tsaCost_st))
 # setting lake values high because they are blocking paths if NA - not necessary for all landscapes
 tsaCost_st <- terra::subst(tsaCost_st, from = NA, to = lakeValue)
 
+# This doesn't work because some areas dont have any existing roads
+# # Break the area into smaller parts to process separately to avoid memory problems
+# grid <- st_make_grid(tsaBoundary, n = 5, offset = c(1472229, 655853.0))
+#
+# tsa_parts <- st_union(tsaBoundary) %>% st_intersection(grid) %>% st_as_sf() %>%
+#   st_make_valid() %>%
+#   mutate(ID = 1:n()) %>%
+#   split(factor(1:nrow(.)))
+
 #Running projections
-allResults <- projectAll(tsbs = tsa_parts, paramTable = paramTable,
+allResults <- projectAll(tsbs = tsbs, paramTable = paramTable,
                          costSurface = tsaCost_st,
                          cutblocks = cutblocks,
                          existingRoads = roadsExist,
