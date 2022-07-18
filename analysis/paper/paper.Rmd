@@ -1,17 +1,16 @@
 ---
-title: "Title Goes Here"
+title: "Assessment of forestry road network projection methods using the “roads” package in R"
 author:
-  - Myfirstname Mylastname:
-      email: fl@oneplace.edu
-      institute: [UofO]
+  - Josie Hughes:
+      email: josie.hughes@ec.gc.ca
+      institute: [ECCC]
       correspondence: true
-  - Yourfirstname Yourlastname:
-      email: fl@another.edu
-      institute: [UofA]
+  - Sarah Endicott:
+      email: sarah.endicott@ec.gc.ca
+      institute: [ECCC]
       correspondence: false
 institute:
-  - UofO: University of One Place
-  - UofA: University of Another Place
+  - ECCC: Environment and Climate Change Canada 
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
     bookdown::word_document2:
@@ -22,7 +21,7 @@ output:
       - --lua-filter=../templates/author-info-blocks.lua
       - --lua-filter=../templates/pagebreak.lua
 bibliography: references.bib
-csl: "../templates/journal-of-archaeological-science.csl" # Insert path for the bib-style
+csl: "../templates/journal-of-forest-ecology-and-management.csl" # Insert path for the bib-style
 abstract: |
   Text of abstract
 keywords: |
@@ -58,31 +57,99 @@ knitr::opts_chunk$set(
 # Introduction
 
 Here is a citation [@Marwick2017]
-
-# Background
+Global biodiversity is being lost at an unprecedented rate as a result of human activities. One of the major world-wide threats to biodiversity is increasing infrastructural development (Benítez-López et al., 2010). Land transformation has resulted in the loss and fragmentation of habitats in many different ecosystem types worldwide (Benítez-López et al., 2010; Sanderson et al., 2002). Roads and other linear infrastructure, in particular, are key components of landscapes as they have become a major cause of habitat loss, fragmentation, and degradation and are ubiquitous in most landscapes around the world (van der Ree et al., 2011). Although linear infrastructure is important for society because it provides connectivity for people, it also exerts significant negative effects on adjacent habitats, wildlife populations, communities, and ecosystems (van der Ree et al., 2011).
 
 # Methods
+## Study Area
+The Revelstoke timber supply area (TSA 27), in British Columbia, Canada, was selected as the main study site for this paper. With timber harvesting being the dominant resource extraction activity in this region, much of Revelstoke TSA’s total road network is composed of forestry resource roads which were built solely to gain access to forest harvest cutblocks; this makes for a suitable location to test our forest road projections which build networks using the same goal of connecting cutblocks. With approximately 55% of Revelstoke TSA’s area being non-forested land (alpine, lakes, swamp, brush, rock, etc) (Brown & Hachey, 2010), the TSA also provides an ideal location to observe the behaviour of the projections across a landscape which presents multiple barriers to road development. The projections were tested in various TSAs across the province with similar patterns being found in comparable mountainous landscapes where forestry is the dominant resource extraction activity (such as Arrow and Cranbrook TSAs). Revelstoke TSA contains wildlife species that are at risk due to their declining populations, such as members of the southern mountain woodland caribou herds (Brown & Hachey, 2010), and therefore is an example of a landscape where these projections could be used to manage critical wildlife habitats. The British Columbia TSA boundary shapefile layer was downloaded from the British Columbia Data Catalogue (Government of British Columbia, 2021a). 
+
 
 # Results
 
 <!-- Here's some example analysis code: -->
 
-```{r get-data, eval = FALSE}
-# Note the path that we need to use to access our data files when rendering this document
-my_data <- read.csv(here::here('analysis/data/raw_data/my_csv_file.csv'))
+```{r get-data}
+##### Metric table bar plots
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(purrr)
+library(ggpubr)
+library(MetBrewer)
+library(here)
+
+data_path_drvd <- "analysis/data/derived_data/"
+
+fig_path <- "analysis/figures/"
+
+fig_dev <- "jpeg"
+
+pal_nm <- "Egypt"
+
+fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
+
+# Figure 3 #====================================================================
+
+# data (from "meanTable") in the runProjections script
+meanTable <- read.csv(here(data_path_drvd, "mean_table.csv"))
+
+
 ```
 
-```{r demo-plot, fig.cap="A plot of random numbers"}
-plot(rnorm(10))
+```{r fig3, fig.height=7, fig.width=fig_widths["two"], fig.cap="Revelstoke TSA mean road metrics using different projection methods. Observed road network metric values are represented by the horizontal dotted lines for each metric. The “overall” column represents mean metric values from across the entire area of the TSA,  whereas the right “cutover” column represents mean values from within cutblock areas only."}
+# organize data for ggplot
+meanTable_long <- meanTable %>%
+  pivot_longer(-c(sampleType, sampleDens, areaMean),
+               names_to = "metric", values_to = "response")%>%
+  mutate(sampleDens = factor(sampleDens,
+                             levels = c("centroid",
+                                        "low sample density",
+                                        "high sample density",
+                                        "klementQGIS"),
+                             labels = c("Centroid", "Low\ndensity", "High\ndensity",
+                                        "Klement\nQGIS")),
+         metric = factor(metric,
+                         levels = c("roadDensityMean", "roadPresenceMean",
+                                    "distanceToRoadMean",
+                                    "forestryDisturbanceMean",
+                                    "roadDisturbanceMean"),
+                         labels = c("Road density", "Road presence",
+                                    "Distance to road",
+                                    "Forestry disturbance footprint",
+                                    "Road disturbance footprint")))
+
+
+
+observed_values <- filter(meanTable_long, sampleType == "observed")
+projected_values <- filter(meanTable_long, !is.na(sampleDens))
+# Create bar plot
+fig3 <- projected_values %>% group_by(areaMean) %>% nest() %>% ungroup() %>%
+  mutate(obs = observed_values %>% group_by(areaMean) %>% nest() %>% pull(data)) %>%
+  group_by(areaMean) %>%
+  mutate(data = map(data, ~mutate(.x, area = areaMean)),
+         plot = map2(data, obs,
+                    ~ ggplot(.x, aes(x = sampleDens, response, fill = sampleType))+
+                      geom_col(position = position_dodge2(preserve = "single",
+                                                         width = 0.75))+
+                      geom_hline(aes(yintercept = response),
+                                 .y, color = "black", linetype = "dashed")+
+                      facet_wrap(~metric, scales = "free_y", ncol = 1)+
+                      theme_classic()+
+                      scale_fill_manual(values = met.brewer(pal_nm, 4))+
+                      theme(text = element_text(size = 15), axis.title.x = element_blank(),
+                            axis.title.y = element_blank(),
+                            legend.position = "none")+
+                      ggtitle(str_to_title(areaMean)))) %>%
+  pull(plot) %>%
+  {ggarrange(plotlist = .)}
+
+fig3
 ```
 
-Figure \@ref(fig:demo-plot) shows how we can have a caption and cross-reference for a plot
+Figure \@ref(fig:fig3) shows how we can have a caption and cross-reference for a plot
 
-```{r demo-inline-code}
-x <- round(pi, 2)
-```
 
-Here is an example of inline code `r x` in the middle of a sentence. 
 
 # Discussion
 
