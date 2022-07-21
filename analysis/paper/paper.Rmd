@@ -28,6 +28,8 @@ keywords: |
   keyword 1; keyword 2; keyword 3
 highlights: |
   These are the highlights. 
+editor_options: 
+  chunk_output_type: console
 ---
 
 <!-- This is the format for text comments that will be ignored during renderings. Do not put R code in these comments because it will not be ignored. -->
@@ -75,7 +77,7 @@ In the first section of the paper (methods), we introduce the study area used to
 
 ## Study Area
 
-We chose the Revelstoke timber supply area (TSA 27), in British Columbia, Canada as our study area because forestry is the dominant resource extraction activity in this region and much of the TSA's road network is composed of forestry resource roads built to gain access to forest harvest cutblocks (Figure 1). This allows us to project road building based on forest harvest data. With approximately 55% of Revelstoke TSA's area being non-forested land (alpine, lakes, swamp, brush, rock, etc) (Brown & Hachey, 2010), the TSA also provides an ideal location to observe the behaviour of the projections across a landscape which presents multiple barriers to road development. The Revelstoke TSA is in the interior-wet belt of the province and its forests are dominated by Englemann spruce (31%), Hemlock (23%), Cedar (22%), and Douglas-fir (18%) (Ministry of Forests, n.d.-b). The TSA contains wildlife species that are at risk due to their declining populations and are thought to be negatively affected by road development, such as members of the southern mountain woodland caribou population (Brown & Hachey, 2010). The Revelstoke TSA is an example of a landscape where road projections could be used to manage critical wildlife habitats. The British Columbia TSA boundary shapefile layer was downloaded from the British Columbia Data Catalogue (Government of British Columbia, 2021a).
+We chose the Revelstoke timber supply area (TSA 27), in British Columbia, Canada as our study area because forestry is the dominant resource extraction activity in this region and much of the TSA's road network is composed of forestry resource roads built to gain access to forest harvest cutblocks (Figure 1). This allows us to project road building based on forest harvest data. With approximately 55% of Revelstoke TSA's area being non-forested land (alpine, lakes, swamp, brush, rock, etc) [@brown2010], the TSA also provides an ideal location to observe the behaviour of the projections across a landscape which presents multiple barriers to road development. The Revelstoke TSA is in the interior-wet belt of the province and its forests are dominated by Englemann spruce (31%), Hemlock (23%), Cedar (22%), and Douglas-fir (18%) [@ministryofforests]. The TSA contains wildlife species that are at risk due to their declining populations and are thought to be negatively affected by road development, such as members of the southern mountain woodland caribou population [@brown2010]. The Revelstoke TSA is an example of a landscape where road projections could be used to manage critical wildlife habitats. The British Columbia TSA boundary shapefile layer was downloaded from the British Columbia Data Catalogue [@governmentofbritishcolumbia2021].
 
 ```{r fig1, fig.cap="Revelstoke timber supply area in British Colombia, Canada. The colour shows the cost of building roads across each pixel."}
 ##### Metric table bar plots
@@ -89,6 +91,7 @@ library(MetBrewer)
 library(here)
 library(tmap)
 library(sf)
+library(waffle) # Used github version 1.0.1
 
 #set paths
 data_path_raw <- "analysis/data/raw_data/"
@@ -142,10 +145,9 @@ knitr::include_graphics(here("analysis/figures/Figure1_StudyArea.png"))
 
 ```
 
-
 ## Data
 
-To spatially define the cost of constructing and traveling on a forestry road we developed a cost surface raster. We used several spatial raster layers to construct our cost surface. For all cells the base cost followed the Interior Appraisal Manual of BC (source) where the cost per kilometer of road was a linear function of slope. Separate costs for river and pipeline crossings were then added to the cost. Major water bodies were considered barriers and assigned a very high cost. Lastly, to coerce the algorithm to follow existing roads, all nodes representing the existing road network were assigned a cost of 0 (Table 1). The cost surface for the Revelstoke TSA consisted of 1703936 pixels with a resolution of 100 meters by 100 meters.
+To spatially define the cost of constructing and traveling on a forestry road we developed a cost surface raster. We used several spatial raster layers to construct our cost surface. For all cells the base cost followed the Interior Appraisal Manual of BC where the cost per kilometer of road was a linear function of slope [@governmentofbritishcolumbia2021a]. Separate costs for river and pipeline crossings were then added to the cost. Major water bodies were considered barriers and assigned a very high cost. Lastly, to coerce the algorithm to follow existing roads, all nodes representing the existing road network were assigned a cost of 0 (Table 1). The cost surface for the Revelstoke TSA consisted of 1703936 pixels with a resolution of 100 meters by 100 meters.
 
 Table 1. Definitions of road building costs for building the cost surface.
 
@@ -164,47 +166,35 @@ row.names(df)<-NULL
 knitr::kable(df)
 ```
 
-Our road network data was obtained by combining the digital road atlas (DRA) (Data BC, 2021) and forest tenure road (FLNRORD, 2021b) data sets for BC. The existing road network, used as the starting point for projections, was created by filtering out the forest tenure roads with an award date greater than 1990. Cutblock information was obtained from the Harvest Areas of BC (Consolidated Cutblocks) dataset (Government of British Columbia, 2021b). Cutblock information is compiled from provincial Forest Cover, the RESULTS Reporting system, Forest Tenure applications, and satellite imagery using change detection processes. The dataset does not exclude non-harvested 'reserved' areas, and satellite image change detection may not always represent the entire cutblock area (Government of British Columbia, 2021b). Forest harvest cutblocks with harvest years greater than 1990 were filtered and used as targets for the projections.
+Our road network data was obtained by combining the digital road atlas (DRA) [@databc2021] and forest tenure road [@britishcolumbiaministryofforestslandsnaturalresourceoperationsandruraldevelopmentflnrord2021] data sets for BC. The existing road network, used as the starting point for projections, was created by filtering out the forest tenure roads with an award date greater than 1990. Cutblock information was obtained from the Harvest Areas of BC (Consolidated Cutblocks) dataset [@governmentofbritishcolumbia2021b]. Cutblock information is compiled from provincial Forest Cover, the RESULTS Reporting system, Forest Tenure applications, and satellite imagery using change detection processes. The dataset does not exclude non-harvested 'reserved' areas, and satellite image change detection may not always represent the entire cutblock area [@governmentofbritishcolumbia2021b]. Forest harvest cutblocks with harvest years greater than 1990 were filtered and used as targets for the projections.
 
 ## Road Projection Methods
 
-We developed the `roads` R package to project where new roads will be built based on the existing road network, locations of expected resource extraction (i.e. harvest cutblocks) and the landscape connecting the two. There are several different methods available for solving this problem, including snapping, least cost paths, and minimum spanning trees. Snapping follows a straight line between the existing road and each cutblock regardless of the intervening landscape. The least cost paths (LCP) method uses Dijkstra's shortest path algorithm (1959) to determine the optimal path between a cutblock and existing road based on a the cost of building a road at any point between the two. The cost is represented by a cost raster described below. Finally, the minimum spanning tree (MST) method builds on the LCP method by determining the least cost path between all cutblocks and the road and between each cutblock. Then the minimum spanning tree connecting all cutblocks to the road is solved using Kruskal's algorithm (1956). (See Appendix X for a more detailed explanation of these methods). In the remainder of this paper, we focus on the LCP and MST approaches given their assumptions are better aligned with how road networks are designed.
+We developed the `roads` R package to project where new roads will be built based on the existing road network, locations of expected resource extraction (i.e. harvest cutblocks) and the landscape connecting the two. There are several different methods available for solving this problem, including snapping, least cost paths, and minimum spanning trees. Snapping follows a straight line between the existing road and each cutblock regardless of the intervening landscape. The least cost paths (LCP) method uses Dijkstra's shortest path algorithm [-@dijkstra1959] to determine the optimal path between a cutblock and the existing road based on the cost of building a road at any point between the two. The path to each cutblock is determined independently of the other cutblocks. The cost is represented by a cost raster described below. Finally, the minimum spanning tree (MST) method builds on the LCP method by determining the least cost path between all cutblocks and the road and between each cutblock. Then the minimum spanning tree connecting all cutblocks to the road is solved using Kruskal's algorithm [-@kruskal1956]. (See Appendix X for a more detailed explanation of these methods). In the remainder of this paper, we focus on the LCP and MST approaches given their assumptions are better aligned with how road networks are designed.
 
 In addition to the projection methods included in the `roads` package we also applied the Forest Road Network Plugin for QGIS by Clément Hardy (<https://github.com/Klemet/ForestRoadNetworkPluginForQGIS>). This plugin uses a similar least cost path algorithm to the `roads` package but instead of building roads along the least cost path to each cutblock independently the Forest Road Network Plugin uses a heuristic to determine which cutblocks to connect first and then builds the roads sequentially. The default heuristic is to connect the closest cutblocks first. We supplied our cost surface, cutblocks and road network data and kept all the default settings within the QGIS plugin.
 
-
 ## Analysis
 
-We projected road development in the Revelstoke TSA from 1990 to the present using several different inputs and compared the projections to the observed present day road network in order to evaluate the accuracy of the projections and their sensitivity to different inputs. We compared two resolutions for the cost surface by aggregating the fine resolution cost raster to a coarser 1000 m resolution. We also compared methods for locating landing points with in cutblocks by comparing using the polygon centroid, regularly spaced and random points, as well as point densities of 1 and 100 pts/km^2^ (Figure \@ref(fig:fig2)).
+We projected road development in the Revelstoke TSA from 1990 to the present using several different inputs and compared the projections to the observed present day road network in order to evaluate the accuracy of the projections and their sensitivity to different inputs. We compared two resolutions for the cost surface by aggregating the fine resolution cost raster to a coarser 1000 m resolution. We also compared methods for locating landing points within cutblocks by comparing using the polygon centroid, regularly spaced and random points, as well as point densities of 1 and 100 pts/km^2^ (Figure \@ref(fig:fig2)). Note that the default skidding distance used by the Hardy QGIS plugin is 100 m which corresponds to 25 pts/km^2^ .
 
 ```{r fig2, fig.height=5, fig.width=fig_widths["two"], fig.cap="Example of the different projection methods and sampling strategies."}
 knitr::include_graphics(here("analysis/figures/projection methods figure.jpg"))
 ```
 
-
-In order to assess the performance of the projections, the following metrics were used to compare the projected forest road network results with the observed network: 1) Road presence, a simple measure of whether or not roads are present in each pixel; 2) Road disturbance footprint, 1 km buffer applied to observed and projected roads (Ibisch et al., 2016); 3) Forestry disturbance footprint, a 500 m buffer applied to observed and projected roads and cutblocks; 4) Road density, density of roads in meters per hectare (m/ha); 5) Distance to nearest road, distance from each raster cell to the nearest road. The forestry disturbance footprint follows the anthropogenic disturbance metric used for boreal caribou (Johnson et al., 2020), and was calculated using the `caribouMetrics` R package (Endicott et al.,in prep). Road density is an important metric that is often used when studying anthropogenic impacts on wildlife (Beazley et al., 2004). Road density was calculated using the rasterizeLineDensity function within the `caribouMetrics` package (Endicott et al., in prep). Distance to nearest road was calculated using a fast moving window method in the `getDistFromSource` function of the roads package. Each metric was applied to the results from each projection method and the observed roads with the results were stored as rasters.
+In order to assess the performance of the projections, the following metrics were used to compare the projected forest road network results with the observed network: 1) Road presence, a simple measure of whether or not roads are present in each pixel; 2) Road disturbance footprint, 1 km buffer applied to observed and projected roads [@ibisch2016a]; 3) Forestry disturbance footprint, a 500 m buffer applied to observed and projected roads and cutblocks; 4) Road density, density of roads in meters per hectare (m/ha); 5) Distance to nearest road, distance from each raster cell to the nearest road. The forestry disturbance footprint follows the anthropogenic disturbance metric used for boreal caribou [@johnson2020], and was calculated using the `caribouMetrics` R package [@hughes]. Road density is an important metric that is often used when studying anthropogenic impacts on wildlife (Beazley et al., 2004). Road density was calculated using the rasterizeLineDensity function within the `caribouMetrics` package. Distance to nearest road was calculated using a fast moving window method in the `getDistFromSource` function of the roads package. Each metric was applied to the results from each projection method and the observed roads with the results were stored as rasters.
 
 The aspatial accuracy of the projections was assessed by calculating the mean values of the projection metric rasters and then comparing them with the means of the observed metric rasters. This was done across the TSA and at the cutblock level, where metric rasters were masked by the cutblock polygons and the means were taken only from within cutblocks.
 
-The projections were assessed for their spatial accuracy in two different ways. First, difference maps were created by subtracting the road presence rasters of the projected networks with the observed network in order to highlight discrepancies between the networks. The observed and projected road network shapefiles were then overlain on the difference maps and regions of major discrepancies were investigated using Google satellite imagery in QGIS to investigate potential causes of the discrepancy. Secondly, a matching analysis using the three binary metrics (road presence, road disturbance footprint, and forestry disturbance footprint) was performed. This matching analysis compared the three metric rasters for all projection methods with the observed metric rasters and calculated percentages of the TSA that matched and didn't match. All pixels in the Revelstoke TSA for the projected networks fell into 5 categories when compared with the observed raster: 1) pre-existing roads; 2) agree roadless, both projected and observed show no roads; 3) agree roaded, both projected and observed show new roads; 4) false positive, the projection showed a road but no roads were observed; and 5) false negative, the projection showed no roads but a road was observed. Using these 5 categories, the landscape within the Revelstoke TSA was categorized for each projection method and summarized.
+The projections were assessed for their spatial accuracy in two different ways. First, difference maps were created by subtracting the road presence rasters of the projected networks with the observed network in order to highlight discrepancies between the networks. The observed and projected road network shapefiles were then overlain on the difference maps and regions of major discrepancies were investigated using Google satellite imagery in QGIS to investigate potential causes of the discrepancy. Secondly, a matching analysis using the three binary metrics (road presence, road disturbance footprint, and forestry disturbance footprint) was performed. This matching analysis compared the three metric rasters for all projection methods with the observed metric rasters and calculated percentages of the TSA that matched and didn't match. All pixels in the Revelstoke TSA for the projected networks fell into 5 categories when compared with the observed raster: 1) pre-existing roads; 2) agree roadless, both projected and observed show no roads; 3) agree roaded, both projected and observed show new roads; 4) false positive, the projection showed a road but no roads were observed; and 5) false negative, the projection showed no roads but a road was observed. Using these 5 categories, the landscape within the Revelstoke TSA was categorized for each projection method and summarized. We also calculated the sensitivity, precision and F-measure where $sensitivity = \frac{\text{agree roaded}}{(\text{agree roaded} + \text{false negative)}}$, $precision = \frac{\text{agree roaded}}{(\text{agree roaded} + \text{false positive)}}$ and $F\text{-}measure = \frac{(2 * precision * sensitivity)}{(precision + sensitivity)}$.
 
 # Results
 
 ## Aspatial accuracy
 
-Various projection methods provided more accurate aspatial results than others when compared with the observed metrics depending on the metric used. The forestry disturbance footprint metric produced means across all projections that were closest with observed values (Figure 3). Projections of road disturbance footprint and distance to road were also reasonably accurate across the whole landscape, with distance to road being less accurate within cutblocks. Road presence and road density were less accurate and much more sensitive to assumptions about the distribution of roads within cutblocks (i.e. sample density). The road presence metric is sensitive to small differences in road location while the road density metric is sensitive to variations in the curves of tightly packed roads within grid cells that cannot be modeled using this algorithm. Road presence and road density were also the most sensitive to pixel size (reference appendix table for coarse resolution projections). The projection using the Clement's (2021) QGIS plug-in also yielded quite accurate results, especially at an overall TSA level.
+Projection accuracy varied widely across the 5 metrics and two scales compared (Figure \@ref(fig:fig3)). Across all projection methods road projections were less accurate within cutblocks than in the whole TSA. Metrics that used a buffer around the roads, forestry and road disturbance footprint, showed closer agreement between the observed and projected roads than the road density and road presence metrics at both scales. For all methods the distance to road metric was underestimated within cutblocks but was similar to the observed across the whole TSA. The road presence and road density metrics were the most sensitive to pixel size and were less accurate when the coarse cost raster was used (reference appendix table for coarse resolution projections).
 
-## Spatial accuracy
-
-Difference maps helped to highlight areas of discrepancy between the projections and the observed forestry road networks. In areas where the quality of the cutblock and road data was high, the projections remained within a reasonable vicinity of the observed roads and also realistically remained within valley bottoms without cutting across natural barriers such as mountains (figure 4a). Areas of greatest discrepancy often suggest problems with available forestry road or cutblock data. There are some areas in Revelstoke, for example, where there are mapped cutblocks but no mapped access roads, even though satellite images clearly show roads (Figure 4b). There are also instances where areas were likely misidentified as cutblocks (Figure 4c). This is likely due to difficulty distinguishing cutblocks from other unforested areas such as scree slopes and meadows using remote sensing methods.
-
-Figure 5 shows the percentage of matching pixels by category between observed and projected rasters. The percentage of roaded prior to 1990 was the same across all projection methods for the respective metrics because the same 1990 road network was used for all projection as the input for the existing road network. The agree roadless category represented most of the landscape for all projection methods. The subsequent 3 categories (Agree roaded after 1990, project roaded & observe roadless, project roadless & observe roaded) represent the areas where change occurred following 1990.
-
-With the road disturbance footprint metric, the agree roaded after 1990 represented the largest percentage of the landscape which underwent change after 1990. The project roaded & observe roadless category represented higher percentages of the landscape than the project roadless & observe roaded, especially when using a higher sampling density, which shows that there were more areas where the model over projected roads than under projected roads. The small percentage of project roadless & observe roaded across all projection methods shows that there were very few observed roaded areas that the projections did not address.
-
-Using the forestry disturbance footprint metric, the post-1990 roaded pixels lined up very well. Nearly 70% of all post-1990 projected roaded pixels matched with the observed network when using this metric. Project roadless & observe roaded very slightly made up a higher percentage of the landscape when compared to project roaded & observe roadless (by less than half a percent across all projection methods).
-
-When using the fine resolution road presence raster to compare with the observed road presence raster, very few of the post-1990 pixels align. Nearly all post-1990 roaded pixels did not match between observed and projected. The sampling density used determined whether there were more project roaded & observe roadless pixels (higher sampling density) or project roadless & observe roaded pixels (centroid and lower sampling density) amongst the post-1990 roaded pixels.
+When comparing between projection methods we found that the density of landing points chosen within cutblocks made a large difference to the results with the high density method overestimating the road density and road presence metrics while the low density and centroid methods underestimated them. The sampling method for choosing points in the cutblocks, either random or regular, did not have a large effect on the results for the low sample density but regular sampling was less accurate for all metrics with the high sample density. Hardy's QGIS plugin performed well at the overall scale but tended to overestimate the amount of roads within cutblocks.
 
 ```{r get-data}
 # load csv
@@ -214,7 +204,7 @@ matchData <- read.csv(here(data_path_drvd, "agree_table.csv"))
 
 ```
 
-```{r fig3, fig.height=7, fig.width=fig_widths["two"], fig.cap="Revelstoke TSA mean road metrics using different projection methods. Observed road network metric values are represented by the horizontal dotted lines for each metric. The “overall” column represents mean metric values from across the entire area of the TSA,  whereas the right “cutover” column represents mean values from within cutblock areas only."}
+```{r fig3, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods across the entire Revelstoke TSA (“overall”) and within cutblocks (“cutblocks”). Values greater than 0 indicate the projection overestimated the amount of roads and negative values indicate an underestimation."}
 # organize data for ggplot
 meanTable_long <- meanTable %>%
   pivot_longer(-c(sampleType, sampleDens, areaMean),
@@ -224,22 +214,51 @@ meanTable_long <- meanTable %>%
                                         "low sample density",
                                         "high sample density",
                                         "klementQGIS"),
-                             labels = c("Centroid", "Low\ndensity", "High\ndensity",
-                                        "Hardy\nQGIS")),
+                             labels = c("Centroid", "Low density", "High density",
+                                        "Hardy QGIS")),
          metric = factor(metric,
                          levels = c("roadDensityMean", "roadPresenceMean",
                                     "distanceToRoadMean",
                                     "forestryDisturbanceMean",
                                     "roadDisturbanceMean"),
-                         labels = c("Road density", "Road presence",
-                                    "Distance to road",
-                                    "Forestry disturbance footprint",
-                                    "Road disturbance footprint")))
+                         labels = c("Road\ndensity", "Road\npresence",
+                                    "Distance\nto road",
+                                    "Forestry\ndisturbance\nfootprint",
+                                    "Road\ndisturbance\nfootprint")),
+         sampleType = factor(sampleType,
+                             levels = c("centroid",
+                                        "random",
+                                        "regular",
+                                        "klementQGIS", "observed"),
+                             labels = c("Centroid", "Random", "Regular",
+                                        "Hardy QGIS", "Observed")))
 
 
-observed_values <- filter(meanTable_long, sampleType == "observed")
+observed_values <- filter(meanTable_long, sampleType == "Observed")
 projected_values <- filter(meanTable_long, !is.na(sampleDens))
-# Create bar plot
+
+# get proportional difference from observed
+prop_dif <- projected_values %>% 
+  left_join(observed_values %>% select(areaMean, metric, response),
+            by = c("areaMean", "metric"), 
+            suffix = c("_proj", "_obs")) %>% 
+  mutate(prop_dif = (response_proj-response_obs)/response_obs,
+         areaMean = factor(areaMean, labels = c("Cutblocks", "Overall")))
+
+prop_dif %>% 
+  ggplot(aes(x = sampleDens, prop_dif, fill = sampleType))+
+  geom_hline(aes(yintercept = 0), color = "grey")+
+  geom_col(position = position_dodge2(preserve = "single",
+                                      width = 0.75))+
+  facet_grid(areaMean~ metric)+
+  theme_classic()+
+  scale_fill_manual(values = met.brewer(pal_nm, 4), name = "Sampling\nMethod")+
+  theme(text = element_text(size = 10), axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "right",
+        axis.text.x=element_text(size=11, angle=50, vjust=1, hjust=1))
+
+# Create bar plot This is the old version keep in case
 fig3 <- projected_values %>% group_by(areaMean) %>% nest() %>% ungroup() %>%
   mutate(obs = observed_values %>% group_by(areaMean) %>% nest() %>% pull(data)) %>%
   group_by(areaMean) %>%
@@ -260,12 +279,22 @@ fig3 <- projected_values %>% group_by(areaMean) %>% nest() %>% ungroup() %>%
   pull(plot) %>%
   {ggarrange(plotlist = .)}
 
-fig3
+
 ```
 
-```{r fig4, fig.height=5, fig.width=fig_widths["two"], fig.cap="Spatial accuracy"}
+## Spatial accuracy
 
-stackedBar <- matchData %>% ungroup() %>%
+Difference maps helped to highlight areas of discrepancy between the projections and the observed forestry road networks. In areas where the quality of the cutblock and road data was high, the projections remained within a reasonable vicinity of the observed roads and also realistically remained within valley bottoms without cutting across natural barriers such as mountains (figure 4a). Areas of greatest discrepancy often suggest problems with available forestry road or cutblock data. There are some areas in Revelstoke, for example, where there are mapped cutblocks but no mapped access roads, even though satellite images clearly show roads (Figure 4b). There are also instances where areas were likely misidentified as cutblocks (Figure 4c). This is likely due to difficulty distinguishing cutblocks from other unforested areas such as scree slopes and meadows using remote sensing methods.
+
+```{r fig4, fig.height=9, fig.width=fig_widths["two"], fig.cap="Difference maps used to investigate the performance of the projections. Image “a” shows an area of low discrepancy where the projections matched well. When zooming in on the discrepancy shown in image “b”, one can see from the satellite imagery that there are forest roads in the imagery that are missing from the observed data. Image “c” reveals one example of a cutblock that has most likely been mislabelled by remote sensing as it is located on the summit of a mountain."}
+
+knitr::include_graphics(here("analysis/figures/Figure4_diff_map.png"))
+
+```
+
+```{r fig5, fig.height=9, fig.width=fig_widths["two"], fig.cap="Spatial accuracy"}
+
+matchData_sum <- matchData %>% ungroup() %>%
   mutate(agreement = factor(agreement,
                             levels = c("False negative", "False positive",
                                        "Agree roaded","Agree roadless",
@@ -281,9 +310,9 @@ stackedBar <- matchData %>% ungroup() %>%
                              "regular low density",
                              "regular high density",
                              "klementQGIS"),
-                  labels = c("Centroid", "Random low density", "Random high density",
-                             "Regular low density",
-                             "Regular high density",
+                  labels = c("Centroid", "Random\nlow density", "Random\nhigh density",
+                             "Regular\nlow density",
+                             "Regular\nhigh density",
                              "Hardy QGIS")),
          metric = factor(metric,
                          levels = c("roadPresence",
@@ -294,7 +323,9 @@ stackedBar <- matchData %>% ungroup() %>%
                                     "Road disturbance footprint"))) %>%
   group_by(metric, sampleDens, agreement) %>%
   summarise(count = sum(count), .groups = "drop_last") %>%
-  mutate(perc = count/sum(count)*100) %>% 
+  mutate(perc = count/sum(count)*100)
+
+stackedBar <- matchData_sum %>%
   ggplot(aes(x = sampleDens, y =perc, fill = agreement))+
   geom_col(position = "stack", width = 0.75)+
   theme_classic()+
@@ -302,22 +333,63 @@ stackedBar <- matchData %>% ungroup() %>%
   scale_fill_manual(values = c(met.brewer(pal_nm, 4, direction = -1)[c(1,4,3,2)],
                                "#999999"))+
   theme(text = element_text(size = 15), axis.title.x = element_blank())+
-  theme(legend.position="bottom", legend.text = element_text(size = 10), 
+  theme(legend.position="bottom", legend.text = element_text(size = 10),
         legend.title = element_blank(),
         strip.background = element_blank())+
   labs(y = "Percent of Landscape")+
   facet_wrap(~metric)
 
+matchData_sum %>%
+  #filter(metric == "Road presence") %>%
+  ggplot(aes(values = perc*3,
+             fill = factor(agreement, levels = levels(agreement))))+
+  geom_waffle(size = 0.25, colour = "white", flip = TRUE, n_rows = 9)+
+  facet_grid(metric~ sampleDens)+
+  scale_fill_manual(values = c(met.brewer(pal_nm, 4, direction = -1)[c(1,4,3,2)],
+                               "#999999"), name = "Agreement")+
+  scale_x_discrete(name = NULL) +
+  scale_y_continuous(labels = function(x) x * 9/3,
+                     expand = c(0,0), name =  "Percent of Landscape") +
+  coord_equal()+
+  theme_minimal() +
+  theme(text = element_text(size = 10),
+        panel.grid = element_blank(),
+        axis.ticks.y = element_line(),
+        legend.position = "bottom") +
+  guides(fill=guide_legend(nrow=2))
 
-stackedBar
+# performance table
+perf_tbl <- matchData_sum %>% 
+  pivot_wider(c(metric, sampleDens), names_from = agreement, 
+              values_from = count) %>% 
+  mutate(sensitivity = `Agree roaded`/(`Agree roaded` + `False negative`),
+         precision = `Agree roaded`/(`Agree roaded` + `False positive`),
+         F_measure = (2*precision*sensitivity)/(precision+sensitivity)) %>% 
+  select(metric, sampleDens, sensitivity, precision, F_measure) 
+
+perf_tbl_rng <- perf_tbl %>% group_by(metric) %>% 
+  summarise(rng_F = range(F_measure) %>% round(3) %>% paste0(collapse = " - "), .groups = "drop") %>% pull(rng_F, name = metric)
+
+perf_tbl %>% 
+  pivot_longer(c(sensitivity, precision, F_measure), names_to = "perf_meas",
+               values_to = "value") %>% 
+  ggplot(aes(sampleDens, value))+
+  geom_col()+
+  facet_grid(perf_meas~metric)+
+  coord_flip()+
+  ylim(0, 1)+
+  theme_classic()
 
 ```
+
+As expected all the projection methods preformed worst with with road presence metric (F-Measure: `r perf_tbl_rng["Road presence"]`), while the forestry disturbance footprint performed best (F-Measure: `r perf_tbl_rng["Forestry disturbance footprint"]`) and road disturbance footprint only slightly worse (F-Measure: `r perf_tbl_rng["Road disturbance footprint"]`). For the road presence metric higher sampling densities led to somewhat higher F-measure scores caused by fewer false negatives and only slightly more false positives. For the forestry and road disturbance footprint metrics, the lower density projection methods had slightly higher F-measure scores due to fewer false positives and only slightly more false negatives.  
+
 
 # Discussion
 
 Through assessing the performance of our model by comparing its spatial and aspatial accuracy with the observed forest road network following 1990, we are satisfied that the projections provide adequate results given their intended use, and that it is a useful tool for projecting forest road networks across a large landscape with minimal input parameters. However, for applications where the exact location of roads is important (like operational road engineering purposes), or for projecting impacts on wildlife that respond to roads at a very fine spatial scale then this is not an appropriate model. The model does, however, have potential to be a useful tool for predicting impacts on wildlife across large landscape simulations and could easily be incorporated as an element into more complex models that take into account other landscape phenomena such as wildfires, climate change, etc. Because this model does not take timescales into account, it could be a useful post-processing tool as an element of more complex models as it can be applied retroactively to landscape simulations.
 
-Many of the major discrepancies between the projections and the observed network had to do with potential issues with the available data; these discrepancies should be treated with caution as they are not necessarily the fault of the projections themselves and rather with issues in available data. These potential issues were identified through the use of the difference maps paired with recent satellite imagery that allowed us to better understand what was happening on the ground. Often major discrepancies were related to cutblocks that were likely falsely labelled (most often through LANDSAT change detection) in places where there weren't actually cutblocks. These discrepancies had a negative influence on the overall spatial and aspatial accuracy of the projections. In order to get more accurate road projections, one could simply remove the cutblocks derived from LANDSAT as these were often the cutblocks which caused issues, however, these cutblocks were left in as a major goal of this assessment was to create road projections while adjusting input parameters as little as possible. Considering how this model will be used to simulate forest roads moving into the future, it is unlikely that potential future cutblocks will be mislabelled as they were in our situation and this would not be an issue. Another potential issue was with roads not being included in the data set that were seen in the satellite imagery. This issue relates to results from the study by Poley et al (in review) that demonstrated how road network datasets are almost universally incomplete and that many low-use roads (such as forest resource roads) can be seen within recent satellite imagery but are not included in any readily available road datasets. Mapping of roads is often especially lacking in more rural, forested, and mountainous regions where roads are often unpaved (Prendes et al., 2017) with the Auditor General of British Columbia (2017) suggesting that 100 000 km of resource roads are missing from publicly-available road network maps (inspired by Adam Ford's doc). This means there were areas where the projections built a road, causing a discrepancy, but in reality there was actually an observed road there as seen in the satellite imagery. These discrepancies also negatively impacted the spatial and aspatial accuracy results when they shouldn't have and should be treated with caution. It is possible that some roads seen in the satellite images have since been closed which could be a reason for them being absent in the roads data sets. Again, this would not present an issue when predicting future impacts on landscapes, only when assessing the model accuracy in this context. Having said this, the projections were deemed most accurate in areas where the quality of the cutblock and road data was high and consistent with what was seen in recent satellite images.
+Many of the major discrepancies between the projections and the observed network had to do with potential issues with the available data. Often major discrepancies were related to cutblocks that were likely incorrectly labelled (most often through LANDSAT change detection) in places where there weren't actually cutblocks. These discrepancies had a negative influence on the overall spatial and aspatial accuracy of the projections. In order to get more accurate road projections, one could simply remove the cutblocks derived from LANDSAT as these were often the cutblocks which caused issues, however, these cutblocks were left in as a major goal of this assessment was to create road projections while adjusting input parameters as little as possible. Considering how this model will be used to simulate forest roads moving into the future, it is unlikely that potential future cutblocks will be mislabelled as they were in our situation and this would not be an issue. Another potential issue was with roads not being included in the data set that were seen in the satellite imagery. This issue relates to results from the study by Poley et al (in review) that demonstrated how road network datasets are almost universally incomplete and that many low-use roads (such as forest resource roads) can be seen within recent satellite imagery but are not included in any readily available road datasets. Mapping of roads is often especially lacking in more rural, forested, and mountainous regions where roads are often unpaved (Prendes et al., 2017) with the Auditor General of British Columbia (2017) suggesting that 100 000 km of resource roads are missing from publicly-available road network maps (inspired by Adam Ford's doc). This means there were areas where the projections built a road, causing a discrepancy, but in reality there was actually an observed road there as seen in the satellite imagery. These discrepancies also negatively impacted the spatial and aspatial accuracy results when they shouldn't have and should be treated with caution. It is possible that some roads seen in the satellite images have since been closed which could be a reason for them being absent in the roads data sets. Again, this would not present an issue when predicting future impacts on landscapes, only when assessing the model accuracy in this context. Having said this, the projections were deemed most accurate in areas where the quality of the cutblock and road data was high and consistent with what was seen in recent satellite images.
 
 Although this model works well in an area like Revelstoke where the road network is located in a region dominated by forestry roads, it does not work well in landscapes where roads are developed based on other targets outside of cutblocks (where the intent to build the road is not to achieve the least cost path; aka seismic lines). Fort Nelson TSA (TSA 8), for example, contains a large amount of non-forestry roads which are related to seismic lines, oil and gas extraction, etc. Because of this, forestry roads make up a much smaller percentage of the overall road network. In landscapes like this, it does not make sense to use the forestry road projections as many roads are influenced by many different factors. The model was attempted in the Fort Nelson TSA however the resulting road network (Figure A-1) did not accurately portray the observed network like it did in the Revelstoke TSA. However, other resource extraction activities could likely be incorporated into this model relatively easily. The same concept could be used where mining or oil locations could be used as target locations instead of cutblock areas.
 
@@ -332,6 +404,8 @@ Further improvements could be made that would increase the accuracy of the model
 Assessing the performance of this model also presented some unique challenges with comparing two networks with each other across a landscape. We needed to carefully think about what we were trying to achieve. The goal wasn't to present a model that matched the observed road network pixel by pixel, but instead was to simulate disturbance across a large-scale landscape to an acceptable level while still being a relatively simple and straightforward tool. It's for this reason why metrics were chosen that are commonly used in road impact assessments on wildlife; such as the road density and forestry disturbance footprint metrics. Once the vector networks were converted into these raster layers, it also facilitated comparing observed versus projected as we could compare the means across the TSA and study where pixels matched and didn't match. Incorporating these metrics into landscape level simulations is also a realistic goal for this tool (ie projecting forest road density across a landscape) so a goal was to therefore see how well the model did at simulating these metrics when compared to the observed landscape.
 
 Many spatial stochastic models don't include road projections at all in their simulations (Bergeron et al., 2017; DeLong & Tanner, 1996; Naderializadeh & Crowe, 2020; Perera & Cui, 2010). Our model could be relatively easily incorporated, or applied retroactively, to similar spatial stochastic simulations such as these. For large-scale projects such as the Western Boreal Initiative (Environment Canada, date?) that simulate many complex factors across a landscape, our forest road projection methods could be incorporated as one element within the overall landscape simulations.
+
+-The road presence metric is sensitive to small differences in road location while the road density metric is sensitive to variations in the curves of tightly packed roads within grid cells that cannot be modeled using this algorithm.
 
 # Conclusion
 
