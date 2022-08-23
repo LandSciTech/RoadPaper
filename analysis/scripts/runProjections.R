@@ -20,16 +20,16 @@ library(pfocal)
 devtools::load_all()
 
 # set rasterOptions to allow higher memory usage
-prevOpts <- terraOptions(memfrac = 0.9)
+#prevOpts <- terraOptions(memfrac = 0.9)
 
 ######### load in data for projections ########################################
 
 #forest harvest cutblocks
-cutblocks <- st_make_valid(st_read(paste0(data_path_raw, "cutblocks_revelstoke.shp")))
+cutblocks <- st_make_valid(st_read(paste0(data_path_raw, "cutblocks_revelstoke.gpkg")))
 #modern observed roads
-roads <- st_read(paste0(data_path_raw, "roads_revelstoke.shp"))
+roads <- st_read(paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"))
 #boundary for running projection
-tsaBoundary <- st_read(paste0(data_path_raw, "new_tsa27_boundaries.shp"))
+tsaBoundary <- st_read(paste0(data_path_raw, "tsa27_boundaries.gpkg"))
 #cost surface raster layer
 bc_cost_surface <- terra::rast(paste0(data_path_raw, "cost_surface_bc_ha.tif"))
 
@@ -42,7 +42,7 @@ if(use_sub){
                          full.names = TRUE), st_read)
   # tsbs <- tsbs[1:3] #for testing on smaller area
 } else {
-  tsbs <- list(tsaBoundary)
+  tsbs <- list(st_union(tsaBoundary))
 }
 
 #Klement QGIS projection results shapefile
@@ -52,12 +52,16 @@ klementProj <- st_read(paste0(data_path_drvd,
 ###### Parameters #############################################################
 
 # set years for projection start (the projection is set to go from 1990 onwards)
-roadsYear <- 19900000
+roadsYear <- as.Date("1990-01-01")
+# need to limit roads included to only those from max harvest year or earlier
+maxHarvYear <- cutblocks$HARVEST_YEAR %>% max %>% as.character() %>%
+  paste0("-12-31") %>%  as.Date(format = "%Y-%m-%d")
+
 # set cutblock year
 cutblocksYear <- 1990
 #set high and low sampling densities for projections
-low <- 0.000001
-high <- 0.0001
+low  <- 0.000001
+high <- 0.00001
 #if lakes block path then set high value for lakes (NA) on cost surface.
 lakeValue <- 65000 #often this isn't needed but Revelstoke TSA requires this.
 aggFact <- 1 #factor of aggregation of cost surface. 1 = no aggregation.
@@ -67,7 +71,9 @@ aggFact <- 1 #factor of aggregation of cost surface. 1 = no aggregation.
 # parameter table creation for running projections
 sampleDens <- c(low,high,low,high,low)
 sampleType <- c("regular","regular","random","random","centroid")
-paramTable <- tibble(sampleType, sampleDens, output = vector("list", length(sampleDens)),
+paramTable <- tibble(sampleType, sampleDens,
+                     runTime = vector("list", length(sampleDens)),
+                     output = vector("list", length(sampleDens)),
                      roadDisturbance = vector("list", length(sampleDens)),
                      roadDensity = vector("list", length(sampleDens)),
                      roadPresence = vector("list", length(sampleDens)),
@@ -75,11 +81,12 @@ paramTable <- tibble(sampleType, sampleDens, output = vector("list", length(samp
                      forestryDisturbance = vector("list", length(sampleDens)))
 
 #filter roads by year to make existing forestry road network
-roads[is.na(roads)] <- roadsYear
+roads$AWARD_DATE[is.na(roads$AWARD_DATE)] <- roadsYear
 roadsExist <- filter(roads, AWARD_DATE <= roadsYear)
+roads <- filter(roads, AWARD_DATE <= maxHarvYear)
 
-cutblocksPrior <- filter(cutblocks, HARVESTYR <= cutblocksYear)
-cutblocks <- filter(cutblocks, HARVESTYR > cutblocksYear)
+cutblocksPrior <- filter(cutblocks, HARVEST_YEAR <= cutblocksYear)
+cutblocks <- filter(cutblocks, HARVEST_YEAR > cutblocksYear)
 
 ### prepare cost surface layer
 tsaCost <- crop(bc_cost_surface, tsaBoundary)
@@ -120,14 +127,14 @@ allResults <- projectAll(tsbs = tsbs, paramTable = paramTable,
 #                          sampleDens, ".shp"))
 
 # Using David's saved results
-allResults <- paramTable %>%
-  mutate(output = paste0(data_path_drvd, "combinedTSBRoads", "_",
-                         dplyr::case_when(sampleType == "centroid" ~ "C",
-                                   sampleType == "random" & sampleDens == 1e-04 ~ "RA2",
-                                   sampleType == "random" & sampleDens == 1e-06 ~ "RA1",
-                                   sampleType == "regular" & sampleDens == 1e-04 ~ "RE2",
-                                   sampleType == "regular" & sampleDens == 1e-06 ~ "RE1"),
-                         ".shp"))
+# allResults <- paramTable %>%
+#   mutate(output = paste0(data_path_drvd, "combinedTSBRoads", "_",
+#                          dplyr::case_when(sampleType == "centroid" ~ "C",
+#                                    sampleType == "random" & sampleDens == 1e-04 ~ "RA2",
+#                                    sampleType == "random" & sampleDens == 1e-06 ~ "RA1",
+#                                    sampleType == "regular" & sampleDens == 1e-04 ~ "RE2",
+#                                    sampleType == "regular" & sampleDens == 1e-06 ~ "RE1"),
+#                          ".shp"))
 
 # creating raster layers of the various metrics
 allMetrics <- calcMetrics(paramTable = allResults,
