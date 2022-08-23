@@ -79,7 +79,7 @@ In the first section of the paper (methods), we introduce the study area used to
 
 We chose the Revelstoke timber supply area (TSA 27), in British Columbia, Canada as our study area because forestry is the dominant resource extraction activity in this region and much of the TSA's road network is composed of forestry resource roads built to gain access to forest harvest cutblocks (Figure 1). This allows us to project road building based on forest harvest data. With approximately 55% of Revelstoke TSA's area being non-forested land (alpine, lakes, swamp, brush, rock, etc) [@brown2010], the TSA also provides an ideal location to observe the behaviour of the projections across a landscape which presents multiple barriers to road development. The Revelstoke TSA is in the interior-wet belt of the province and its forests are dominated by Englemann spruce (31%), Hemlock (23%), Cedar (22%), and Douglas-fir (18%) [@ministryofforests]. The TSA contains wildlife species that are at risk due to their declining populations and are thought to be negatively affected by road development, such as members of the southern mountain woodland caribou population [@brown2010]. The Revelstoke TSA is an example of a landscape where road projections could be used to manage critical wildlife habitats. The British Columbia TSA boundary shapefile layer was downloaded from the British Columbia Data Catalogue [@governmentofbritishcolumbia2021].
 
-```{r fig1, fig.cap="Revelstoke timber supply area in British Colombia, Canada. The colour shows the cost of building roads across each pixel."}
+```{r setup2}
 ##### Metric table bar plots
 library(ggplot2)
 library(dplyr)
@@ -96,10 +96,12 @@ library(sf)
 data_path_raw <- "analysis/data/raw_data/"
 data_path_drvd <- "analysis/data/derived_data/"
 
-pal_nm <- "Egypt"
+pal_nm <- "Redon"
 
 fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
+```
 
+```{r fig1, fig.cap="Revelstoke timber supply area in British Colombia, Canada. The colour shows the cost of building roads across each pixel."}
 tsaBoundary <- read_sf(here(data_path_raw, "tsa27_boundaries.gpkg"))
 #cost surface raster layer
 bc_cost_surface <- terra::rast(here(data_path_raw, "cost_surface_bc_ha.tif"))
@@ -203,7 +205,7 @@ matchData <- read.csv(here(data_path_drvd, "agree_table.csv"))
 
 ```
 
-```{r fig3, fig.height=3.3, fig.width=fig_widths["single"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods across the entire Revelstoke TSA (“overall”) and within cutblocks (“cutblocks”). Values greater than 0 indicate the projection overestimated the amount of roads and negative values indicate an underestimation."}
+```{r fig3, fig.height=4, fig.width=fig_widths["mid"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods across the entire Revelstoke TSA (“overall”) and within cutblocks (“cutblocks”). Values greater than 0 indicate the projection overestimated the amount of roads and negative values indicate an underestimation."}
 # organize data for ggplot
 meanTable_long <- meanTable %>%
   pivot_longer(-c(sampleType, sampleDens, areaMean),
@@ -296,7 +298,7 @@ knitr::include_graphics(here("analysis/figures/Figure4_diff_map.png"))
 
 ```
 
-```{r fig5, fig.height=9, fig.width=fig_widths["two"], fig.cap="Spatial accuracy"}
+```{r fig5, fig.height=9, fig.width=fig_widths["two"], fig.cap="Comparison of performance metrics for each projection method. F measure is the harmonic mean of precision and sensitivity, precision is the proportion of  predicted roads that are observed roads and sensitivity is the proportion of observed roads that were correctly predicted."}
 
 matchData_sum <- matchData %>% ungroup() %>%
   mutate(agreement = factor(agreement,
@@ -310,12 +312,14 @@ matchData_sum <- matchData %>% ungroup() %>%
            str_replace("klementQGIS NA", "klementQGIS") %>%
            factor(levels = c("centroid",
                              "random low density",
-                             "random high density",
                              "regular low density",
+                             "random high density",
                              "regular high density",
                              "klementQGIS"),
-                  labels = c("Centroid", "Random\nlow density", "Random\nhigh density",
+                  labels = c("Centroid", 
+                             "Random\nlow density",
                              "Regular\nlow density",
+                             "Random\nhigh density",
                              "Regular\nhigh density",
                              "Hardy QGIS")),
          metric = factor(metric,
