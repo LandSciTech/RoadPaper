@@ -1,14 +1,14 @@
 ---
 title: "Assessment of forestry road network projection methods using the “roads” package in R"
 author:
-  - Josie Hughes:
-      email: josie.hughes@ec.gc.ca
-      institute: [ECCC]
-      correspondence: true
-  - Sarah Endicott:
-      email: sarah.endicott@ec.gc.ca
-      institute: [ECCC]
-      correspondence: false
+  - name: Josie Hughes
+    email: josie.hughes@ec.gc.ca
+    institute: [ECCC]
+    correspondence: true
+  - name: Sarah Endicott
+    email: sarah.endicott@ec.gc.ca
+    institute: [ECCC]
+    correspondence: false
 institute:
   - ECCC: Environment and Climate Change Canada 
 date: "`r format(Sys.time(), '%d %B, %Y')`"
@@ -101,7 +101,7 @@ pal_nm <- "Egypt"
 
 fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 
-tsaBoundary <- read_sf(here(data_path_raw, "new_tsa27_boundaries.shp"))
+tsaBoundary <- read_sf(here(data_path_raw, "tsa27_boundaries.gpkg"))
 #cost surface raster layer
 bc_cost_surface <- terra::rast(here(data_path_raw, "cost_surface_bc_ha.tif"))
 lakeValue <- 65000
@@ -166,7 +166,7 @@ row.names(df)<-NULL
 knitr::kable(df)
 ```
 
-Our road network data was obtained by combining the digital road atlas (DRA) [@databc2021] and forest tenure road [@britishcolumbiaministryofforestslandsnaturalresourceoperationsandruraldevelopmentflnrord2021] data sets for BC. The existing road network, used as the starting point for projections, was created by filtering out the forest tenure roads with an award date greater than 1990. Cutblock information was obtained from the Harvest Areas of BC (Consolidated Cutblocks) dataset [@governmentofbritishcolumbia2021b]. Cutblock information is compiled from provincial Forest Cover, the RESULTS Reporting system, Forest Tenure applications, and satellite imagery using change detection processes. The dataset does not exclude non-harvested 'reserved' areas, and satellite image change detection may not always represent the entire cutblock area [@governmentofbritishcolumbia2021b]. Forest harvest cutblocks with harvest years greater than 1990 were filtered and used as targets for the projections.
+Our road network data was obtained by combining the digital road atlas (DRA) [@databc2021] and forest tenure road [@britishcolumbiaministryofforestslandsnaturalresourceoperationsandruraldevelopmentflnrord2021] data sets for BC. To avoid situations where the same road was included in both data sets with slightly different coordinates we removed all roads from the DRA data set that were within 50m of a road in the forest tenure road data set. The existing road network, used as the starting point for projections, was created by filtering out forest tenure roads with an award date greater than 1990. Cutblock information was obtained from the Harvest Areas of BC (Consolidated Cutblocks) dataset [@governmentofbritishcolumbia2021b]. Cutblock information is compiled from provincial Forest Cover, the RESULTS Reporting system, Forest Tenure applications, and satellite imagery using change detection processes. The dataset does not exclude non-harvested 'reserved' areas, and satellite image change detection may not always represent the entire cutblock area [@governmentofbritishcolumbia2021b]. Forest harvest cutblocks with harvest years greater than 1990 were filtered and used as targets for the projections.
 
 ## Road Projection Methods
 
@@ -204,18 +204,28 @@ matchData <- read.csv(here(data_path_drvd, "agree_table.csv"))
 
 ```
 
-```{r fig3, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods across the entire Revelstoke TSA (“overall”) and within cutblocks (“cutblocks”). Values greater than 0 indicate the projection overestimated the amount of roads and negative values indicate an underestimation."}
+```{r fig3, fig.height=3.3, fig.width=fig_widths["single"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods across the entire Revelstoke TSA (“overall”) and within cutblocks (“cutblocks”). Values greater than 0 indicate the projection overestimated the amount of roads and negative values indicate an underestimation."}
 # organize data for ggplot
 meanTable_long <- meanTable %>%
   pivot_longer(-c(sampleType, sampleDens, areaMean),
                names_to = "metric", values_to = "response")%>%
-  mutate(sampleDens = factor(sampleDens,
-                             levels = c("centroid",
-                                        "low sample density",
-                                        "high sample density",
-                                        "klementQGIS"),
-                             labels = c("Centroid", "Low density", "High density",
-                                        "Hardy QGIS")),
+  mutate(sampleType = ifelse(sampleType == sampleDens, NA_character_, 
+                             sampleType),
+         sampleDens = paste(sampleType, sampleDens) %>% 
+           factor(levels = c("NA centroid",
+                             "NA observed",
+                             "random low sample density",
+                             "regular low sample density",
+                             "random high sample density",
+                             "regular high sample density",
+                             "NA klementQGIS"),
+                  labels = c("Centroid", 
+                             "Observed",
+                             "Random\nlow density",
+                             "Regular\nlow density",
+                             "Random\nhigh density",
+                             "Regular\nhigh density",
+                             "Hardy QGIS")),
          metric = factor(metric,
                          levels = c("roadDensityMean", "roadPresenceMean",
                                     "distanceToRoadMean",
@@ -224,18 +234,11 @@ meanTable_long <- meanTable %>%
                          labels = c("Road\ndensity", "Road\npresence",
                                     "Distance\nto road",
                                     "Forestry\ndisturbance\nfootprint",
-                                    "Road\ndisturbance\nfootprint")),
-         sampleType = factor(sampleType,
-                             levels = c("centroid",
-                                        "random",
-                                        "regular",
-                                        "klementQGIS", "observed"),
-                             labels = c("Centroid", "Random", "Regular",
-                                        "Hardy QGIS", "Observed")))
+                                    "Road\ndisturbance\nfootprint")))
 
 
-observed_values <- filter(meanTable_long, sampleType == "Observed")
-projected_values <- filter(meanTable_long, !is.na(sampleDens))
+observed_values <- filter(meanTable_long, sampleDens == "Observed")
+projected_values <- filter(meanTable_long, sampleDens != "Observed")
 
 # get proportional difference from observed
 prop_dif <- projected_values %>% 
@@ -246,17 +249,19 @@ prop_dif <- projected_values %>%
          areaMean = factor(areaMean, labels = c("Cutblocks", "Overall")))
 
 prop_dif %>% 
-  ggplot(aes(x = sampleDens, prop_dif, fill = sampleType))+
+  ggplot(aes(x = sampleDens, prop_dif, fill = sampleDens))+
   geom_hline(aes(yintercept = 0), color = "grey")+
   geom_col(position = position_dodge2(preserve = "single",
                                       width = 0.75))+
   facet_grid(areaMean~ metric)+
   theme_classic()+
-  scale_fill_manual(values = met.brewer(pal_nm, 4), name = "Sampling\nMethod")+
+  scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:4, 6)],
+                    name = "Sampling\nMethod", guide = "none")+
   theme(text = element_text(size = 10), axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         legend.position = "right",
-        axis.text.x=element_text(size=11, angle=50, vjust=1, hjust=1))
+        axis.text.x=element_text(size=11, angle=50, vjust=1, hjust=1))+
+  coord_flip()
 
 # Create bar plot This is the old version keep in case
 fig3 <- projected_values %>% group_by(areaMean) %>% nest() %>% ungroup() %>%
@@ -319,7 +324,7 @@ matchData_sum <- matchData %>% ungroup() %>%
                                     "forestryDisturbance",
                                     "roadDisturbance"),
                          labels = c("Road presence",
-                                    "Forestry disturbance footprint",
+                                    "Forestry disturbance\nfootprint",
                                     "Road disturbance footprint"))) %>%
   group_by(metric, sampleDens, agreement) %>%
   summarise(count = sum(count), .groups = "drop_last") %>%
@@ -339,24 +344,25 @@ stackedBar <- matchData_sum %>%
   labs(y = "Percent of Landscape")+
   facet_wrap(~metric)
 
-matchData_sum %>%
-  #filter(metric == "Road presence") %>%
-  ggplot(aes(values = perc*3,
-             fill = factor(agreement, levels = levels(agreement))))+
-  geom_waffle(size = 0.25, colour = "white", flip = TRUE, n_rows = 9)+
-  facet_grid(metric~ sampleDens)+
-  scale_fill_manual(values = c(met.brewer(pal_nm, 4, direction = -1)[c(1,4,3,2)],
-                               "#999999"), name = "Agreement")+
-  scale_x_discrete(name = NULL) +
-  scale_y_continuous(labels = function(x) x * 9/3,
-                     expand = c(0,0), name =  "Percent of Landscape") +
-  coord_equal()+
-  theme_minimal() +
-  theme(text = element_text(size = 10),
-        panel.grid = element_blank(),
-        axis.ticks.y = element_line(),
-        legend.position = "bottom") +
-  guides(fill=guide_legend(nrow=2))
+# waffle stacked bar
+# matchData_sum %>%
+#   #filter(metric == "Road presence") %>%
+#   ggplot(aes(values = perc*3,
+#              fill = factor(agreement, levels = levels(agreement))))+
+#   geom_waffle(size = 0.25, colour = "white", flip = TRUE, n_rows = 9)+
+#   facet_grid(metric~ sampleDens)+
+#   scale_fill_manual(values = c(met.brewer(pal_nm, 4, direction = -1)[c(1,4,3,2)],
+#                                "#999999"), name = "Agreement")+
+#   scale_x_discrete(name = NULL) +
+#   scale_y_continuous(labels = function(x) x * 9/3,
+#                      expand = c(0,0), name =  "Percent of Landscape") +
+#   coord_equal()+
+#   theme_minimal() +
+#   theme(text = element_text(size = 10),
+#         panel.grid = element_blank(),
+#         axis.ticks.y = element_line(),
+#         legend.position = "bottom") +
+#   guides(fill=guide_legend(nrow=2))
 
 # performance table
 perf_tbl <- matchData_sum %>% 
@@ -373,16 +379,21 @@ perf_tbl_rng <- perf_tbl %>% group_by(metric) %>%
 perf_tbl %>% 
   pivot_longer(c(sensitivity, precision, F_measure), names_to = "perf_meas",
                values_to = "value") %>% 
-  ggplot(aes(sampleDens, value))+
+  mutate(perf_meas = factor(perf_meas,
+                            labels = c("F measure", "Precision", "Sensitivity"))) %>% 
+  ggplot(aes(sampleDens, value, fill = sampleDens))+
   geom_col()+
-  facet_grid(perf_meas~metric)+
+  scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:4, 6)],
+                    name = "Sampling\nMethod", guide = "none")+
+  facet_grid(metric ~ perf_meas)+
   coord_flip()+
   ylim(0, 1)+
-  theme_classic()
+  theme_classic()+
+  labs(y = "Performance", x = NULL)
 
 ```
 
-As expected all the projection methods preformed worst with with road presence metric (F-Measure: `r perf_tbl_rng["Road presence"]`), while the forestry disturbance footprint performed best (F-Measure: `r perf_tbl_rng["Forestry disturbance footprint"]`) and road disturbance footprint only slightly worse (F-Measure: `r perf_tbl_rng["Road disturbance footprint"]`). For the road presence metric higher sampling densities led to somewhat higher F-measure scores caused by fewer false negatives and only slightly more false positives. For the forestry and road disturbance footprint metrics, the lower density projection methods had slightly higher F-measure scores due to fewer false positives and only slightly more false negatives.  
+As expected all the projection methods preformed worst with the road presence metric (F-Measure: `r perf_tbl_rng["Road presence"]`), while the forestry disturbance footprint performed best (F-Measure: `r perf_tbl_rng["Forestry disturbance footprint"]`) and road disturbance footprint only slightly worse (F-Measure: `r perf_tbl_rng["Road disturbance footprint"]`). For the road presence metric higher sampling densities led to somewhat higher F-measure scores caused by fewer false negatives and only slightly more false positives. For the forestry and road disturbance footprint metrics, the lower density projection methods had slightly higher F-measure scores due to fewer false positives and only slightly more false negatives.  
 
 
 # Discussion
