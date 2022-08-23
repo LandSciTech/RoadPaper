@@ -91,7 +91,6 @@ library(MetBrewer)
 library(here)
 library(tmap)
 library(sf)
-library(waffle) # Used github version 1.0.1
 
 #set paths
 data_path_raw <- "analysis/data/raw_data/"

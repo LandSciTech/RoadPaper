@@ -33,7 +33,11 @@ Imports:
     tibble (>= 3.1.6),
     tidyr (>= 1.1.4),
     tmap (>= 3.3-3),
-    units (>= 0.7-2)
+    units (>= 0.7-2),
+    bcdata (>= 0.3.2),
+    geodata (>= 0.4-6),
+    spatstat.geom,
+    grid (>= 4.1.2)
 Suggests: devtools,
     git2r
 URL: https://github.com/LandSciTech/RoadPaper
