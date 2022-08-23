@@ -241,6 +241,7 @@ projectAll<-function(tsbs,paramTable, costSurface,
   for(i in 1:nrow(paramTable)) {
     # i = 1
     cRow = paramTable[i,]
+    start <- Sys.time()
 
     projectionsList <- map(tsbs,
                            fineResProject,
@@ -253,9 +254,12 @@ projectAll<-function(tsbs,paramTable, costSurface,
 
     projections <- do.call(rbind, projectionsList)
 
+    end <- Sys.time()
+
 
     paramTable$output[[i]] <- paste0(fileLocation, "_", cRow$sampleType, "_",
                                      cRow$sampleDens, ".shp")
+    paramTable$runTime[[i]] <- as.numeric(end - start)
 
     # save the projected roads to a file
     sf::write_sf(projections, paramTable$output[[i]])
