@@ -236,7 +236,7 @@ getDistFromSource <- function(src,maxDist,kwidth=3,dissag=F){
 # function to generate all projections and raster layers for metrics
 
 projectAll<-function(tsbs,paramTable, costSurface,
-                     cutblocks, existingRoads, fileLocation) {
+                     cutblocks, existingRoads, fileLocation, method) {
 
   for(i in 1:nrow(paramTable)) {
     # i = 1
@@ -250,14 +250,14 @@ projectAll<-function(tsbs,paramTable, costSurface,
                            sampleType = cRow$sampleType,
                            costRaster = costSurface,
                            existingRoads = existingRoads,
-                           projectionMethod = "mst")
+                           projectionMethod = method)
 
     projections <- do.call(rbind, projectionsList)
 
     end <- Sys.time()
 
 
-    paramTable$output[[i]] <- paste0(fileLocation, "_", cRow$sampleType, "_",
+    paramTable$output[[i]] <- paste0(fileLocation, cRow$sampleType, "_",
                                      cRow$sampleDens, ".shp")
     paramTable$runTime[[i]] <- as.numeric(end - start)
 
@@ -281,16 +281,19 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
 
   paramTable$output[[nrow(paramTable)]] <- observedRoads
 
-  klementRow <- c("klementQGIS", NA, NA, NA, NA, NA, NA, NA)
+  if(!is.null(klementProj)){
+    klementRow <- c("klementQGIS", NA, NA, NA, NA, NA, NA, NA)
 
-  paramTable <- rbind(paramTable, klementRow)
+    paramTable <- rbind(paramTable, klementRow)
 
-  paramTable$output[[nrow(paramTable)]] <- klementProj
+    paramTable$output[[nrow(paramTable)]] <- klementProj
+  }
 
   cutblocksRaster <- terra::rasterize(terra::vect(cutblocks), nonAggregatedCostSurface)
 
   for(i in 1:nrow(paramTable)) {
     # i = 1
+    print(i)
     cRow = paramTable[i,]
 
     out <- list(sf::read_sf(cRow$output))
@@ -488,3 +491,138 @@ agreeMetricsAll <- function(paramTable, prex_rast, prex_vect, boundary, cutblock
 
 }
 
+
+# run all projections and summarise results for one tsa
+run_projections <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
+                            outPth, klementProj, low, high, aggFact, method = "mst"){
+  if(!dir.exists(outPth)){
+    dir.create(outPth)
+  }
+  ######### load in data for projections ########################################
+
+  #forest harvest cutblocks
+  cutblocks <- st_make_valid(st_read(cutblocksPth))
+  #modern observed roads
+  roads <- st_read(roadsPth)
+  #boundary for running projection
+  tsaBoundary <- st_read(tsaBoundaryPth)
+  tsbs <- list(st_union(tsaBoundary))
+  #cost surface raster layer
+  bc_cost_surface <- terra::rast(costPth)
+
+  ###### Parameters #############################################################
+
+  # set years for projection start (the projection is set to go from 1990 onwards)
+  roadsYear <- as.Date("1990-01-01")
+  # set cutblock year
+  cutblocksYear <- 1990
+
+  #if lakes block path then set high value for lakes (NA) on cost surface.
+  lakeValue <- 65000 #often this isn't needed but Revelstoke TSA requires this.
+
+  ###############################################################################
+
+  # parameter table creation for running projections
+  sampleDens <- c(low,high,low,high,low)
+  sampleType <- c("regular","regular","random","random","centroid")
+  paramTable <- tibble(sampleType, sampleDens,
+                       runTime = vector("list", length(sampleDens)),
+                       output = vector("list", length(sampleDens)),
+                       roadDisturbance = vector("list", length(sampleDens)),
+                       roadDensity = vector("list", length(sampleDens)),
+                       roadPresence = vector("list", length(sampleDens)),
+                       distanceToRoad = vector("list", length(sampleDens)),
+                       forestryDisturbance = vector("list", length(sampleDens))) %>%
+    distinct()
+
+  #filter roads by year to make existing forestry road network
+  roadsExist <- filter(roads, AWARD_DATE <= roadsYear)
+
+  cutblocksPrior <- filter(cutblocks, HARVEST_YEAR <= cutblocksYear)
+  cutblocks <- filter(cutblocks, HARVEST_YEAR > cutblocksYear)
+
+  ### prepare cost surface layer
+  tsaCost <- crop(bc_cost_surface, tsaBoundary)
+
+  if(aggFact > 1){
+    tsaCost <- terra::aggregate(tsaCost, fact = aggFact, fun = terra::mean)
+  }
+
+  # burn roads into cost raster
+  roadsExist_rast <- terra::rasterize(terra::vect(roadsExist), terra::rast(tsaCost),
+                                      background = 0) == 0
+
+  tsaCost_st <- tsaCost * roadsExist_rast
+  roadsExist <- roadsExist %>%  st_transform(st_crs(tsaCost_st))
+
+  # setting lake values high because they are blocking paths if NA - not necessary for all landscapes
+  tsaCost_st <- terra::subst(tsaCost_st, from = NA, to = lakeValue)
+
+  # This doesn't work because some areas dont have any existing roads
+  # # Break the area into smaller parts to process separately to avoid memory problems
+  # grid <- st_make_grid(tsaBoundary, n = 5, offset = c(1472229, 655853.0))
+  #
+  # tsa_parts <- st_union(tsaBoundary) %>% st_intersection(grid) %>% st_as_sf() %>%
+  #   st_make_valid() %>%
+  #   mutate(ID = 1:n()) %>%
+  #   split(factor(1:nrow(.)))
+
+  #Running projections
+  allResults <- projectAll(tsbs = tsbs, paramTable = paramTable,
+                           costSurface = tsaCost_st,
+                           cutblocks = cutblocks,
+                           existingRoads = roadsExist,
+                           fileLocation = outPth,
+                           method = method)
+
+  # recreate allResults after a restart using saved files
+  # allResults <- paramTable[c(1,3,5),] %>%
+  #   mutate(output = paste0(data_path_drvd, "TSA27", "_", sampleType, "_",
+  #                          sampleDens, ".shp"))
+
+  # Using David's saved results
+  # allResults <- paramTable %>%
+  #   mutate(output = paste0(data_path_drvd, "combinedTSBRoads", "_",
+  #                          dplyr::case_when(sampleType == "centroid" ~ "C",
+  #                                    sampleType == "random" & sampleDens == 1e-04 ~ "RA2",
+  #                                    sampleType == "random" & sampleDens == 1e-06 ~ "RA1",
+  #                                    sampleType == "regular" & sampleDens == 1e-04 ~ "RE2",
+  #                                    sampleType == "regular" & sampleDens == 1e-06 ~ "RE1"),
+  #                          ".shp"))
+
+
+
+  # creating raster layers of the various metrics
+  allMetrics <- calcMetrics(paramTable = allResults,
+                            boundary = tsaBoundary,
+                            nonAggregatedCostSurface = bc_cost_surface,
+                            observedRoads = roadsPth,
+                            klementProj = klementProj,
+                            cutblocks = cutblocks,
+                            costSurface = tsaCost_st)
+
+  #Retrieving mean values for cutover and overall
+  meanTable <- getMetricMeans(allMetrics, cutblocks)
+
+  meanTable <-  mutate(meanTable,
+                       sampleDens = case_when(
+                         sampleType == "centroid" ~ "centroid",
+                         sampleType == "observed" ~ "observed",
+                         sampleType == "klementQGIS" ~ "klementQGIS",
+                         sampleDens == low ~ "low sample density",
+                         sampleDens == high ~"high sample density"))
+
+
+  meanTable #resulting table with all mean values from the metrics (overall & cutover)
+
+  meanTable <- mutate(meanTable, across(where(is.list), unlist))
+
+  write.csv(meanTable, paste0(outPth, "mean_table.csv"), row.names = FALSE)
+
+  # compare spatially explicit agreement
+  agreeTable <- agreeMetricsAll(allMetrics, prex_rast = roadsExist_rast == 0,
+                                prex_vect = roadsExist, boundary = tsaBoundary,
+                                cutblocks = cutblocksPrior)
+
+  write.csv(agreeTable, paste0(outPth, "agree_table.csv"), row.names = FALSE)
+}
