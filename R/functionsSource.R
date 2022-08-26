@@ -433,10 +433,8 @@ getMetricMeans <- function(paramTable, cutblocks){
 #' @return a table
 #' @noRd
 calcAgree <- function(obs_rast, proj_rast, prex_rast){
-  if(res(proj_rast)[1]!= res(obs_rast)){
-    proj_rast <- aggregate(proj_rast, aggFact)
-  }
   proj_rast <- terra::crop(proj_rast, obs_rast)
+  prex_rast <- terra::crop(prex_rast, obs_rast)
   res <- obs_rast + prex_rast + proj_rast
 
   lu_tbl <- tibble::tribble(~value, ~agreement,
