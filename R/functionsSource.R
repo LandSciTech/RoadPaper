@@ -433,6 +433,9 @@ getMetricMeans <- function(paramTable, cutblocks){
 #' @return a table
 #' @noRd
 calcAgree <- function(obs_rast, proj_rast, prex_rast){
+  if(res(proj_rast)[1]!= res(obs_rast)){
+    proj_rast <- aggregate(proj_rast, aggFact)
+  }
   proj_rast <- terra::crop(proj_rast, obs_rast)
   res <- obs_rast + prex_rast + proj_rast
 
@@ -458,7 +461,7 @@ calcAgree <- function(obs_rast, proj_rast, prex_rast){
 #' @param boundary polygon boundary to mask rasters
 
 
-agreeMetricsAll <- function(paramTable, prex_rast, prex_vect, boundary, cutblocks){
+agreeMetricsAll <- function(paramTable, prex_rast, prex_vect, boundary, cutblocks, nonAggregatedCostSurface){
   obs_tbl <- paramTable %>% filter(sampleType == "observed") %>%
     dplyr::select(roadDisturbance, roadPresence, forestryDisturbance) %>%
     tidyr::pivot_longer(everything(), names_to = "metric", values_to = "obs_rast") %>%
@@ -472,9 +475,9 @@ agreeMetricsAll <- function(paramTable, prex_rast, prex_vect, boundary, cutblock
     prex_rast = list(roadDisturbanceFootprint(prex_vect, !is.na(prex_rast), boundary),
                      prex_rast,
                      disturbanceMetrics(linFeat = prex_vect,
-                                        landCover = as(!is.na(prex_rast), "Raster"),
+                                        landCover = as(nonAggregatedCostSurface, "Raster"),
                                         projectPoly = boundary,
-                                        anthroDist = terra::rasterize(terra::vect(cutblocks), prex_rast) %>%
+                                        anthroDist = terra::rasterize(terra::vect(cutblocks), nonAggregatedCostSurface) %>%
                                           as("Raster"))@processedData$Anthro %>% terra::rast())
   ) %>%
     mutate(prex_rast = prex_rast %>%
@@ -576,9 +579,9 @@ run_projections <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
                            method = method)
 
   # recreate allResults after a restart using saved files
-  # allResults <- paramTable[c(1,3,5),] %>%
-  #   mutate(output = paste0(data_path_drvd, "TSA27", "_", sampleType, "_",
-  #                          sampleDens, ".shp"))
+  allResults <- paramTable %>%
+    mutate(output = paste0(outPth, sampleType, "_",
+                           sampleDens, ".shp"))
 
   # Using David's saved results
   # allResults <- paramTable %>%
@@ -622,7 +625,7 @@ run_projections <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
   # compare spatially explicit agreement
   agreeTable <- agreeMetricsAll(allMetrics, prex_rast = roadsExist_rast == 0,
                                 prex_vect = roadsExist, boundary = tsaBoundary,
-                                cutblocks = cutblocksPrior)
+                                cutblocks = cutblocksPrior, nonAggregatedCostSurface = bc_cost_surface)
 
   write.csv(agreeTable, paste0(outPth, "agree_table.csv"), row.names = FALSE)
 }
