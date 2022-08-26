@@ -601,6 +601,19 @@ perf_tbl %>%
 
 ```
 
+## Fort Nelson map
+
+```{r ftNelson, fig.height=6, fig.width=fig_widths["two"], fig.cap="Road projections for the Fort Nelson Timber Supply Area. Black lines show projected and pre-existing roads. Red lines show observed roads that were not captured by the projections."}
+ftN_roads_proj <- read_sf(here("analysis/data/derived_data/TSA8_1000/centroid_1e-05.shp"))
+
+ftN_roads_obs <- read_sf(here("analysis/data/derived_data/combined_ft_nelson_roads.gpkg"))
+
+qtm(ftN_roads_obs, lines.col = "red")+
+  qtm(ftN_roads_proj)
+```
+
+
+
 \newpage
 
 ### Colophon
