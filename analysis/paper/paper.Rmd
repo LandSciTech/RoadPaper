@@ -180,7 +180,7 @@ In addition to the projection methods included in the `roads` package we also ap
 We projected road development in the Revelstoke TSA from 1990 to the present using several different inputs and compared the projections to the observed present day road network in order to evaluate the accuracy of the projections and their sensitivity to different inputs. We compared two resolutions for the cost surface by aggregating the fine resolution cost raster to a coarser 1000 m resolution. We also compared methods for locating landing points within cutblocks by comparing using the polygon centroid, regularly spaced and random points, as well as point densities of 1 and 10 pts/km^2^ (Figure \@ref(fig:fig2)). Note that the default skidding distance used by the Hardy QGIS plugin is 100 m which corresponds to 25 pts/km^2^ .
 
 ```{r fig2, fig.height=5, fig.width=fig_widths["two"], fig.cap="Example of the different projection methods and sampling strategies."}
-knitr::include_graphics(here("analysis/figures/projection methods figure.jpg"))
+knitr::include_graphics(here("analysis/figures/projection_methods_figure.jpg"))
 ```
 
 In order to assess the performance of the projections, the following metrics were used to compare the projected forest road network results with the observed network: 1) Road presence, a simple measure of whether or not roads are present in each pixel; 2) Road disturbance footprint, 1 km buffer applied to observed and projected roads [@ibisch2016a]; 3) Forestry disturbance footprint, a 500 m buffer applied to observed and projected roads and cutblocks; 4) Road density, density of roads in meters per hectare (m/ha); 5) Distance to nearest road, distance from each raster cell to the nearest road. The forestry disturbance footprint follows the anthropogenic disturbance metric used for boreal caribou [@johnson2020], and was calculated using the `caribouMetrics` R package [@hughes]. Road density is an important metric that is often used when studying anthropogenic impacts on wildlife (Beazley et al., 2004). Road density was calculated using the rasterizeLineDensity function within the `caribouMetrics` package. Distance to nearest road was calculated using a fast moving window method in the `getDistFromSource` function of the roads package. Each metric was applied to the results from each projection method and the observed roads with the results were stored as rasters.
@@ -193,7 +193,7 @@ The projections were assessed for their spatial accuracy in two different ways. 
 
 ## Aspatial accuracy
 
-Projection accuracy varied widely across the 5 metrics and two scales compared (Figure \@ref(fig:fig3)). Across all projection methods road projections were less accurate within cutblocks than in the whole TSA. Metrics that used a buffer around the roads, forestry and road disturbance footprint, showed closer agreement between the observed and projected roads than the road density and road presence metrics at both scales. For all methods the distance to road metric was underestimated within cutblocks but was similar to the observed across the whole TSA. The road presence and road density metrics were the most sensitive to pixel size and were less accurate when the coarse cost raster was used (reference appendix table for coarse resolution projections).
+Projection accuracy varied widely across the 5 metrics and two scales compared (Figure \@ref(fig:fig3)). Across all projection methods road projections were less accurate within cutblocks than in the whole TSA. Metrics that used a buffer around the roads, forestry and road disturbance footprint, showed closer agreement between the observed and projected roads than the road density and road presence metrics at both scales. For all methods the distance to road metric was underestimated within cutblocks but was similar to the observed across the whole TSA. The road density and road distance to road metrics were the most sensitive to pixel size and were less accurate when the coarse cost raster was used (\@ref(fig:figA1)).
 
 When comparing between projection methods we found that the density of landing points chosen within cutblocks affected the results, with the high density method underestimating the road density and road presence metrics less than the low density and centroid methods. The sampling method for choosing points in the cutblocks, either random or regular, did not have a large effect on the results. Hardy's QGIS plugin performed well at the overall scale but tended to overestimate the amount of roads within cutblocks.
 
@@ -396,7 +396,7 @@ perf_tbl %>%
 
 ```
 
-As expected all the projection methods preformed worst with the road presence metric (F-Measure: `r perf_tbl_rng["Road presence"]`), while the forestry disturbance footprint performed best (F-Measure: `r perf_tbl_rng["Forestry disturbance footprint"]`) and road disturbance footprint only slightly worse (F-Measure: `r perf_tbl_rng["Road disturbance footprint"]`). For the road presence metric higher sampling densities led to somewhat higher F-measure scores caused by fewer false negatives and only slightly more false positives. For the forestry and road disturbance footprint metrics, the lower density projection methods had slightly higher F-measure scores due to fewer false positives and only slightly more false negatives.
+As expected all the projection methods preformed worst with the road presence metric (F-Measure: `r perf_tbl_rng["Road presence"]`), while the forestry disturbance footprint performed best (F-Measure: `r perf_tbl_rng["Forestry disturbance footprint"]`) and road disturbance footprint only slightly worse (F-Measure: `r perf_tbl_rng["Road disturbance footprint"]`). For the road presence metric higher sampling densities led to somewhat higher F-measure scores caused by fewer false negatives and only slightly more false positives. For the forestry and road disturbance footprint metrics, the F-measure was similar across projection methods.
 
 # Discussion
 
@@ -441,21 +441,6 @@ This model was developed with the goal of being simple to use, readily accessibl
 
 \newpage
 
-### Colophon
-
-This report was generated on `r Sys.time()` using the following computational environment and dependencies:
-
-```{r colophon, cache = FALSE}
-# which R packages and versions?
-if ("devtools" %in% installed.packages()) devtools::session_info()
-```
-
-The current Git commit details are:
-
-```{r}
-# what commit is this file at? 
-if ("git2r" %in% installed.packages() & git2r::in_repository(path = ".")) git2r::repository(here::here())  
-```
 
 # Appendix
 
@@ -472,3 +457,164 @@ A projection created with the Forest Road Network Plugin for QGIS by Clement (20
 ## Weighted graph
 
 A mathematical weighted graph consisting of nodes and edges was used to parameterize either Kruskal's or Dijkstra's algorithms. When solving least cost paths using Dijkstra's algorithm, each node in the graph corresponded to a pixel in a raster of our study area (100m x 100m resolution). Whereas, in the graph used for solving the minimum spanning tree via Kruskal's algorithm, each node represented either a landing or a point on the existing road network. Therefore, a node can be represented by any one of three attributes in the forest road network: (i) a landing, (ii) a point on an existing road, or (iii) an intermediate point. The landing nodes represent log decks or sources of timber and the point on the existing road is the sink where the timber will end up. The intermediate points are plausible locations to construct a road and are thus free of barriers like major water bodies. [The edges connecting the nodes follow a "queens" case or allow a maximum of eight possible edges for a given node.]{.underline} Thus, our methods utilize a grid pattern which does not support curvature or switchbacks in road design as required in operational road design, thus we ascertain that our road projection methods are for strategic modelling purposes only. Edges are assigned weights which penalize the algorithm to account for various impedance and road construction costs. When solving least cost paths, a cost surface raster was used. The pixels of the cost surface raster corresponded to nodes in the weighted graph and thus the edge weight was the average cost between the two nodes or pixels. When solving the minimum spanning tree, the edge weight corresponded to the total cost of the least cost path between the two nodes.
+
+
+## Coarse resolution results
+
+```{r get-data2}
+data_path_drvd <- "analysis/data/derived_data/TSA27_1000"
+
+# load csv
+meanTable2 <- read.csv(here(data_path_drvd, "mean_table.csv")) %>% 
+  mutate(resolution = "1000")
+
+matchData2 <- read.csv(here(data_path_drvd, "agree_table.csv")) %>% 
+  mutate(resolution = "1000")
+
+meanTable <- meanTable %>% mutate(resolution = "100") %>% bind_rows(meanTable2)
+
+matchData <- matchData %>% mutate(resolution = "100") %>% bind_rows(matchData2)
+
+```
+
+```{r figA1, fig.height=4, fig.width=fig_widths["mid"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods across the entire Revelstoke TSA (“overall”) and within cutblocks (“cutblocks”) for the fine resolutiom (100 m) and coarse resolution (1000 m) cost rasters. Values greater than 0 indicate the projection overestimated the metric and negative values indicate an underestimation."}
+# organize data for ggplot
+meanTable_long <- meanTable %>%
+  pivot_longer(-c(sampleType, sampleDens, areaMean, resolution),
+               names_to = "metric", values_to = "response")%>%
+  mutate(sampleType = ifelse(sampleType == sampleDens, NA_character_, 
+                             sampleType),
+         sampleDens = paste(sampleType, sampleDens) %>% 
+           factor(levels = c("NA centroid",
+                             "NA observed",
+                             "random low sample density",
+                             "regular low sample density",
+                             "random high sample density",
+                             "regular high sample density",
+                             "NA klementQGIS"),
+                  labels = c("Centroid", 
+                             "Observed",
+                             "Random\nlow density",
+                             "Regular\nlow density",
+                             "Random\nhigh density",
+                             "Regular\nhigh density",
+                             "Hardy QGIS")),
+         metric = factor(metric,
+                         levels = c("roadDensityMean", "roadPresenceMean",
+                                    "distanceToRoadMean",
+                                    "forestryDisturbanceMean",
+                                    "roadDisturbanceMean"),
+                         labels = c("Road\ndensity", "Road\npresence",
+                                    "Distance\nto road",
+                                    "Forestry\ndisturbance\nfootprint",
+                                    "Road\ndisturbance\nfootprint")))
+
+
+observed_values <- filter(meanTable_long, sampleDens == "Observed")
+projected_values <- filter(meanTable_long, sampleDens != "Observed")
+
+# get proportional difference from observed
+prop_dif <- projected_values %>% 
+  left_join(observed_values %>% select(areaMean, metric, resolution, response),
+            by = c("areaMean", "metric", "resolution"), 
+            suffix = c("_proj", "_obs")) %>% 
+  mutate(prop_dif = (response_proj-response_obs)/response_obs,
+         areaMean = factor(areaMean, labels = c("Cutblocks", "Overall")))
+
+prop_dif %>% 
+  ggplot(aes(x = sampleDens, prop_dif, fill = resolution))+
+  geom_hline(aes(yintercept = 0), color = "grey")+
+  geom_col(position = position_dodge2(preserve = "single",
+                                      width = 0.75))+
+  facet_grid(areaMean~ metric)+
+  theme_classic()+
+  scale_fill_manual(values = met.brewer(pal_nm))+
+  theme(text = element_text(size = 10), axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = "right",
+        axis.text.x=element_text(size=11, angle=50, vjust=1, hjust=1))+
+  coord_flip()
+
+```
+
+```{r figA2, fig.height=6, fig.width=fig_widths["mid"], fig.cap="Comparison of performance metrics for each projection method. F measure is the harmonic mean of precision and sensitivity, precision is the proportion of  predicted roads that are observed roads and sensitivity is the proportion of observed roads that were correctly predicted."}
+
+matchData_sum <- matchData %>% ungroup() %>%
+  mutate(agreement = factor(agreement,
+                            levels = c("False negative", "False positive",
+                                       "Agree roaded","Agree roadless",
+                                       "Pre-existing roads")),
+         sampleDens = paste(sampleType, sampleDens) %>%
+           str_replace("1e-06", "low density") %>%
+           str_replace("1e-05", "high density") %>%
+           str_replace("centroid low density", "centroid") %>%
+           str_replace("klementQGIS NA", "klementQGIS") %>%
+           factor(levels = c("centroid",
+                             "random low density",
+                             "regular low density",
+                             "random high density",
+                             "regular high density",
+                             "klementQGIS"),
+                  labels = c("Centroid", 
+                             "Random\nlow density",
+                             "Regular\nlow density",
+                             "Random\nhigh density",
+                             "Regular\nhigh density",
+                             "Hardy QGIS")),
+         metric = factor(metric,
+                         levels = c("roadPresence",
+                                    "forestryDisturbance",
+                                    "roadDisturbance"),
+                         labels = c("Road presence",
+                                    "Forestry disturbance\nfootprint",
+                                    "Road disturbance footprint"))) %>%
+  group_by(metric, sampleDens, agreement, resolution) %>%
+  summarise(count = sum(count), .groups = "drop_last") %>%
+  mutate(perc = count/sum(count)*100)
+
+# performance table
+perf_tbl <- matchData_sum %>% 
+  pivot_wider(c(metric, sampleDens, resolution), names_from = agreement, 
+              values_from = count) %>% 
+  mutate(sensitivity = `Agree roaded`/(`Agree roaded` + `False negative`),
+         precision = `Agree roaded`/(`Agree roaded` + `False positive`),
+         F_measure = (2*precision*sensitivity)/(precision+sensitivity)) %>% 
+  select(resolution, metric, sampleDens, sensitivity, precision, F_measure) 
+
+perf_tbl_rng <- perf_tbl %>% group_by(metric, resolution) %>% 
+  summarise(rng_F = range(F_measure) %>% round(3) %>% paste0(collapse = " - "), .groups = "drop") %>% pull(rng_F, name = metric)
+
+perf_tbl %>% 
+  pivot_longer(c(sensitivity, precision, F_measure), names_to = "perf_meas",
+               values_to = "value") %>% 
+  mutate(perf_meas = factor(perf_meas,
+                            labels = c("F measure", "Precision", "Sensitivity"))) %>% 
+  ggplot(aes(sampleDens, value, fill = resolution))+
+  geom_col(position = position_dodge2(preserve = "single",
+                                      width = 0.75))+
+  scale_fill_manual(values = met.brewer(pal_nm))+
+  facet_grid(metric ~ perf_meas)+
+  coord_flip()+
+  ylim(0, 1)+
+  theme_classic()+
+  labs(y = "Performance", x = NULL)
+
+```
+
+\newpage
+
+### Colophon
+
+This report was generated on `r Sys.time()` using the following computational environment and dependencies:
+
+```{r colophon, cache = FALSE}
+# which R packages and versions?
+if ("devtools" %in% installed.packages()) devtools::session_info()
+```
+
+The current Git commit details are:
+
+```{r}
+# what commit is this file at? 
+if ("git2r" %in% installed.packages() & git2r::in_repository(path = ".")) git2r::repository(here::here())  
+```

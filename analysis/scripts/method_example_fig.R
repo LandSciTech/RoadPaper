@@ -55,6 +55,7 @@ exRoads <- vect(exRoads) %>% crop(bound) %>% st_as_sf()
 tsaCost <- crop(tsaCost, bound)
 
 # add a large cutblock
+plot(roads %>% st_geometry())
 cut_add <- draw("polygon")
 cut_add <- set.crs(cut_add, crs(roads))
 
@@ -62,6 +63,14 @@ cutblocks <- bind_rows(cutblocks, st_as_sf(cut_add))
 
 #
 tsb <- st_bbox(roads) %>% st_as_sfc() %>% list()
+
+
+# save example area for other testing
+write_sf(exRoads, paste0(data_path_drvd, "testing_ex_roads.gpkg"))
+write_sf(tsb[[1]], paste0(data_path_drvd, "testing_tsb.gpkg"))
+write_sf(cutblocks, paste0(data_path_drvd, "testing_cutblocks.gpkg"))
+writeRaster(tsaCost, paste0(data_path_drvd, "testing_cost.tif"))
+
 
 sampleDens <- c(low,high,low,high,low)
 sampleType <- c("regular","regular","random","random","centroid")
@@ -105,4 +114,5 @@ allMaps <- purrr::map(1:nrow(allProj),
                                                 ifelse(allProj$sampleType[.x] == "centroid", "",
                                                        allProj$sampleDens[.x]))))
 
-tmap_arrange(allMaps, ncol = 2)
+tmap_save(tmap_arrange(allMaps, ncol = 2), "analysis/figures/projection_methods_figure.jpg",
+          dpi = 300, height = 8, width = 7.48)
