@@ -495,7 +495,8 @@ agreeMetricsAll <- function(paramTable, prex_rast, prex_vect, boundary, cutblock
 
 # run all projections and summarise results for one tsa
 run_projections <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
-                            outPth, klementProj, low, high, aggFact, method = "mst"){
+                            outPth, klementProj, low, high, aggFact, method = "mst",
+                            saveInputs = FALSE){
   if(!dir.exists(outPth)){
     dir.create(outPth)
   }
@@ -567,6 +568,12 @@ run_projections <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
   #   st_make_valid() %>%
   #   mutate(ID = 1:n()) %>%
   #   split(factor(1:nrow(.)))
+
+  if(saveInputs){
+    terra::writeRaster(tsaCost_st, paste0(outPth, "input_cost.tif"), overwrite = TRUE)
+    sf::write_sf(roadsExist,  paste0(outPth, "input_roads.gpkg"))
+    sf::write_sf(cutblocks,  paste0(outPth, "input_cutblocks.gpkg"))
+  }
 
   #Running projections
   allResults <- projectAll(tsbs = tsbs, paramTable = paramTable,

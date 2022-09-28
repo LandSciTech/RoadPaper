@@ -27,22 +27,23 @@ low <- 0.000001
 high <- 0.00001
 
 # # For Revelstoke at fine resolution
-# run_projections(
-#   cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke.gpkg"),
-#   roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
-#   tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
-#   costPth = paste0(data_path_raw, "cost_surface_bc_ha.tif"),
-#   outPth = paste0(data_path_drvd, "TSA27/"),
-#
-#   #Klement QGIS projection results shapefile
-#   klementProj = paste0(data_path_drvd, "TSA27/", "klementProjection.shp"),
-#
-#   #set high and low sampling densities for projections
-#   low  = low,
-#   high = high,
-#
-#   aggFact = 1 #factor of aggregation of cost surface. 1 = no aggregation.
-# )
+run_projections(
+  cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke.gpkg"),
+  roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
+  tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
+  costPth = paste0(data_path_raw, "cost_surface_bc_ha.tif"),
+  outPth = paste0(data_path_drvd, "TSA27/"),
+
+  #Klement QGIS projection results shapefile
+  klementProj = paste0(data_path_drvd, "TSA27/", "klementProjection.shp"),
+
+  #set high and low sampling densities for projections
+  low  = low,
+  high = high,
+
+  aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
+  saveInputs = TRUE
+)
 
 # For Revelstoke at coarse resolution
 run_projections(
