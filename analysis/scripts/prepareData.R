@@ -35,24 +35,27 @@ rec_ids <- c(TSAs = "8daa29da-d7f4-401c-83ae-d962e3a28980",
   for_rds = "243c94a1-f275-41dc-bc37-91d8a2b26e10",
   cutblocks = "b1b647a6-f271-42e0-9cd0-89ec24bce9f7")
 
+# use a buffered version of the tsa boundary to include some nearby roads
+tsa_27_buf <- st_buffer(tsa_27, 2000)
+
 dra_rds <- bcdc_query_geodata("bb060417-b6e6-4548-b837-f9060d94743e") %>%
   filter(INTERSECTS(tsa_27)) %>%
   collect() %>%
-  st_filter(tsa_27)
+  st_filter(tsa_27_buf)
 
 write_sf(dra_rds, here(data_path_raw, "dra_roads_revelstoke.gpkg"))
 
 for_rds <- bcdc_query_geodata("243c94a1-f275-41dc-bc37-91d8a2b26e10") %>%
   filter(INTERSECTS(tsa_27)) %>%
   collect() %>%
-  st_filter(tsa_27)
+  st_filter(tsa_27_buf)
 
 write_sf(for_rds, here(data_path_raw, "forest_tenure_roads_revelstoke.gpkg"))
 
 cutblocks <- bcdc_query_geodata("b1b647a6-f271-42e0-9cd0-89ec24bce9f7") %>%
   filter(INTERSECTS(tsa_27)) %>%
   collect() %>%
-  st_filter(tsa_27)
+  st_filter(tsa_27, .predicate = st_covered_by)
 
 write_sf(cutblocks, here(data_path_raw, "cutblocks_revelstoke.gpkg"))
 
