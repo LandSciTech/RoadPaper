@@ -198,6 +198,7 @@ getMetricMeans <- function(paramTable, cutblocks){
 
   metricsTable <- tibble(sampleType = paramTable$sampleType,
                          sampleDens = paramTable$sampleDens,
+                         runTime = paramTable$runTime,
                          areaMean = "overall",
                          roadDisturbanceMean = vector("numeric", nrow(paramTable)),
                          roadDensityMean = vector("numeric", nrow(paramTable)),
@@ -228,6 +229,7 @@ getMetricMeans <- function(paramTable, cutblocks){
 
   metricsTable1 <- tibble(sampleType = paramTable$sampleType,
                           sampleDens = paramTable$sampleDens,
+                          runTime = paramTable$runTime,
                           areaMean = "cutover",
                           roadDisturbanceMean = vector("numeric", nrow(paramTable)),
                           roadDensityMean = vector("numeric", nrow(paramTable)),
