@@ -69,9 +69,7 @@ fineResProject <- function(TSAsubset, cutblockPoylgons, sampleDensity,
                            sampleType, costRaster, existingRoads,
                            projectionMethod) {
 
-  subCutblocks <- st_filter(cutblockPoylgons, TSAsubset)
-  existingRoads <- st_filter(existingRoads, TSAsubset)
-  subLandings <- getLandingsFromTarget(subCutblocks,
+  subLandings <- getLandingsFromTarget(cutblockPoylgons,
                                        landingDens = sampleDensity,
                                        sampleType = sampleType)
   if(nrow(subCutblocks) == 0){
@@ -89,87 +87,56 @@ fineResProject <- function(TSAsubset, cutblockPoylgons, sampleDensity,
 }
 
 
-
-# this function is to project using subset list and table of all different parameters
-projectParamTable<-function(tsbs,paramTable) {
-
-  for(i in 1:nrow(paramTable)) {
-
-    cRow = paramTable[i,]
-
-    projectionsList <- map(tsbs,
-                           fineResProject,
-                           cutblockPoylgons = cutblocks,
-                           sampleDensity = cRow$sampleDens,
-                           sampleType = cRow$sampleType,
-                           costRaster = tsaCost_st,
-                           existingRoads = roadsExist,
-                           projectionMethod = "mst")
-
-    projections <- do.call(rbind, projectionsList)
-
-
-    paramTable$output[[i]] <- projections
-
-  }
-
-  return(paramTable)
-
-}
-
-
-
-
 #Josie's distance function
-
-getDistKernelFromMax <- function(kdim) {
-  # kdim=2
-  kdim <- ceiling(kdim)
-  wDim <- kdim * 2 + 1
-  locSeq <- seq(-kdim, kdim)
-  y <- matrix(locSeq, wDim, wDim)
-  xx <- t(y)
-  d <- (xx^2 + y^2)^0.5
-  return(d)
-}
-
-uniformKernel <- function(dmax, cellDim = 1, useAveDist = F) {
-  if (useAveDist) {
-    # https://math.stackexchange.com/questions/3019165/average-distance-from-center-of-circle
-    dmax <- 3 * dmax / 2
-  }
-  hdim <- ceiling(dmax / cellDim)
-  weights <- getDistKernelFromMax(hdim)
-  weights <- weights <= dmax / cellDim
-  weights <- weights / sum(weights)
-  return(weights)
-}
-
-getDistFromSource <- function(src,maxDist,kwidth=3,dissag=F){
-  if(dissag){
-    mwidth=res(src)[1]
-    src=disaggregate(src,fact=kwidth)
-  }else{
-    mwidth=res(src)[1]*kwidth
-  }
-  src[src>0]=1
-  mm = uniformKernel(kwidth,useAveDist=F)
-  nSteps=ceiling(maxDist/mwidth)
-  dd = src;dd=1-dd;dd[dd!=0]=NA
-  cPop = src;cPop[is.na(cPop)]=0
-  for(s in 1:nSteps){
-    ssO2 = pfocal(as.matrix(cPop),mm,reduce_function="SUM", transform_function="MULTIPLY")
-    ssD2 = cPop
-    values(ssD2)=ssO2
-    dd[is.na(dd)&(ssD2>0)]=s*mwidth
-    cPop=ssD2;cPop[cPop>0]=1
-  }
-  if(dissag){
-    dd=aggregate(dd,fact=kwidth)
-  }
-  dd[is.na(src)]=NA
-  return(dd)
-}
+# use the version in the roads package
+# getDistKernelFromMax <- function(kdim) {
+#   # kdim=2
+#   kdim <- ceiling(kdim)
+#   wDim <- kdim * 2 + 1
+#   locSeq <- seq(-kdim, kdim)
+#   y <- matrix(locSeq, wDim, wDim)
+#   xx <- t(y)
+#   d <- (xx^2 + y^2)^0.5
+#   return(d)
+# }
+#
+# uniformKernel <- function(dmax, cellDim = 1, useAveDist = F) {
+#   if (useAveDist) {
+#     # https://math.stackexchange.com/questions/3019165/average-distance-from-center-of-circle
+#     dmax <- 3 * dmax / 2
+#   }
+#   hdim <- ceiling(dmax / cellDim)
+#   weights <- getDistKernelFromMax(hdim)
+#   weights <- weights <= dmax / cellDim
+#   weights <- weights / sum(weights)
+#   return(weights)
+# }
+#
+# getDistFromSource <- function(src,maxDist,kwidth=3,dissag=F){
+#   if(dissag){
+#     mwidth=res(src)[1]
+#     src=disaggregate(src,fact=kwidth)
+#   }else{
+#     mwidth=res(src)[1]*kwidth
+#   }
+#   src[src>0]=1
+#   mm = uniformKernel(kwidth,useAveDist=F)
+#   nSteps=ceiling(maxDist/mwidth)
+#   dd = src;dd=1-dd;dd[dd!=0]=NA
+#   cPop = src;cPop[is.na(cPop)]=0
+#   for(s in 1:nSteps){
+#     ssO2 = pfocal(as.matrix(cPop),mm,reduce_function="SUM", transform_function="MULTIPLY")
+#     ssD2 = cPop
+#     values(ssD2)=ssO2
+#     dd[is.na(dd)&(ssD2>0)]=s*mwidth
+#     cPop=ssD2;cPop[cPop>0]=1
+#   }
+#   if(dissag){
+#     dd=aggregate(dd,fact=kwidth)
+#   }
+#   dd[is.na(src)]=NA
+#   return(dd)
+# }
 
 
 
@@ -235,27 +202,25 @@ getDistFromSource <- function(src,maxDist,kwidth=3,dissag=F){
 
 # function to generate all projections and raster layers for metrics
 
-projectAll<-function(tsbs,paramTable, costSurface,
-                     cutblocks, existingRoads, fileLocation, method) {
+projectAll <- function(tsbs,paramTable, costSurface,
+                       cutblocks, existingRoads, fileLocation, method) {
 
   for(i in 1:nrow(paramTable)) {
     # i = 1
     cRow = paramTable[i,]
     start <- Sys.time()
 
-    projectionsList <- map(tsbs,
-                           fineResProject,
-                           cutblockPoylgons = cutblocks,
-                           sampleDensity = cRow$sampleDens,
-                           sampleType = cRow$sampleType,
-                           costRaster = costSurface,
-                           existingRoads = existingRoads,
-                           projectionMethod = method)
+    projections <- fineResProject(tsbs,
+                                  cutblockPoylgons = cutblocks,
+                                  sampleDensity = cRow$sampleDens,
+                                  sampleType = cRow$sampleType,
+                                  costRaster = costSurface,
+                                  existingRoads = existingRoads,
+                                  projectionMethod = method)
 
     projections <- do.call(rbind, projectionsList)
 
     end <- Sys.time()
-
 
     paramTable$output[[i]] <- paste0(fileLocation, cRow$sampleType, "_",
                                      cRow$sampleDens, ".shp")
@@ -264,7 +229,7 @@ projectAll<-function(tsbs,paramTable, costSurface,
     # save the projected roads to a file
     sf::write_sf(projections, paramTable$output[[i]])
 
-    rm(projectionsList, projections)
+    rm(projections)
     gc(verbose = TRUE)
 
   }
@@ -333,11 +298,9 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
     src <- terra::trim(roadPresenceResults[[1]]) # thinks this is a list
 
     maxDist=10000 #in units of res
-    distanceToRoadResults <- getDistFromSource(src, maxDist, kwidth = 3, dissag = F)
+    distanceToRoadResults <- getDistFromSource(src, maxDist, kwidth = 3, method = "pfocal")
 
     paramTable$distanceToRoad[[i]] <- distanceToRoadResults
-
-
   }
 
   return(paramTable)
@@ -492,11 +455,11 @@ agreeMetricsAll <- function(paramTable, prex_rast, prex_vect, boundary, cutblock
 
 }
 
+# load and filter inputs
 
-# run all projections and summarise results for one tsa
-run_projections <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
-                            outPth, klementProj, low, high, aggFact, method = "mst",
-                            saveInputs = FALSE){
+prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
+                       outPth, aggFact,
+                       saveInputs = FALSE){
   if(!dir.exists(outPth)){
     dir.create(outPth)
   }
@@ -523,19 +486,6 @@ run_projections <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
   lakeValue <- 65000 #often this isn't needed but Revelstoke TSA requires this.
 
   ###############################################################################
-
-  # parameter table creation for running projections
-  sampleDens <- c(low,high,low,high,low)
-  sampleType <- c("regular","regular","random","random","centroid")
-  paramTable <- tibble(sampleType, sampleDens,
-                       runTime = vector("list", length(sampleDens)),
-                       output = vector("list", length(sampleDens)),
-                       roadDisturbance = vector("list", length(sampleDens)),
-                       roadDensity = vector("list", length(sampleDens)),
-                       roadPresence = vector("list", length(sampleDens)),
-                       distanceToRoad = vector("list", length(sampleDens)),
-                       forestryDisturbance = vector("list", length(sampleDens))) %>%
-    distinct()
 
   #filter roads by year to make existing forestry road network
   roadsExist <- filter(roads, AWARD_DATE <= roadsYear)
@@ -575,6 +525,39 @@ run_projections <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
     sf::write_sf(cutblocks,  paste0(outPth, "input_cutblocks.gpkg"))
   }
 
+  out <- dplyr::lst(tsaCost_st, roadsExist, cutblocks, tsbs, bc_cost_surface,
+                    tsaBoundary, cutblocksPrior, roadsExist_rast)
+}
+
+
+# run all projections and summarise results for one tsa
+run_projections <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
+                            outPth, klementProj, low, high, aggFact, method = "mst",
+                            saveInputs = FALSE){
+
+  inputs <- prepInputs(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
+             outPth, aggFact, saveInputs = saveInputs)
+
+  tsaCost_st <- inputs$tsaCost_st
+  roadsExist <- inputs$roadsExist
+  cutblocks <- inputs$cutblocks
+  tsbs <- inputs$tsbs
+  bc_cost_surface <- inputs$bc_cost_surface
+  tsaBoundary <- inputs$tsaBoundary
+
+  # parameter table creation for running projections
+  sampleDens <- c(low,high,low,high,low)
+  sampleType <- c("regular","regular","random","random","centroid")
+  paramTable <- tibble(sampleType, sampleDens,
+                       runTime = vector("list", length(sampleDens)),
+                       output = vector("list", length(sampleDens)),
+                       roadDisturbance = vector("list", length(sampleDens)),
+                       roadDensity = vector("list", length(sampleDens)),
+                       roadPresence = vector("list", length(sampleDens)),
+                       distanceToRoad = vector("list", length(sampleDens)),
+                       forestryDisturbance = vector("list", length(sampleDens))) %>%
+    distinct()
+
   #Running projections
   allResults <- projectAll(tsbs = tsbs, paramTable = paramTable,
                            costSurface = tsaCost_st,
@@ -584,9 +567,9 @@ run_projections <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
                            method = method)
 
   # recreate allResults after a restart using saved files
-  allResults <- paramTable %>%
-    mutate(output = paste0(outPth, sampleType, "_",
-                           sampleDens, ".shp"))
+  # allResults <- paramTable %>%
+  #   mutate(output = paste0(outPth, sampleType, "_",
+  #                          sampleDens, ".shp"))
 
   # Using David's saved results
   # allResults <- paramTable %>%
@@ -628,9 +611,10 @@ run_projections <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
   write.csv(meanTable, paste0(outPth, "mean_table.csv"), row.names = FALSE)
 
   # compare spatially explicit agreement
-  agreeTable <- agreeMetricsAll(allMetrics, prex_rast = roadsExist_rast == 0,
+  agreeTable <- agreeMetricsAll(allMetrics, prex_rast = inputs$roadsExist_rast == 0,
                                 prex_vect = roadsExist, boundary = tsaBoundary,
-                                cutblocks = cutblocksPrior, nonAggregatedCostSurface = bc_cost_surface)
+                                cutblocks = inputs$cutblocksPrior,
+                                nonAggregatedCostSurface = bc_cost_surface)
 
   write.csv(agreeTable, paste0(outPth, "agree_table.csv"), row.names = FALSE)
 }
