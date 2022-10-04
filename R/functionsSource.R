@@ -44,14 +44,14 @@ roadDisturbanceFootprint <- function(x, r, b) {
 }
 
 
-fineResProject <- function(TSAsubset, cutblockPoylgons, sampleDensity,
+fineResProject <- function(TSAsubset, cutblockPolygons, sampleDensity,
                            sampleType, costRaster, existingRoads,
                            projectionMethod, sim = NULL) {
 
-  subLandings <- getLandingsFromTarget(cutblockPoylgons,
+  subLandings <- getLandingsFromTarget(cutblockPolygons,
                                        landingDens = sampleDensity,
                                        sampleType = sampleType)
-  if(nrow(subCutblocks) == 0){
+  if(nrow(cutblockPolygons) == 0){
     return(NULL)
   }
 
@@ -93,7 +93,7 @@ projectAll <- function(tsbs,paramTable, costSurface,
 
     # use sim object so graph not re-calced, will be NULL for first iter
     projectionsList[[i]] <- fineResProject(tsbs,
-                                           cutblockPoylgons = cutblocks,
+                                           cutblockPolygons = cutblocks,
                                            sampleDensity = cRow$sampleDens,
                                            sampleType = cRow$sampleType,
                                            costRaster = costSurface,
@@ -107,7 +107,7 @@ projectAll <- function(tsbs,paramTable, costSurface,
     end <- Sys.time()
 
     paramTable$output[[i]] <- paste0(fileLocation, cRow$sampleType, "_",
-                                     cRow$sampleDens, ".shp")
+                                     cRow$sampleDens, ".gpkg")
     paramTable$runTime[[i]] <- as.numeric(end - start)
 
     # save the projected roads to a file
@@ -455,7 +455,7 @@ run_projections <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
   # recreate allResults after a restart using saved files
   # allResults <- paramTable %>%
   #   mutate(output = paste0(outPth, sampleType, "_",
-  #                          sampleDens, ".shp"))
+  #                          sampleDens, ".gpkg"))
 
   # Using David's saved results
   # allResults <- paramTable %>%

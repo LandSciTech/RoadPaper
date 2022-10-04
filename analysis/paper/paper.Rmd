@@ -29,7 +29,7 @@ keywords: |
 highlights: |
   These are the highlights. 
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 <!-- This is the format for text comments that will be ignored during renderings. Do not put R code in these comments because it will not be ignored. -->
@@ -50,8 +50,7 @@ knitr::opts_chunk$set(
   echo = FALSE,
   comment = "#>",
   fig.path = "../figures/",
-  dpi = 300,
-  cache = TRUE
+  dpi = 300
 )
 ```
 
@@ -101,7 +100,7 @@ pal_nm <- "Redon"
 fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 ```
 
-```{r fig1, fig.cap="Revelstoke timber supply area in British Colombia, Canada. The colour shows the cost of building roads across each pixel."}
+```{r fig1, fig.cap="Revelstoke timber supply area in British Colombia, Canada. The colour shows the cost of building roads across each pixel.", cache=TRUE}
 tsaBoundary <- read_sf(here(data_path_raw, "tsa27_boundaries.gpkg"))
 #cost surface raster layer
 bc_cost_surface <- terra::rast(here(data_path_raw, "cost_surface_bc_ha.tif"))
@@ -179,8 +178,90 @@ In addition to the projection methods included in the `roads` package we also ap
 
 We projected road development in the Revelstoke TSA from 1990 to the present using several different inputs and compared the projections to the observed present day road network in order to evaluate the accuracy of the projections and their sensitivity to different inputs. We compared two resolutions for the cost surface by aggregating the fine resolution cost raster to a coarser 1000 m resolution. We also compared methods for locating landing points within cutblocks by comparing using the polygon centroid, regularly spaced and random points, as well as point densities of 1 and 10 pts/km^2^ (Figure \@ref(fig:fig2)). Note that the default skidding distance used by the Hardy QGIS plugin is 100 m which corresponds to 25 pts/km^2^ .
 
-```{r fig2, fig.height=5, fig.width=fig_widths["two"], fig.cap="Example of the different projection methods and sampling strategies."}
-knitr::include_graphics(here("analysis/figures/projection_methods_figure.jpg"))
+```{r, cache=TRUE}
+# Example area for demonstrating different methods
+
+library(raster)
+library(dplyr)
+library(sf)
+library(roads)
+library(terra)
+library(tmap)
+library(purrr)
+library(caribouMetrics)
+library(pfocal)
+
+pal <- met.brewer(pal_nm, 8) %>% .[c(1,3,5,7)]
+
+# read in example area data
+exRoads <- read_sf(here(data_path_drvd, "testing_ex_roads.gpkg"))
+tsb <- read_sf(here(data_path_drvd, "testing_tsb.gpkg"))
+cutblocks <- read_sf(here(data_path_drvd, "testing_cutblocks.gpkg"))
+tsaCost <- raster(here(data_path_drvd, "testing_cost.tif"))
+roads <- read_sf(here(data_path_drvd, "testing_obs_roads.gpkg"))
+
+sampleDens <- c(low,high,low,high,low)
+sampleType <- c("regular","regular","random","random","centroid")
+paramTable <- tibble(sampleType, sampleDens,
+                     runTime = vector("list", length(sampleDens)),
+                     output = vector("list", length(sampleDens)),
+                     roadDisturbance = vector("list", length(sampleDens)),
+                     roadDensity = vector("list", length(sampleDens)),
+                     roadPresence = vector("list", length(sampleDens)),
+                     distanceToRoad = vector("list", length(sampleDens)),
+                     forestryDisturbance = vector("list", length(sampleDens))) %>%
+  distinct()
+
+# re-run projections for just the small area with different parameters
+mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
+                      costSurface = tsaCost,
+                      cutblocks = cutblocks,
+                      existingRoads = exRoads,
+                      fileLocation = paste0(data_path_drvd, "for_fig/mst"),
+                      method = "mst")
+
+dlcpProj <- projectAll(tsbs = tsb,
+                      paramTable = paramTable %>% filter(sampleType == "regular"),
+                      costSurface = tsaCost,
+                      cutblocks = cutblocks,
+                      existingRoads = exRoads,
+                      fileLocation = paste0(data_path_drvd, "for_fig/dlcp"),
+                      method = "dlcp")
+
+lcpProj <- projectAll(tsbs = tsb,
+                       paramTable = paramTable %>% filter(sampleType == "centroid"),
+                       costSurface = tsaCost,
+                       cutblocks = cutblocks,
+                       existingRoads = exRoads,
+                       fileLocation = paste0(data_path_drvd, "for_fig/lcp"),
+                       method = "lcp")
+
+allProj <- bind_rows(mstProj, dlcpProj, lcpProj, .id = "method") %>%
+  arrange(desc(sampleType), sampleDens)
+
+allMaps <- purrr::map(
+  1:nrow(allProj),
+  ~ qtm(tsaCost, raster.style = "cont", raster.palette = "Greys",
+        raster.alpha = 0.5)+
+    qtm(cutblocks, fill = NULL, borders = pal[1], borders.lwd = 1.5)+
+    qtm(roads, lines.col = pal[3], lines.lwd = 2)+
+    qtm(read_sf(here(allProj$output[[.x]])), lines.col = pal[2], lines.lwd = 2)+
+    qtm(exRoads, lines.col = "black", lines.lwd = 2)+
+    tm_layout(legend.show = FALSE,
+              main.title = paste(ifelse(allProj$method[.x]== 1, "MST",
+                                        ifelse(allProj$method[.x]== 2, "DLCP", "LCP")),
+                                 allProj$sampleType[.x],
+                                 ifelse(allProj$sampleType[.x] == "centroid", "",
+                                        allProj$sampleDens[.x])),
+              main.title.size = 0.75))
+
+tmap_save(tmap_arrange(allMaps, ncol = 2),
+          here("analysis/figures/projection_methods_figure.png"),
+          dpi = 300, height = 8, width = 3.543)
+```
+
+```{r fig2, fig.cap="Example of the different projection methods and sampling strategies. Target cutblocks are shown by grey lines, existing roads by black lines, projected roads by green lines, observed roads by red lines, and the cost of road building by the grey shading."}
+knitr::include_graphics(here("analysis/figures/projection_methods_figure.png"))
 ```
 
 In order to assess the performance of the projections, the following metrics were used to compare the projected forest road network results with the observed network: 1) Road presence, a simple measure of whether or not roads are present in each pixel; 2) Road disturbance footprint, 1 km buffer applied to observed and projected roads [@ibisch2016a]; 3) Forestry disturbance footprint, a 500 m buffer applied to observed and projected roads and cutblocks; 4) Road density, density of roads in meters per hectare (m/ha); 5) Distance to nearest road, distance from each raster cell to the nearest road. The forestry disturbance footprint follows the anthropogenic disturbance metric used for boreal caribou [@johnson2020], and was calculated using the `caribouMetrics` R package [@hughes]. Road density is an important metric that is often used when studying anthropogenic impacts on wildlife (Beazley et al., 2004). Road density was calculated using the rasterizeLineDensity function within the `caribouMetrics` package. Distance to nearest road was calculated using a fast moving window method in the `getDistFromSource` function of the roads package. Each metric was applied to the results from each projection method and the observed roads with the results were stored as rasters.
@@ -441,7 +522,6 @@ This model was developed with the goal of being simple to use, readily accessibl
 
 \newpage
 
-
 # Appendix
 
 ## Road network projection methods
@@ -457,7 +537,6 @@ A projection created with the Forest Road Network Plugin for QGIS by Clement (20
 ## Weighted graph
 
 A mathematical weighted graph consisting of nodes and edges was used to parameterize either Kruskal's or Dijkstra's algorithms. When solving least cost paths using Dijkstra's algorithm, each node in the graph corresponded to a pixel in a raster of our study area (100m x 100m resolution). Whereas, in the graph used for solving the minimum spanning tree via Kruskal's algorithm, each node represented either a landing or a point on the existing road network. Therefore, a node can be represented by any one of three attributes in the forest road network: (i) a landing, (ii) a point on an existing road, or (iii) an intermediate point. The landing nodes represent log decks or sources of timber and the point on the existing road is the sink where the timber will end up. The intermediate points are plausible locations to construct a road and are thus free of barriers like major water bodies. [The edges connecting the nodes follow a "queens" case or allow a maximum of eight possible edges for a given node.]{.underline} Thus, our methods utilize a grid pattern which does not support curvature or switchbacks in road design as required in operational road design, thus we ascertain that our road projection methods are for strategic modelling purposes only. Edges are assigned weights which penalize the algorithm to account for various impedance and road construction costs. When solving least cost paths, a cost surface raster was used. The pixels of the cost surface raster corresponded to nodes in the weighted graph and thus the edge weight was the average cost between the two nodes or pixels. When solving the minimum spanning tree, the edge weight corresponded to the total cost of the least cost path between the two nodes.
-
 
 ## Coarse resolution results
 
@@ -611,8 +690,6 @@ ftN_roads_obs <- read_sf(here("analysis/data/derived_data/combined_ft_nelson_roa
 qtm(ftN_roads_obs, lines.col = "red")+
   qtm(ftN_roads_proj)
 ```
-
-
 
 \newpage
 

@@ -23,23 +23,23 @@ costPth = paste0(data_path_raw, "cost_surface_bc_ha.tif")
 
 # densities
 high <- 0.00001
-low <-  0.000005
+low <-  0.000001
 
 
 cutblocks <- read_sf(cutblocksPth)
 roads <- read_sf(roadsPth)
 tsaCost <- rast(costPth)
 
-projRoads <- read_sf(paste0(data_path_drvd, "TSA27/", "TSA27_random_1e-05.shp"))
+projRoads <- read_sf(paste0(data_path_drvd, "TSA27/", "random_1e-05.shp"))
 
 exRoads <- roads %>% filter(AWARD_DATE <= as.Date("1990-01-01"))
 
 # find a good location
-qtm(st_as_sf(cutblocks), fill = NULL, borders.lwd = 2)+
-  qtm(st_as_sf(roads), lines.col = "red", lines.lwd = 2)+
-  qtm(st_as_sf(projRoads), lines.col = "green", lines.lwd = 2)+
-  qtm(st_as_sf(exRoads), lines.lwd = 2)+
-    tm_layout(legend.show = FALSE)
+# qtm(st_as_sf(cutblocks), fill = NULL, borders.lwd = 2)+
+#   qtm(st_as_sf(roads), lines.col = "red", lines.lwd = 2)+
+#   qtm(st_as_sf(projRoads), lines.col = "green", lines.lwd = 2)+
+#   qtm(st_as_sf(exRoads), lines.lwd = 2)+
+#     tm_layout(legend.show = FALSE)
 
 # # get extent
 # plot(roads)
@@ -70,49 +70,4 @@ write_sf(exRoads, paste0(data_path_drvd, "testing_ex_roads.gpkg"))
 write_sf(tsb[[1]], paste0(data_path_drvd, "testing_tsb.gpkg"))
 write_sf(cutblocks, paste0(data_path_drvd, "testing_cutblocks.gpkg"))
 writeRaster(tsaCost, paste0(data_path_drvd, "testing_cost.tif"))
-
-
-sampleDens <- c(low,high,low,high,low)
-sampleType <- c("regular","regular","random","random","centroid")
-paramTable <- tibble(sampleType, sampleDens,
-                     runTime = vector("list", length(sampleDens)),
-                     output = vector("list", length(sampleDens)),
-                     roadDisturbance = vector("list", length(sampleDens)),
-                     roadDensity = vector("list", length(sampleDens)),
-                     roadPresence = vector("list", length(sampleDens)),
-                     distanceToRoad = vector("list", length(sampleDens)),
-                     forestryDisturbance = vector("list", length(sampleDens))) %>%
-  distinct()
-
-# re-run projections for just the small area with different parameters
-mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
-                      costSurface = tsaCost,
-                      cutblocks = cutblocks,
-                      existingRoads = exRoads,
-                      fileLocation = paste0(data_path_drvd, "for_fig/mst"),
-                      method = "mst")
-
-lcpProj <- projectAll(tsbs = tsb,
-                      paramTable = paramTable %>% filter(sampleType == "centroid"),
-                      costSurface = tsaCost,
-                      cutblocks = cutblocks,
-                      existingRoads = exRoads,
-                      fileLocation = paste0(data_path_drvd, "for_fig/lcp"),
-                      method = "lcp")
-
-allProj <- bind_rows(mstProj, lcpProj, .id = "method")
-
-allMaps <- purrr::map(1:nrow(allProj),
-                      ~ qtm(tsaCost, raster.style = "cont", raster.palette = "Greys",
-                            raster.alpha = 0.5)+
-  qtm(cutblocks, fill = NULL, borders.lwd = 2)+
-  qtm(roads, lines.col = "red", lines.lwd = 2)+
-  qtm(read_sf(allProj$output[[.x]]), lines.col = "green", lines.lwd = 2)+
-  qtm(exRoads, lines.lwd = 2)+
-  tm_layout(legend.show = FALSE, main.title = paste(ifelse(allProj$method[.x]== 1, "MST", "LCP"),
-                                                allProj$sampleType[.x],
-                                                ifelse(allProj$sampleType[.x] == "centroid", "",
-                                                       allProj$sampleDens[.x]))))
-
-tmap_save(tmap_arrange(allMaps, ncol = 2), "analysis/figures/projection_methods_figure.jpg",
-          dpi = 300, height = 8, width = 7.48)
+write_sf(roads, paste0(data_path_drvd, "testing_obs_roads.gpkg"))
