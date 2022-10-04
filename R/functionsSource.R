@@ -46,7 +46,7 @@ roadDisturbanceFootprint <- function(x, r, b) {
 
 fineResProject <- function(TSAsubset, cutblockPoylgons, sampleDensity,
                            sampleType, costRaster, existingRoads,
-                           projectionMethod) {
+                           projectionMethod, sim = NULL) {
 
   subLandings <- getLandingsFromTarget(cutblockPoylgons,
                                        landingDens = sampleDensity,
@@ -55,13 +55,27 @@ fineResProject <- function(TSAsubset, cutblockPoylgons, sampleDensity,
     return(NULL)
   }
 
-  subProjectionResults <- projectRoads(subLandings,
-                                       cost = costRaster,
-                                       roads = existingRoads,
-                                       roadMethod = projectionMethod)
+  if(!is.null(sim)){
+    # if sim list supplied use it so don't redo getGraph but change all the
+    # other parts to the current inputs
+    sim$costSurface <- costRaster
+
+    sim$roads <- existingRoads
+
+    sim$roadMethod <- projectionMethod
+
+    subProjectionResults <- projectRoads(subLandings, sim = sim)
+  } else{
+    subProjectionResults <- projectRoads(subLandings,
+                                         cost = costRaster,
+                                         roads = existingRoads,
+                                         roadMethod = projectionMethod)
+  }
+
+
   gc(verbose = TRUE)
 
-  return(subProjectionResults$roads)
+  return(subProjectionResults)
 
 }
 
@@ -75,15 +89,20 @@ projectAll <- function(tsbs,paramTable, costSurface,
     cRow = paramTable[i,]
     start <- Sys.time()
 
-    projections <- fineResProject(tsbs,
-                                  cutblockPoylgons = cutblocks,
-                                  sampleDensity = cRow$sampleDens,
-                                  sampleType = cRow$sampleType,
-                                  costRaster = costSurface,
-                                  existingRoads = existingRoads,
-                                  projectionMethod = method)
+    projectionsList <- vector("list", nrow(paramTable))
 
-    projections <- do.call(rbind, projectionsList)
+    # use sim object so graph not re-calced, will be NULL for first iter
+    projectionsList[[i]] <- fineResProject(tsbs,
+                                           cutblockPoylgons = cutblocks,
+                                           sampleDensity = cRow$sampleDens,
+                                           sampleType = cRow$sampleType,
+                                           costRaster = costSurface,
+                                           existingRoads = existingRoads,
+                                           projectionMethod = method,
+                                           sim = projectionsList[[1]])
+
+
+    projections <- projectionsList[[i]]$roads
 
     end <- Sys.time()
 
