@@ -115,7 +115,7 @@ canada <- geodata::gadm("CAN", level = 1, path = here(data_path_raw))
 
 canada <- canada %>% 
   st_as_sf() %>% 
-  filter(NAME_0 == "Canada") %>% 
+  filter(COUNTRY == "Canada") %>% 
   st_transform(st_crs(tsaBoundary)) %>% 
   st_simplify(dTolerance = 10000)
 
