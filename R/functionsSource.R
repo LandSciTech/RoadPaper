@@ -145,20 +145,17 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
     print(i)
     cRow = paramTable[i,]
 
-    out <- list(sf::read_sf(cRow$output))
+    out <- sf::read_sf(cRow$output)
 
-    roadDisturbanceResults <- map(out,
-                                  roadDisturbanceFootprint,
-                                  r = costSurface,
-                                  b = boundary)
+    roadDisturbanceResults <- roadDisturbanceFootprint(out, r = costSurface,
+                                                       b = boundary)
 
-    paramTable$roadDisturbance[[i]] <- roadDisturbanceResults[[1]]
+    paramTable$roadDisturbance[[i]] <- roadDisturbanceResults
 
-    roadDensityResults <- map(out,
-                              rasterizeLineDensity,
-                              r = as(costSurface, "Raster"))
+    roadDensityResults <- rasterizeLineDensity(out,
+                                               r = as(costSurface, "Raster"))
 
-    paramTable$roadDensity[[i]] <- roadDensityResults[[1]]
+    paramTable$roadDensity[[i]] <- roadDensityResults
 
     roadPresenceResults <- paramTable$roadDensity[[i]]
 
@@ -199,6 +196,7 @@ getMetricMeans <- function(paramTable, cutblocks){
   metricsTable <- tibble(sampleType = paramTable$sampleType,
                          sampleDens = paramTable$sampleDens,
                          runTime = paramTable$runTime,
+                         method = paramTable$method,
                          areaMean = "overall",
                          roadDisturbanceMean = vector("numeric", nrow(paramTable)),
                          roadDensityMean = vector("numeric", nrow(paramTable)),
@@ -230,6 +228,7 @@ getMetricMeans <- function(paramTable, cutblocks){
   metricsTable1 <- tibble(sampleType = paramTable$sampleType,
                           sampleDens = paramTable$sampleDens,
                           runTime = paramTable$runTime,
+                          method = paramTable$method,
                           areaMean = "cutover",
                           roadDisturbanceMean = vector("numeric", nrow(paramTable)),
                           roadDensityMean = vector("numeric", nrow(paramTable)),
@@ -331,8 +330,8 @@ agreeMetricsAll <- function(paramTable, prex_rast, prex_vect, boundary, cutblock
              map(~terra::subst(.x, from = 1, to = 10)) )
 
   paramTable %>% filter(sampleType != "observed") %>%
-    dplyr::select(sampleType, sampleDens, roadDisturbance, roadPresence, forestryDisturbance) %>%
-    tidyr::pivot_longer(-contains("Sample"), names_to = "metric", values_to = "rast") %>%
+    dplyr::select(sampleType, sampleDens, method, roadDisturbance, roadPresence, forestryDisturbance) %>%
+    tidyr::pivot_longer(-c(contains("Sample"), method), names_to = "metric", values_to = "rast") %>%
     left_join(obs_tbl, by = "metric") %>%
     left_join(prex_tbl, by = "metric") %>%
     mutate(res = pmap(lst(obs_rast, proj_rast = rast, prex_rast), calcAgree)) %>%
@@ -480,7 +479,7 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
 
   meanTable <- mutate(meanTable, across(where(is.list), unlist))
 
-  write.csv(meanTable, paste0(outPth, "mean_table.csv"), row.names = FALSE)
+  write.csv(meanTable, file.path(outPth, "mean_table.csv"), row.names = FALSE)
 
   # compare spatially explicit agreement
   agreeTable <- agreeMetricsAll(allMetrics, prex_rast = inputs$roadsExist_rast == 0,
@@ -488,5 +487,5 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
                                 cutblocks = inputs$cutblocksPrior,
                                 nonAggregatedCostSurface = bc_cost_surface)
 
-  write.csv(agreeTable, paste0(outPth, "agree_table.csv"), row.names = FALSE)
+  write.csv(agreeTable, file.path(outPth, "agree_table.csv"), row.names = FALSE)
 }
