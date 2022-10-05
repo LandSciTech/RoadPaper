@@ -51,9 +51,25 @@ prepInputs(
 # 'OUTPUT':'C:/Users/endicotts/Documents/gitprojects/RoadPaper/analysis/data/derived_data/TSA27/klementProjection.shp'})
 
 
+# parameter table creation for running projections
+sampleDens <- c(low,high,low,high,low)
+sampleType <- c("regular","regular","random","random","centroid")
+paramTable <- tibble(sampleType, sampleDens, method = "mst",
+                     runTime = vector("list", length(sampleDens)),
+                     output = vector("list", length(sampleDens)),
+                     roadDisturbance = vector("list", length(sampleDens)),
+                     roadDensity = vector("list", length(sampleDens)),
+                     roadPresence = vector("list", length(sampleDens)),
+                     distanceToRoad = vector("list", length(sampleDens)),
+                     forestryDisturbance = vector("list", length(sampleDens))) %>%
+  distinct()
+
+# add row for dlcp with regular high density sampling
+paramTable <- bind_rows(paramTable, paramTable %>% slice(2) %>% mutate(method = "dlcp"))
 
 #
 run_projections(
+  paramTable,
   cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke.gpkg"),
   roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
   tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
@@ -63,16 +79,13 @@ run_projections(
   #Klement QGIS projection results shapefile
   klementProj = paste0(data_path_drvd, "TSA27/", "klementProjection.shp"),
 
-  #set high and low sampling densities for projections
-  low  = low,
-  high = high,
-
   aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
   saveInputs = TRUE
 )
 
 # For Revelstoke at coarse resolution
 run_projections(
+  paramTable,
   cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke.gpkg"),
   roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
   tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
@@ -82,15 +95,13 @@ run_projections(
   #Klement QGIS projection results shapefile
   klementProj = NULL,
 
-  #set high and low sampling densities for projections
-  low  = low,
-  high = high,
-
   aggFact = 10 #factor of aggregation of cost surface. 1 = no aggregation.
 )
 
 # For Fort Nelson at coarse resolution
 run_projections(
+  paramTable %>% filter(sampleType == "regular", sampleDens == "low",
+                        method = "mst"),
   cutblocksPth = paste0(data_path_raw, "cutblocks_ft_nelson.gpkg"),
   roadsPth = paste0(data_path_drvd, "combined_ft_nelson_roads.gpkg"),
   tsaBoundaryPth = paste0(data_path_raw, "tsa8_boundaries.gpkg"),
@@ -99,10 +110,6 @@ run_projections(
 
   #Klement QGIS projection results shapefile
   klementProj = NULL,
-
-  #set high and low sampling densities for projections
-  low  = high,
-  high = high,
 
   aggFact = 10 #factor of aggregation of cost surface. 1 = no aggregation.
 )

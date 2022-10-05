@@ -59,10 +59,10 @@ plot(roads %>% st_geometry())
 cut_add <- draw("polygon")
 cut_add <- set.crs(cut_add, crs(roads))
 
-cutblocks <- bind_rows(cutblocks, st_as_sf(cut_add))
+cutblocks <- bind_rows(cutblocks, st_as_sf(cut_add) %>% mutate(HARVEST_YEAR = 2010))
 
 #
-tsb <- st_bbox(roads) %>% st_as_sfc() %>% list()
+tsb <- st_bbox(cutblocks) %>% st_as_sfc() %>% list()
 
 
 # save example area for other testing

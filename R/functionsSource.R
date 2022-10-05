@@ -82,7 +82,7 @@ fineResProject <- function(TSAsubset, cutblockPolygons, sampleDensity,
 # function to generate all projections and raster layers for metrics
 
 projectAll <- function(tsbs,paramTable, costSurface,
-                       cutblocks, existingRoads, fileLocation, method) {
+                       cutblocks, existingRoads, fileLocation) {
 
   for(i in 1:nrow(paramTable)) {
     # i = 1
@@ -98,7 +98,7 @@ projectAll <- function(tsbs,paramTable, costSurface,
                                            sampleType = cRow$sampleType,
                                            costRaster = costSurface,
                                            existingRoads = existingRoads,
-                                           projectionMethod = method,
+                                           projectionMethod = cRow$method,
                                            sim = projectionsList[[1]])
 
 
@@ -106,8 +106,8 @@ projectAll <- function(tsbs,paramTable, costSurface,
 
     end <- Sys.time()
 
-    paramTable$output[[i]] <- paste0(fileLocation, cRow$sampleType, "_",
-                                     cRow$sampleDens, ".gpkg")
+    paramTable$output[[i]] <- file.path(fileLocation, paste0(cRow$sampleType, "_",
+                                     cRow$sampleDens, "_", cRow$method, ".gpkg"))
     paramTable$runTime[[i]] <- as.numeric(end - start)
 
     # save the projected roads to a file
@@ -417,8 +417,8 @@ prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
 
 
 # run all projections and summarise results for one tsa
-run_projections <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
-                            outPth, klementProj, low, high, aggFact, method = "mst",
+run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
+                            outPth, klementProj, aggFact, method = "mst",
                             saveInputs = FALSE){
 
   inputs <- prepInputs(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
@@ -431,26 +431,12 @@ run_projections <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
   bc_cost_surface <- inputs$bc_cost_surface
   tsaBoundary <- inputs$tsaBoundary
 
-  # parameter table creation for running projections
-  sampleDens <- c(low,high,low,high,low)
-  sampleType <- c("regular","regular","random","random","centroid")
-  paramTable <- tibble(sampleType, sampleDens,
-                       runTime = vector("list", length(sampleDens)),
-                       output = vector("list", length(sampleDens)),
-                       roadDisturbance = vector("list", length(sampleDens)),
-                       roadDensity = vector("list", length(sampleDens)),
-                       roadPresence = vector("list", length(sampleDens)),
-                       distanceToRoad = vector("list", length(sampleDens)),
-                       forestryDisturbance = vector("list", length(sampleDens))) %>%
-    distinct()
-
   #Running projections
   allResults <- projectAll(tsbs = tsbs, paramTable = paramTable,
                            costSurface = tsaCost_st,
                            cutblocks = cutblocks,
                            existingRoads = roadsExist,
-                           fileLocation = outPth,
-                           method = method)
+                           fileLocation = outPth)
 
   # recreate allResults after a restart using saved files
   # allResults <- paramTable %>%
