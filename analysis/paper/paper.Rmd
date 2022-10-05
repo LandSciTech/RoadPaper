@@ -194,15 +194,16 @@ library(pfocal)
 pal <- met.brewer(pal_nm, 8) %>% .[c(1,3,5,7)]
 
 # read in example area data
-exRoads <- read_sf(here(data_path_drvd, "testing_ex_roads.gpkg"))
-tsb <- read_sf(here(data_path_drvd, "testing_tsb.gpkg"))
-cutblocks <- read_sf(here(data_path_drvd, "testing_cutblocks.gpkg"))
-tsaCost <- raster(here(data_path_drvd, "testing_cost.tif"))
-roads <- read_sf(here(data_path_drvd, "testing_obs_roads.gpkg"))
+exRoads <- read_sf(here(data_path_drvd, "..", "testing_ex_roads.gpkg"))
+tsb <- read_sf(here(data_path_drvd, "..", "testing_tsb.gpkg"))
+cutblocks <- read_sf(here(data_path_drvd, "..", "testing_cutblocks.gpkg"))
+tsaCost <- raster(here(data_path_drvd, "..", "testing_cost.tif"))
+roads <- read_sf(here(data_path_drvd, "..", "testing_obs_roads.gpkg"))
 
 sampleDens <- c(low,high,low,high,low)
 sampleType <- c("regular","regular","random","random","centroid")
 paramTable <- tibble(sampleType, sampleDens,
+                     method = "mst",
                      runTime = vector("list", length(sampleDens)),
                      output = vector("list", length(sampleDens)),
                      roadDisturbance = vector("list", length(sampleDens)),
@@ -217,24 +218,25 @@ mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
                       costSurface = tsaCost,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
-                      fileLocation = paste0(data_path_drvd, "for_fig/mst"),
-                      method = "mst")
+                      fileLocation = here(data_path_drvd, "..", "for_fig"))
 
 dlcpProj <- projectAll(tsbs = tsb,
-                      paramTable = paramTable %>% filter(sampleType == "regular"),
+                      paramTable = paramTable %>% 
+                        filter(sampleType == "regular") %>% 
+                        mutate(method = "dlcp"),
                       costSurface = tsaCost,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
-                      fileLocation = paste0(data_path_drvd, "for_fig/dlcp"),
-                      method = "dlcp")
+                      fileLocation = here(data_path_drvd, "..", "for_fig"))
 
 lcpProj <- projectAll(tsbs = tsb,
-                       paramTable = paramTable %>% filter(sampleType == "centroid"),
+                       paramTable = paramTable %>% 
+                        filter(sampleType == "centroid") %>% 
+                        mutate(method = "lcp"),
                        costSurface = tsaCost,
                        cutblocks = cutblocks,
                        existingRoads = exRoads,
-                       fileLocation = paste0(data_path_drvd, "for_fig/lcp"),
-                       method = "lcp")
+                       fileLocation = here(data_path_drvd, "..", "for_fig"))
 
 allProj <- bind_rows(mstProj, dlcpProj, lcpProj, .id = "method") %>%
   arrange(desc(sampleType), sampleDens)
@@ -274,7 +276,7 @@ The projections were assessed for their spatial accuracy in two different ways. 
 
 ## Aspatial accuracy
 
-Projection accuracy varied widely across the 5 metrics and two scales compared (Figure \@ref(fig:fig3)). Across all projection methods road projections were less accurate within cutblocks than in the whole TSA. Metrics that used a buffer around the roads, forestry and road disturbance footprint, showed closer agreement between the observed and projected roads than the road density and road presence metrics at both scales. For all methods the distance to road metric was underestimated within cutblocks but was similar to the observed across the whole TSA. The road density and road distance to road metrics were the most sensitive to pixel size and were less accurate when the coarse cost raster was used (\@ref(fig:figA1)).
+Projection accuracy varied widely across the 5 metrics and two scales compared (Figure \@ref(fig:fig3)). Across all projection methods road projections were less accurate within cutblocks than in the whole TSA. Metrics that used a buffer around the roads, forestry and road disturbance footprint, showed closer agreement between the observed and projected roads than the road density and road presence metrics at both scales. For all methods the distance to road metric was underestimated within cutblocks but was similar to the observed across the whole TSA. The road density and distance to road metrics were the most sensitive to pixel size and were less accurate when the coarse cost raster was used (\@ref(fig:figA1)).
 
 When comparing between projection methods we found that the density of landing points chosen within cutblocks affected the results, with the high density method underestimating the road density and road presence metrics less than the low density and centroid methods. The sampling method for choosing points in the cutblocks, either random or regular, did not have a large effect on the results. Hardy's QGIS plugin performed well at the overall scale but tended to overestimate the amount of roads within cutblocks.
 
@@ -288,18 +290,19 @@ matchData <- read.csv(here(data_path_drvd, "agree_table.csv"))
 
 ```{r fig3, fig.height=4, fig.width=fig_widths["mid"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods across the entire Revelstoke TSA (“overall”) and within cutblocks (“cutblocks”). Values greater than 0 indicate the projection overestimated the amount of roads and negative values indicate an underestimation."}
 # organize data for ggplot
-meanTable_long <- meanTable %>%
-  pivot_longer(-c(sampleType, sampleDens, areaMean),
+meanTable_long <- meanTable %>% select(-runTime) %>% 
+  pivot_longer(-c(sampleType, sampleDens, areaMean, method),
                names_to = "metric", values_to = "response")%>%
   mutate(sampleType = ifelse(sampleType == sampleDens, NA_character_, 
                              sampleType),
-         sampleDens = paste(sampleType, sampleDens) %>% 
-           factor(levels = c("NA centroid",
-                             "NA observed",
-                             "random low sample density",
-                             "regular low sample density",
-                             "random high sample density",
-                             "regular high sample density",
+         sampleDens = paste(method, sampleType, sampleDens) %>% 
+           factor(levels = c("mst NA centroid",
+                             "NA NA observed",
+                             "mst random low sample density",
+                             "mst regular low sample density",
+                             "mst random high sample density",
+                             "mst regular high sample density",
+                             "dlcp regular high sample density",
                              "NA klementQGIS"),
                   labels = c("Centroid", 
                              "Observed",
@@ -307,6 +310,7 @@ meanTable_long <- meanTable %>%
                              "Regular\nlow density",
                              "Random\nhigh density",
                              "Regular\nhigh density",
+                             "DLCP Regular\nhigh density",
                              "Hardy QGIS")),
          metric = factor(metric,
                          levels = c("roadDensityMean", "roadPresenceMean",
@@ -337,35 +341,13 @@ prop_dif %>%
                                       width = 0.75))+
   facet_grid(areaMean~ metric)+
   theme_classic()+
-  scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:4, 6)],
+  scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:6)],
                     name = "Sampling\nMethod", guide = "none")+
   theme(text = element_text(size = 10), axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         legend.position = "right",
         axis.text.x=element_text(size=11, angle=50, vjust=1, hjust=1))+
   coord_flip()
-
-# Create bar plot This is the old version keep in case
-fig3 <- projected_values %>% group_by(areaMean) %>% nest() %>% ungroup() %>%
-  mutate(obs = observed_values %>% group_by(areaMean) %>% nest() %>% pull(data)) %>%
-  group_by(areaMean) %>%
-  mutate(data = map(data, ~mutate(.x, area = areaMean)),
-         plot = map2(data, obs,
-                    ~ ggplot(.x, aes(x = sampleDens, response, fill = sampleType))+
-                      geom_col(position = position_dodge2(preserve = "single",
-                                                         width = 0.75))+
-                      geom_hline(aes(yintercept = response),
-                                 .y, color = "black", linetype = "dashed")+
-                      facet_wrap(~metric, scales = "free_y", ncol = 1)+
-                      theme_classic()+
-                      scale_fill_manual(values = met.brewer(pal_nm, 4))+
-                      theme(text = element_text(size = 15), axis.title.x = element_blank(),
-                            axis.title.y = element_blank(),
-                            legend.position = "none")+
-                      ggtitle(str_to_title(areaMean)))) %>%
-  pull(plot) %>%
-  {ggarrange(plotlist = .)}
-
 
 ```
 
@@ -386,22 +368,24 @@ matchData_sum <- matchData %>% ungroup() %>%
                             levels = c("False negative", "False positive",
                                        "Agree roaded","Agree roadless",
                                        "Pre-existing roads")),
-         sampleDens = paste(sampleType, sampleDens) %>%
+         sampleDens = paste(method, sampleType, sampleDens) %>%
            str_replace("1e-06", "low density") %>%
            str_replace("1e-05", "high density") %>%
            str_replace("centroid low density", "centroid") %>%
            str_replace("klementQGIS NA", "klementQGIS") %>%
-           factor(levels = c("centroid",
-                             "random low density",
-                             "regular low density",
-                             "random high density",
-                             "regular high density",
+           factor(levels = c("mst centroid",
+                             "mst random low density",
+                             "mst regular low density",
+                             "mst random high density",
+                             "mst regular high density",
+                             "dlcp regular high density",
                              "klementQGIS"),
                   labels = c("Centroid", 
                              "Random\nlow density",
                              "Regular\nlow density",
                              "Random\nhigh density",
                              "Regular\nhigh density",
+                             "DLCP Regular\nhigh density",
                              "Hardy QGIS")),
          metric = factor(metric,
                          levels = c("roadPresence",
@@ -414,39 +398,6 @@ matchData_sum <- matchData %>% ungroup() %>%
   summarise(count = sum(count), .groups = "drop_last") %>%
   mutate(perc = count/sum(count)*100)
 
-stackedBar <- matchData_sum %>%
-  ggplot(aes(x = sampleDens, y =perc, fill = agreement))+
-  geom_col(position = "stack", width = 0.75)+
-  theme_classic()+
-  theme(axis.text.x=element_text(color = "black", size=11, angle=50, vjust=1, hjust=1))+
-  scale_fill_manual(values = c(met.brewer(pal_nm, 4, direction = -1)[c(1,4,3,2)],
-                               "#999999"))+
-  theme(text = element_text(size = 15), axis.title.x = element_blank())+
-  theme(legend.position="bottom", legend.text = element_text(size = 10),
-        legend.title = element_blank(),
-        strip.background = element_blank())+
-  labs(y = "Percent of Landscape")+
-  facet_wrap(~metric)
-
-# waffle stacked bar
-# matchData_sum %>%
-#   #filter(metric == "Road presence") %>%
-#   ggplot(aes(values = perc*3,
-#              fill = factor(agreement, levels = levels(agreement))))+
-#   geom_waffle(size = 0.25, colour = "white", flip = TRUE, n_rows = 9)+
-#   facet_grid(metric~ sampleDens)+
-#   scale_fill_manual(values = c(met.brewer(pal_nm, 4, direction = -1)[c(1,4,3,2)],
-#                                "#999999"), name = "Agreement")+
-#   scale_x_discrete(name = NULL) +
-#   scale_y_continuous(labels = function(x) x * 9/3,
-#                      expand = c(0,0), name =  "Percent of Landscape") +
-#   coord_equal()+
-#   theme_minimal() +
-#   theme(text = element_text(size = 10),
-#         panel.grid = element_blank(),
-#         axis.ticks.y = element_line(),
-#         legend.position = "bottom") +
-#   guides(fill=guide_legend(nrow=2))
 
 # performance table
 perf_tbl <- matchData_sum %>% 
@@ -467,7 +418,7 @@ perf_tbl %>%
                             labels = c("F measure", "Precision", "Sensitivity"))) %>% 
   ggplot(aes(sampleDens, value, fill = sampleDens))+
   geom_col()+
-  scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:4, 6)],
+  scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:6)],
                     name = "Sampling\nMethod", guide = "none")+
   facet_grid(metric ~ perf_meas)+
   coord_flip()+
@@ -563,13 +514,14 @@ meanTable_long <- meanTable %>%
                names_to = "metric", values_to = "response")%>%
   mutate(sampleType = ifelse(sampleType == sampleDens, NA_character_, 
                              sampleType),
-         sampleDens = paste(sampleType, sampleDens) %>% 
-           factor(levels = c("NA centroid",
-                             "NA observed",
-                             "random low sample density",
-                             "regular low sample density",
-                             "random high sample density",
-                             "regular high sample density",
+         sampleDens = paste(method, sampleType, sampleDens) %>% 
+           factor(levels = c("mst NA centroid",
+                             "NA NA observed",
+                             "mst random low sample density",
+                             "mst regular low sample density",
+                             "mst random high sample density",
+                             "mst regular high sample density",
+                             "dlcp regular high sample density",
                              "NA klementQGIS"),
                   labels = c("Centroid", 
                              "Observed",
@@ -577,6 +529,7 @@ meanTable_long <- meanTable %>%
                              "Regular\nlow density",
                              "Random\nhigh density",
                              "Regular\nhigh density",
+                             "DLCP Regular\nhigh density",
                              "Hardy QGIS")),
          metric = factor(metric,
                          levels = c("roadDensityMean", "roadPresenceMean",
@@ -623,22 +576,24 @@ matchData_sum <- matchData %>% ungroup() %>%
                             levels = c("False negative", "False positive",
                                        "Agree roaded","Agree roadless",
                                        "Pre-existing roads")),
-         sampleDens = paste(sampleType, sampleDens) %>%
+         sampleDens = paste(method, sampleType, sampleDens) %>%
            str_replace("1e-06", "low density") %>%
            str_replace("1e-05", "high density") %>%
            str_replace("centroid low density", "centroid") %>%
            str_replace("klementQGIS NA", "klementQGIS") %>%
-           factor(levels = c("centroid",
-                             "random low density",
-                             "regular low density",
-                             "random high density",
-                             "regular high density",
+           factor(levels = c("mst centroid",
+                             "mst random low density",
+                             "mst regular low density",
+                             "mst random high density",
+                             "mst regular high density",
+                             "dlcp regular high density",
                              "klementQGIS"),
                   labels = c("Centroid", 
                              "Random\nlow density",
                              "Regular\nlow density",
                              "Random\nhigh density",
                              "Regular\nhigh density",
+                             "DLCP Regular\nhigh density",
                              "Hardy QGIS")),
          metric = factor(metric,
                          levels = c("roadPresence",

@@ -45,7 +45,7 @@ paramTable <- bind_rows(paramTable, paramTable %>% slice(2) %>%
 run_projections(
   paramTable,
   cutblocksPth = here(data_path_drvd, "testing_cutblocks.gpkg"),
-  roadsPth = here(data_path_drvd, "testing_ex_roads.gpkg"),
+  roadsPth = here(data_path_drvd, "testing_obs_roads.gpkg"),
   tsaBoundaryPth = here(data_path_drvd, "testing_tsb.gpkg"),
   costPth = here(data_path_drvd, "testing_cost.tif"),
   outPth = here(data_path_drvd, "test_tsb/"),
