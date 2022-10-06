@@ -379,7 +379,7 @@ prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
   cutblocks <- filter(cutblocks, HARVEST_YEAR > cutblocksYear)
 
   ### prepare cost surface layer
-  tsaCost <- crop(bc_cost_surface, tsaBoundary)
+  tsaCost <- crop(bc_cost_surface, st_buffer(tsaBoundary, 2000))
 
   if(aggFact > 1){
     tsaCost <- terra::aggregate(tsaCost, fact = aggFact, fun = terra::mean)

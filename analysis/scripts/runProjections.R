@@ -39,16 +39,32 @@ prepInputs(
   saveInputs = TRUE
 )
 
-# Code copied from QIS for running the plugin
-# processing.run("FRNC:Forest Road Network Creation",
-# {'INPUT_COST_RASTER':'C:/Users/endicotts/Documents/gitprojects/RoadPaper/analysis/data/derived_data/TSA27/input_cost.tif',
-# 'INPUT_RASTER_BAND':1,
-# 'INPUT_POLYGONS_TO_ACCESS':'C:/Users/endicotts/Documents/gitprojects/RoadPaper/analysis/data/derived_data/TSA27/input_cutblocks.gpkg',
-# 'INPUT_ROADS_TO_CONNECT_TO':'C:/Users/endicotts/Documents/gitprojects/RoadPaper/analysis/data/derived_data/TSA27/input_roads.gpkg',
-# 'SKIDDING_DISTANCE':100,'METHOD_OF_GENERATION':1,'HEURISTIC_IN_POLYGONS':'',
-# 'ANGLES_CONSIDERED':1,'PUNISHER_45DEGREES':1.25,'PUNISHER_90DEGREES':2,
-# 'PUNISHER_135DEGREES':5,
-# 'OUTPUT':'C:/Users/endicotts/Documents/gitprojects/RoadPaper/analysis/data/derived_data/TSA27/klementProjection.shp'})
+# Logs copied from QIS for running the plugin and unioning the results to the input roads
+# QGIS version: 3.12.0-București
+# QGIS code revision: cd141490ec
+# Qt version: 5.11.2
+# GDAL version: 3.0.4
+# GEOS version: 3.8.0-CAPI-1.13.1
+# PROJ version: Rel. 6.3.1, February 10th, 2020
+# Processing algorithm…
+# Algorithm 'Forest Road Network Creation' starting…
+# Input parameters:
+#   { 'ANGLES_CONSIDERED' : 1, 'HEURISTIC_IN_POLYGONS' : '',
+#     'INPUT_COST_RASTER' : 'C:/Users/endicotts/Documents/gitprojects/RoadPaper/analysis/data/derived_data/TSA27/input_cost.tif',
+#     'INPUT_POLYGONS_TO_ACCESS' : 'C:/Users/endicotts/Documents/gitprojects/RoadPaper/analysis/data/derived_data/TSA27/input_cutblocks.gpkg|layername=input_cutblocks',
+#     'INPUT_RASTER_BAND' : 1,
+#     'INPUT_ROADS_TO_CONNECT_TO' : 'C:/Users/endicotts/Documents/gitprojects/RoadPaper/analysis/data/derived_data/TSA27/input_roads.gpkg|layername=input_roads',
+#     'METHOD_OF_GENERATION' : 1, 'OUTPUT' : 'TEMPORARY_OUTPUT', 'PUNISHER_135DEGREES' : 5,
+#     'PUNISHER_45DEGREES' : 1.25, 'PUNISHER_90DEGREES' : 2, 'SKIDDING_DISTANCE' : 200 }
+#
+#
+# Algorithm 'Union' starting…
+# Input parameters:
+#   { 'INPUT' : 'C:/Users/endicotts/Documents/gitprojects/RoadPaper/analysis/data/derived_data/TSA27/klementProjection.shp',
+#     'OUTPUT' : 'TEMPORARY_OUTPUT',
+#     'OVERLAY' : 'C:/Users/endicotts/Documents/gitprojects/RoadPaper/analysis/data/derived_data/TSA27/input_roads.gpkg|layername=input_roads',
+#     'OVERLAY_FIELDS_PREFIX' : '' }
+
 
 
 # parameter table creation for running projections
