@@ -114,23 +114,6 @@ run_projections(
   aggFact = 10 #factor of aggregation of cost surface. 1 = no aggregation.
 )
 
-# For Fort Nelson at coarse resolution
-run_projections(
-  paramTable %>% filter(sampleType == "regular", sampleDens == "low",
-                        method = "mst"),
-  cutblocksPth = paste0(data_path_raw, "cutblocks_ft_nelson.gpkg"),
-  roadsPth = paste0(data_path_drvd, "combined_ft_nelson_roads.gpkg"),
-  tsaBoundaryPth = paste0(data_path_raw, "tsa8_boundaries.gpkg"),
-  costPth = paste0(data_path_raw, "cost_surface_bc_ha.tif"),
-  outPth = paste0(data_path_drvd, "TSA8_1000/"),
-
-  #Klement QGIS projection results shapefile
-  klementProj = NULL,
-
-  aggFact = 10 #factor of aggregation of cost surface. 1 = no aggregation.
-)
-beepr::beep()
-
 # set rasterOptions back to previous value
 # terraOptions(memfrac = prevOpts$memfrac)
 print(Sys.time())

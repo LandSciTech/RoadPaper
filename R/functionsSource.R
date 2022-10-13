@@ -121,22 +121,28 @@ projectAll <- function(tsbs,paramTable, costSurface,
 }
 
 calcMetrics <- function(paramTable, klementProj, cutblocks,
-                        nonAggregatedCostSurface, observedRoads, boundary,
+                        nonAggregatedCostSurface, observedRoads, boundary, cutblocksPth,
                         costSurface){
-
-  observedRow <- c("observed", NA, NA, NA, NA, NA, NA, NA)
+  # row for observed
+  observedRow <- c("observed", NA, NA, NA, NA, NA, NA, NA, NA, NA)
 
   paramTable <- rbind(paramTable, observedRow)
 
   paramTable$output[[nrow(paramTable)]] <- observedRoads
 
+  # row for QGIS Plugin
   if(!is.null(klementProj)){
-    klementRow <- c("klementQGIS", NA, NA, NA, NA, NA, NA, NA)
+    klementRow <- c("klementQGIS", NA, NA, NA, NA, NA, NA, NA, NA, NA)
 
     paramTable <- rbind(paramTable, klementRow)
 
     paramTable$output[[nrow(paramTable)]] <- klementProj
   }
+
+  # row for if only consider roads in disturbance
+  paramTable <- rbind(paramTable, c("cutOnly", NA, NA, NA, NA, NA, NA, NA, NA, NA))
+
+  paramTable$output[[nrow(paramTable)]] <- cutblocksPth
 
   cutblocksRaster <- terra::rasterize(terra::vect(cutblocks), nonAggregatedCostSurface)
 
@@ -461,7 +467,19 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
                             observedRoads = roadsPth,
                             klementProj = klementProj,
                             cutblocks = cutblocks,
+                            cutblocksPth = cutblocksPth,
                             costSurface = tsaCost_st)
+
+  # save the metrics for further study
+  select(allMetrics, -c(sampleType, sampleDens, method, runTime, output)) %>%
+    colnames() %>%
+    purrr::cross2(1:nrow(allMetrics)) %>%
+    purrr::walk(~terra::writeRaster(allMetrics[[.x[[1]]]][[.x[[2]]]],
+                                    file.path(outPth, paste0(.x[[1]], allMetrics$sampleType[.x[[2]]], "_",
+                                                             allMetrics$sampleDens[.x[[2]]], "_",
+                                                             allMetrics$method[.x[[2]]], ".tif")),
+                                    overwrite = TRUE))
+
 
   #Retrieving mean values for cutover and overall
   meanTable <- getMetricMeans(allMetrics, cutblocks)

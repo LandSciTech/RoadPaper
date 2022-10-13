@@ -76,3 +76,4 @@ allMaps <- purrr::map(
 
 tmap_arrange(allMaps)
 
+meanTable <- read.csv(here(data_path_drvd, "test_tsb", "mean_table.csv"))

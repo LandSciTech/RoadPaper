@@ -79,7 +79,6 @@ In the first section of the paper (methods), we introduce the study area used to
 We chose the Revelstoke timber supply area (TSA 27), in British Columbia, Canada as our study area because forestry is the dominant resource extraction activity in this region and much of the TSA's road network is composed of forestry resource roads built to gain access to forest harvest cutblocks (Figure 1). This allows us to project road building based on forest harvest data. With approximately 55% of Revelstoke TSA's area being non-forested land (alpine, lakes, swamp, brush, rock, etc) [@brown2010], the TSA also provides an ideal location to observe the behaviour of the projections across a landscape which presents multiple barriers to road development. The Revelstoke TSA is in the interior-wet belt of the province and its forests are dominated by Englemann spruce (31%), Hemlock (23%), Cedar (22%), and Douglas-fir (18%) [@ministryofforests]. The TSA contains wildlife species that are at risk due to their declining populations and are thought to be negatively affected by road development, such as members of the southern mountain woodland caribou population [@brown2010]. The Revelstoke TSA is an example of a landscape where road projections could be used to manage critical wildlife habitats. The British Columbia TSA boundary shapefile layer was downloaded from the British Columbia Data Catalogue [@governmentofbritishcolumbia2021].
 
 ```{r setup2}
-##### Metric table bar plots
 library(ggplot2)
 library(dplyr)
 library(stringr)
@@ -176,11 +175,35 @@ All data sets were accessed using the `bcdata` R package and filtered to the ext
 
 We developed the `roads` R package to project where new roads will be built based on the existing road network, locations of expected resource extraction (i.e. harvest cutblocks) and the landscape connecting the two. There are several different methods available for solving this problem, including snapping, least cost paths, dynamic least cost paths and minimum spanning trees. Snapping follows a straight line between the existing road and each cutblock regardless of the intervening landscape. The least cost paths (LCP) method uses Dijkstra's shortest path algorithm [-@dijkstra1959] to determine the optimal path between a cutblock and the existing road based on the cost of building a road at any point between the two. The path to each cutblock is determined independently of the other cutblocks. The dynamic least cost paths (DLCP) method uses the same LCP algorithm but evaluates the path to each cutblock in sequence so that earlier paths are considered in the cost for later paths. The sequence is detemined by a heuristic such as the distance to the existing road. Finally, the minimum spanning tree (MST) method builds on the LCP method by determining the least cost path between all cutblocks and the road and between each cutblock. Then the minimum spanning tree connecting all cutblocks to the road is solved using Kruskal's algorithm [-@kruskal1956]. (See Appendix X for a more detailed explanation of these methods). In the remainder of this paper, we focus on the DLCP and MST approaches which are better aligned with how road networks are designed.
 
-In addition to the projection methods included in the `roads` package we also applied the Forest Road Network Plugin for QGIS by Clément Hardy (<https://github.com/Klemet/ForestRoadNetworkPluginForQGIS>). This plugin uses a similar DLCP algorithm to the `roads` package and uses the distance to the closest roads to order the cutblocks.
+In addition to the projection methods included in the `roads` package we also applied the Forest Road Network Plugin for QGIS by Clément Hardy (<https://github.com/Klemet/ForestRoadNetworkPluginForQGIS>), hereafter referred to as the Hardy QGIS method. This plugin uses a similar DLCP algorithm to the `roads` package and uses the distance to the closest roads to order the cutblocks.
+
+```{r fig2, fig.cap="The roads package includes several different algorithms for building road networks, as well as methods for selecting landing locations within forest harvest cublocks. The algorithms include minimum spanning trees (MST), dynamic least cost paths (DLCP) and least cost paths (LCP). Landing locations can be selected as the centroid of the cutblock, or by taking a random or regularly spaced sample of points inside the cutblock at a given density. Target cutblocks are shown by grey lines, existing roads by black lines, projected roads by yellow lines, observed roads by red lines, and the cost of road building by the grey shading."}
+knitr::include_graphics(here("analysis/figures/projection_methods_figure.png"))
+```
 
 ## Analysis
 
-We projected road development in the Revelstoke TSA from 1990 to the present using several different inputs and compared the projections to the observed present day road network in order to evaluate the accuracy of the projections and their sensitivity to different inputs. We compared two resolutions for the cost surface by aggregating the fine resolution cost raster to a coarser 1000 m resolution. We also compared methods for locating landing points within cutblocks by comparing using the polygon centroid and regularly spaced and random points, with point densities of 1 and 10 pts/km^2^ (Figure \@ref(fig:fig2)). For the Hardy QGIS plugind supplied our cost surface, cutblocks, road network data and kept all the default settings except for the skidding distance which was set to 200m. Note that a skidding distance of 200 m corresponds to \~ 9 pts/km^2^ .
+We used the development of roads in the Revelstoke TSA from 1990 to the present as a case study to compare the MST, DCLP and Hardy QGIS road projection methods. We also explored the effects of the cost surface resolution and different methods of selecting landing points within cutblocks by repeating the MST projections with several variations of the input parameters. We compared two resolutions for the cost surface by aggregating the 100m resolution cost raster to a coarser 1000 m resolution. We also compared methods for locating landing points within cutblocks by using the polygon centroid and regularly spaced and random points, with point densities of 1 and 10 pts/km^2^ (Figure \@ref(fig:fig2)). The MST projection method was used for all the variations of parameters described above and an additional projection was run using the DLCP method with regularly spaced, high density landings. To allow comparisons, we also included a cutblocks only projection which did not project roads but assumed all disturbances were with in cutblocks. For the Hardy QGIS plugin we input the 100 m resolution cost raster, cutblocks, and road network data. We kept all the default settings except for the skidding distance which was set to 200m. Note that a skidding distance of 200 m corresponds to \~ 9 pts/km^2^. This resulted in a total of 15 road projection variants to be compared (Table 2). 
+
+Table 2: Road projection method variations 
+```{r}
+tbl2 <- "Projection method|Sample type|Sample density (pts/km^2^)|Resolutions
+MST|Regular|1|100 m and 1000 m
+MST|Regular|10|100 m and 1000 m
+MST|Random|1|100 m and 1000 m
+MST|Random|10|100 m and 1000 m
+MST|Centroid|N/A|100 m and 1000 m
+DLCP|Regular|10|100 m 
+Hardy QGIS|N/A|~9|100 m
+Cutblocks only|N/A|N/A|100 m 
+
+"
+df2 <- read.delim(textConnection(tbl2),header=FALSE,sep="|",strip.white=TRUE,stringsAsFactors=FALSE)
+names(df2) <- unname(as.list(df2[1,]))
+df2 <- df2[-1,] # remove first row
+row.names(df2)<-NULL
+knitr::kable(df2)
+```
 
 ```{r, cache=TRUE}
 # Example area for demonstrating different methods
@@ -194,7 +217,6 @@ library(purrr)
 library(caribouMetrics)
 library(pfocal)
 
-pal <- met.brewer(pal_nm, 8) %>% .[c(1,3,5,7)]
 
 # read in example area data
 exRoads <- read_sf(here(data_path_drvd, "..", "testing_ex_roads.gpkg"))
@@ -252,16 +274,16 @@ allMaps <- purrr::map(
   1:nrow(allProj),
   ~ qtm(tsaCost, raster.style = "cont", raster.palette = "Greys",
         raster.alpha = 0.5)+
-    qtm(cutblocks, fill = NULL, borders = pal[1], borders.lwd = 1.5)+
-    qtm(roads, lines.col = pal[3], lines.lwd = 2)+
-    qtm(read_sf(here(allProj$output[[.x]])), lines.col = pal[2], lines.lwd = 2)+
+    qtm(cutblocks, fill = NULL, borders = "grey40", borders.lwd = 1.5)+
+    qtm(roads, lines.col = "red", lines.lwd = 2)+
+    qtm(read_sf(here(allProj$output[[.x]])), lines.col = "yellow", lines.lwd = 2)+
     qtm(exRoads, lines.col = "black", lines.lwd = 2)+
     tm_layout(legend.show = FALSE,
               main.title = paste(ifelse(allProj$method[.x]== 1, "MST",
                                         ifelse(allProj$method[.x]== 2, "DLCP", "LCP")),
                                  allProj$sampleType[.x],
                                  ifelse(allProj$sampleType[.x] == "centroid", "",
-                                        allProj$sampleDens[.x])),
+                                        ifelse(allProj$sampleDens[.x] == 1e-06, "low density", "high density"))),
               main.title.size = 0.75))
 
 tmap_save(tmap_arrange(allMaps, ncol = 2),
@@ -269,21 +291,19 @@ tmap_save(tmap_arrange(allMaps, ncol = 2),
           dpi = 300, height = 8, width = 3.543)
 ```
 
-```{r fig2, fig.cap="Example of the different projection methods and sampling strategies. Target cutblocks are shown by grey lines, existing roads by black lines, projected roads by green lines, observed roads by red lines, and the cost of road building by the grey shading."}
-knitr::include_graphics(here("analysis/figures/projection_methods_figure.png"))
-```
 
-In order to assess the performance of the projections, the following metrics were used to compare the projected forest road network results with the observed network: 1) Road presence, a simple measure of whether or not roads are present in each pixel; 2) Road disturbance footprint, 1 km buffer applied to observed and projected roads [@ibisch2016a]; 3) Forestry disturbance footprint, a 500 m buffer applied to observed and projected roads and cutblocks; 4) Road density, density of roads in meters per hectare (m/ha); 5) Distance to nearest road, distance from each raster cell to the nearest road. The forestry disturbance footprint follows the anthropogenic disturbance metric used for boreal caribou [@johnson2020], and was calculated using the `caribouMetrics` R package [@hughes]. Road density is an important metric that is often used when studying anthropogenic impacts on wildlife (Beazley et al., 2004). Road density was calculated using the rasterizeLineDensity function within the `caribouMetrics` package. Distance to nearest road was calculated using a fast moving window method in the `getDistFromSource` function of the roads package. Each metric was applied to the results from each projection method and the observed roads with the results were stored as rasters.
 
-The aspatial accuracy of the projections was assessed by calculating the mean values of the projection metric rasters and then comparing them with the means of the observed metric rasters. This was done across the TSA and at the cutblock level, where metric rasters were masked by the cutblock polygons and the means were taken only from within cutblocks.
+In order to assess the performance of the projections, the following characteristics of the projected and observed road networks were calculated and compared: 1) Road presence, whether or not roads are present in each pixel; 2) Road disturbance footprint, 1 km buffer around roads [@ibisch2016a]; 3) Forestry disturbance footprint, a 500 m buffer around roads and cutblocks; 4) Road density, density of roads in meters per hectare (m/ha); 5) Distance to nearest road, distance from each raster cell to the nearest road. The forestry disturbance footprint follows the anthropogenic disturbance metric used for boreal caribou [@johnson2020], and was calculated using the `caribouMetrics` R package [@hughes]. Road density is an important metric that is often used when studying anthropogenic impacts on wildlife [@beazley2004]. Road density was calculated using the rasterizeLineDensity function within the `caribouMetrics` package. Distance to nearest road was calculated with a fast moving window method using the getDistFromSource function of the `roads` package. All road characteristics were stored in raster format.
 
-The projections were assessed for their spatial accuracy in two different ways. First, difference maps were created by subtracting the road presence rasters of the projected networks with the observed network in order to highlight discrepancies between the networks. The observed and projected road network shapefiles were then overlain on the difference maps and regions of major discrepancies were investigated using Google satellite imagery in QGIS to investigate potential causes of the discrepancy. Secondly, a matching analysis using the three binary metrics (road presence, road disturbance footprint, and forestry disturbance footprint) was performed. This matching analysis compared the three metric rasters for all projection methods with the observed metric rasters and calculated percentages of the TSA that matched and didn't match. All pixels in the Revelstoke TSA for the projected networks fell into 5 categories when compared with the observed raster: 1) pre-existing roads; 2) agree roadless, both projected and observed show no roads; 3) agree roaded, both projected and observed show new roads; 4) false positive, the projection showed a road but no roads were observed; and 5) false negative, the projection showed no roads but a road was observed. Using these 5 categories, the landscape within the Revelstoke TSA was categorized for each projection method and summarized. We used the performance metrics sensitivity, precision and F-measure to compare the results for each projection method [@lee2021].
+The aspatial accuracy of the projections was assessed by calculating the mean values of each road network characteristic and comparing the projected and observed values. This was done across the TSA and at the cutblock level, where metric rasters were masked by the cutblock polygons and the means were taken only from within cutblocks.
+
+The projections were assessed for their spatial accuracy in two different ways. First, difference maps were created by subtracting the road presence rasters of the projected networks with the observed network in order to highlight discrepancies between the networks. The observed and projected road networks were then overlain on the difference maps and regions of major discrepancies were investigated using Google satellite imagery in QGIS to investigate potential causes of the discrepancy. Secondly, the performance of each projection for the three binary characteristics (road presence, road disturbance footprint, and forestry disturbance footprint) was assessed. All pixels in the projected networks fell into 5 categories when compared with the observed raster: 1) pre-existing roads; 2) agree roadless, both projected and observed show no roads; 3) agree roaded, both projected and observed show new roads; 4) false positive, the projection showed a road but no roads were observed; and 5) false negative, the projection showed no roads but a road was observed. These categories were summarized for each projection and characteristic and used to calculate the performance metrics sensitivity, precision and F-measure [@lee2021]. Sensitivity, also known as recall, gives the proportion of the true positives that were projected, while precision gives the proportion of positives projected that are true. Sensitivity will be lower when observed roads are missed and precision will be lower when roads are projected that were not observed. F-measure attempts to balance sensitivity and precision to give an overall score.
 
 # Results
 
-## Aspatial accuracy
+## Aspatial performance
 
-Projection accuracy varied widely across the 5 metrics and two scales compared (Figure \@ref(fig:fig3)). Across all projection methods road projections were less accurate within cutblocks than in the whole TSA. Metrics that used a buffer around the roads, forestry and road disturbance footprint, showed closer agreement between the observed and projected roads than the road density and road presence metrics at both scales. For all methods the distance to road metric was underestimated within cutblocks but was similar to the observed across the whole TSA. The road density and distance to road metrics were the most sensitive to pixel size and were less accurate when the coarse cost raster was used (\@ref(fig:figA1)).
+For each projection method the aspatial projection performance varied widely across the 5 road network characteristics and between the within cutblock and overall scales (Figure \@ref(fig:fig3)). The buffering based characteristics, the road and forestry disturbance footprints, performed best within cutblocks while the other characteristics, presence, density and distance to nearest road, performed better across the whole landscape. Across the whole landscape the the road and forestry disturbance footprints and distance to nearest roads were the closest to the observed mean, while the road presence and density characteristics were underestimated. The road density and distance to road metrics were the most sensitive to pixel size and were less accurate when the coarse cost raster was used (\@ref(fig:figA1)).
 
 When comparing between projection methods we found that the density of landing points chosen within cutblocks affected the results, with the high density method underestimating the road density and road presence metrics less than the low density and centroid methods. The sampling method for choosing points in the cutblocks, either random or regular, did not have a large effect on the results. Hardy's QGIS plugin performed well at the overall scale but tended to overestimate the amount of roads within cutblocks.
 
@@ -295,7 +315,7 @@ matchData <- read.csv(here(data_path_drvd, "agree_table.csv"))
 
 ```
 
-```{r fig3, fig.height=4.5, fig.width=fig_widths["mid"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods across the entire Revelstoke TSA (“overall”) and within cutblocks (“cutblocks”). Values greater than 0 indicate the projection overestimated the metric and negative values indicate an underestimation."}
+```{r fig3, fig.height=5, fig.width=fig_widths["mid"], fig.cap="Proportional difference of projected mean from observed mean road characteristics using different projection methods across the entire Revelstoke TSA (“overall”) and within cutblocks (“cutblocks”). Values greater than 0 indicate the projection overestimated the characteristic and negative values indicate an underestimation. The cublocks only method is not defined for the road density, road presence or distance to road characteristics."}
 # organize data for ggplot
 meanTable_long <- meanTable %>% dplyr::select(-runTime) %>% 
   pivot_longer(-c(sampleType, sampleDens, areaMean, method),
@@ -310,7 +330,8 @@ meanTable_long <- meanTable %>% dplyr::select(-runTime) %>%
                              "mst random high sample density",
                              "mst regular high sample density",
                              "dlcp regular high sample density",
-                             "NA NA klementQGIS"),
+                             "NA NA klementQGIS",
+                             "NA NA NA"),
                   labels = c("Centroid", 
                              "Observed",
                              "Random\nlow density",
@@ -318,7 +339,8 @@ meanTable_long <- meanTable %>% dplyr::select(-runTime) %>%
                              "Random\nhigh density",
                              "Regular\nhigh density",
                              "DLCP regular\nhigh density",
-                             "Hardy QGIS")),
+                             "Hardy QGIS",
+                             "Cutblocks only")),
          metric = factor(metric,
                          levels = c("roadDensityMean", "roadPresenceMean",
                                     "distanceToRoadMean",
@@ -339,7 +361,11 @@ prop_dif <- projected_values %>%
             by = c("areaMean", "metric"), 
             suffix = c("_proj", "_obs")) %>% 
   mutate(prop_dif = (response_proj-response_obs)/response_obs,
-         areaMean = factor(areaMean, labels = c("Cutblocks", "Overall")))
+         areaMean = factor(areaMean, labels = c("Cutblocks", "Overall"))) %>% 
+  mutate(prop_dif = ifelse(sampleDens == "Cutblocks only" & 
+                             metric %in% c("Road\ndensity", "Road\npresence",
+                                           "Distance\nto road"),
+                           NA_real_, prop_dif))
 
 prop_dif %>% 
   ggplot(aes(x = sampleDens, prop_dif, fill = sampleDens))+
@@ -348,7 +374,7 @@ prop_dif %>%
                                       width = 0.75))+
   facet_grid(areaMean~ metric)+
   theme_classic()+
-  scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:6)],
+  scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:7)],
                     name = "Sampling\nMethod", guide = "none")+
   theme(text = element_text(size = 10), axis.title.x = element_blank(),
         axis.title.y = element_blank(),
@@ -358,17 +384,17 @@ prop_dif %>%
 
 ```
 
-## Spatial accuracy
+## Spatial performance
 
-Difference maps helped to highlight areas of discrepancy between the projections and the observed forestry road networks. In areas where the quality of the cutblock and road data was high, the projections remained within a reasonable vicinity of the observed roads and also realistically remained within valley bottoms without cutting across natural barriers such as mountains (figure 4a). Areas of greatest discrepancy often suggest problems with available forestry road or cutblock data. There are some areas in Revelstoke, for example, where there are mapped cutblocks but no mapped access roads, even though satellite images clearly show roads (Figure 4b). There are also instances where areas were likely misidentified as cutblocks (Figure 4c). This is likely due to difficulty distinguishing cutblocks from other unforested areas such as scree slopes and meadows using remote sensing methods.
+Using difference maps to highlight areas of poor projections we found several potential causes of discrepancy. In most areas the projections remained within a reasonable vicinity of the observed roads and also realistically remained within valley bottoms without cutting across natural barriers such as mountains (Figure \@ref(fig:fig4)b). However, the cost raster was not detailed enough to reflect the costs of crossing streams or wet areas in valley bottoms and so the projections often cross the valley more than the observed roads, which typically have two parallel roads on either side of the valley. In addition, the projected roads were not able to match the switchback pattern of observed roads in steep terrain (Figure \@ref(fig:fig4)b). There were also instances where cutblocks included in the data set appear to be misidentified and are not accessed by the observed road network (Figure \@ref(fig:fig4)c).
 
-```{r fig4, fig.height=9, fig.width=fig_widths["two"], fig.cap="Difference maps used to investigate the performance of the projections. Image “a” shows an area of low discrepancy where the projections matched well. When zooming in on the discrepancy shown in image “b”, one can see from the satellite imagery that there are forest roads in the imagery that are missing from the observed data. Image “c” reveals one example of a cutblock that has most likely been mislabelled by remote sensing as it is located on the summit of a mountain."}
+```{r fig4, fig.height=9, fig.width=fig_widths["two"], fig.cap="Comparison of projection results for the minimum spanning tree projection with regular high density sampling to the observed road network. The primary map shows the observed distance to the nearest road minus the projected distance and the insets show close-ups of the road networks with satellite imagery to give more context. a) Projected and observed road networks follow similar patterns although projected roads cross valley bottoms more frequently. b) Projected roads do not match observed switchback roads. c) An example of a misidentified cutblock. The satellite images are from Google (2022)."}
 
-knitr::include_graphics(here("analysis/figures/Figure4_diff_map.png"))
+knitr::include_graphics(here("analysis/figures/Figure4_diff_map_update.png"))
 
 ```
 
-```{r fig5, fig.height=6, fig.width=fig_widths["mid"], fig.cap="Comparison of performance metrics for each projection method. F measure is the harmonic mean of precision and sensitivity, precision is the proportion of  predicted roads that are observed roads and sensitivity is the proportion of observed roads that were correctly predicted."}
+```{r fig5, fig.height=7, fig.width=fig_widths["mid"], fig.cap="Comparison of performance metrics for each projection method. F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted roads that are observed roads and sensitivity is the proportion of observed roads that were correctly predicted."}
 
 matchData_sum <- matchData %>% ungroup() %>%
   mutate(agreement = factor(agreement,
@@ -386,14 +412,16 @@ matchData_sum <- matchData %>% ungroup() %>%
                              "mst random high density",
                              "mst regular high density",
                              "dlcp regular high density",
-                             "NA klementQGIS"),
+                             "NA klementQGIS", 
+                             "NA cutOnly NA"),
                   labels = c("Centroid", 
                              "Random\nlow density",
                              "Regular\nlow density",
                              "Random\nhigh density",
                              "Regular\nhigh density",
                              "DLCP regular\nhigh density",
-                             "Hardy QGIS")),
+                             "Hardy QGIS", 
+                             "Cutblocks only")),
          metric = factor(metric,
                          levels = c("roadPresence",
                                     "forestryDisturbance",
@@ -422,10 +450,10 @@ perf_tbl %>%
   pivot_longer(c(sensitivity, precision, F_measure), names_to = "perf_meas",
                values_to = "value") %>% 
   mutate(perf_meas = factor(perf_meas,
-                            labels = c("F measure", "Precision", "Sensitivity"))) %>% 
+                            labels = c("F-measure", "Precision", "Sensitivity"))) %>% 
   ggplot(aes(sampleDens, value, fill = sampleDens))+
   geom_col()+
-  scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:6)],
+  scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:7)],
                     name = "Sampling\nMethod", guide = "none")+
   facet_grid(metric ~ perf_meas)+
   coord_flip()+
@@ -435,7 +463,7 @@ perf_tbl %>%
 
 ```
 
-As expected all the projection methods preformed worst with the road presence metric (F-Measure: `r perf_tbl_rng["Road presence"]`), while the forestry disturbance footprint performed best (F-Measure: `r perf_tbl_rng["Forestry disturbance footprint"]`) and road disturbance footprint only slightly worse (F-Measure: `r perf_tbl_rng["Road disturbance footprint"]`). For the road presence metric higher sampling densities led to somewhat higher F-measure scores caused by fewer false negatives and only slightly more false positives. For the forestry and road disturbance footprint metrics, the F-measure was similar across projection methods.
+As expected all the projection methods preformed worst with the road presence metric (F-Measure: `r perf_tbl_rng["Road presence"]`), while the forestry disturbance footprint performed best (F-Measure: `r perf_tbl_rng["Forestry disturbance\nfootprint"]`) and road disturbance footprint only slightly worse (F-Measure: `r perf_tbl_rng["Road disturbance footprint"]`). For the road presence metric higher sampling densities led to somewhat higher F-measure scores caused by fewer false negatives and only slightly more false positives. For the forestry and road disturbance footprint metrics, the F-measure was similar across projection methods.
 
 # Discussion
 
@@ -514,7 +542,7 @@ matchData <- matchData %>% mutate(resolution = "100") %>% bind_rows(matchData2)
 
 ```
 
-```{r figA1, fig.height=4, fig.width=fig_widths["mid"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods across the entire Revelstoke TSA (“overall”) and within cutblocks (“cutblocks”) for the fine resolutiom (100 m) and coarse resolution (1000 m) cost rasters. Values greater than 0 indicate the projection overestimated the metric and negative values indicate an underestimation."}
+```{r figA1, fig.height=10, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods across the entire Revelstoke TSA (“overall”) and within cutblocks (“cutblocks”) for the fine resolutiom (100 m) and coarse resolution (1000 m) cost rasters. Values greater than 0 indicate the projection overestimated the metric and negative values indicate an underestimation."}
 # organize data for ggplot
 meanTable_long <- meanTable %>% dplyr::select(-runTime) %>% 
   pivot_longer(-c(sampleType, sampleDens, areaMean, resolution, method),
@@ -529,7 +557,8 @@ meanTable_long <- meanTable %>% dplyr::select(-runTime) %>%
                              "mst random high sample density",
                              "mst regular high sample density",
                              "dlcp regular high sample density",
-                             "NA klementQGIS"),
+                             "NA klementQGIS", 
+                             "NA NA NA"),
                   labels = c("Centroid", 
                              "Observed",
                              "Random\nlow density",
@@ -537,7 +566,8 @@ meanTable_long <- meanTable %>% dplyr::select(-runTime) %>%
                              "Random\nhigh density",
                              "Regular\nhigh density",
                              "DLCP regular\nhigh density",
-                             "Hardy QGIS")),
+                             "Hardy QGIS",
+                             "Cutblocks only")),
          metric = factor(metric,
                          levels = c("roadDensityMean", "roadPresenceMean",
                                     "distanceToRoadMean",
@@ -565,7 +595,7 @@ prop_dif %>%
   geom_hline(aes(yintercept = 0), color = "grey")+
   geom_col(position = position_dodge2(preserve = "single",
                                       width = 0.75))+
-  facet_grid(areaMean~ metric)+
+  facet_grid(areaMean + metric ~1)+
   theme_classic()+
   scale_fill_manual(values = met.brewer(pal_nm))+
   theme(text = element_text(size = 10), axis.title.x = element_blank(),
@@ -644,13 +674,19 @@ perf_tbl %>%
 
 ## Fort Nelson map
 
-```{r ftNelson, fig.height=6, fig.width=fig_widths["two"], fig.cap="Road projections for the Fort Nelson Timber Supply Area. Black lines show projected and pre-existing roads. Red lines show observed roads that were not captured by the projections."}
-ftN_roads_proj <- read_sf(here("analysis/data/derived_data/TSA8_1000/centroid_1e-05.shp"))
-
+```{r ftNelson, fig.height=6, fig.width=fig_widths["two"], fig.cap="Existing roads in Fort Nelson. Cost based road projection methods are not expected to be useful in areas where roads are built for purposes other than accessing a target location at minimal cost. For example, in the Northeast corner of the Fort Nelson Timber Supply Area seismic lines show a different pattern than foresty roads."}
 ftN_roads_obs <- read_sf(here("analysis/data/derived_data/combined_ft_nelson_roads.gpkg"))
 
-qtm(ftN_roads_obs, lines.col = "red")+
-  qtm(ftN_roads_proj)
+# only show top right corner
+bb <- st_bbox(ftN_roads_obs) 
+
+bb[["xmin"]] <- bb[["xmax"]] - (bb[["xmax"]] - bb[["xmin"]])/2
+bb[["ymin"]] <- bb[["ymax"]] - (bb[["ymax"]] - bb[["ymin"]])/2
+
+ftN_roads_obs_NE <- st_crop(ftN_roads_obs, bb)
+
+tm_shape(ftN_roads_obs_NE, is.master = TRUE)+
+  tm_lines()
 ```
 
 \newpage
