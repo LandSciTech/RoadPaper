@@ -121,7 +121,8 @@ projectAll <- function(tsbs,paramTable, costSurface,
 }
 
 calcMetrics <- function(paramTable, klementProj, cutblocks,
-                        nonAggregatedCostSurface, observedRoads, boundary, cutblocksPth,
+                        nonAggregatedCostSurface, observedRoads, boundary,
+                        cutblocksPth, existingRoads,
                         costSurface){
   # row for observed
   observedRow <- c("observed", NA, NA, NA, NA, NA, NA, NA, NA, NA)
@@ -142,7 +143,8 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
   # row for if only consider roads in disturbance
   paramTable <- rbind(paramTable, c("cutOnly", NA, NA, NA, NA, NA, NA, NA, NA, NA))
 
-  paramTable$output[[nrow(paramTable)]] <- cutblocksPth
+  # combine with existing roads
+  cutOnly <- st_union(cutblocks, existingRoads)
 
   cutblocksRaster <- terra::rasterize(terra::vect(cutblocks), nonAggregatedCostSurface)
 
@@ -151,26 +153,28 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
     print(i)
     cRow = paramTable[i,]
 
-    out <- sf::read_sf(cRow$output)
+    if(cRow$sampleType == "cutOnly"){
+      out <- cutOnly
+    } else {
+      out <- sf::read_sf(cRow$output)
+    }
 
-    roadDisturbanceResults <- roadDisturbanceFootprint(out, r = costSurface,
-                                                       b = boundary)
+    if(cRow$sampleType != "cutOnly"){
+      roadDensityResults <- rasterizeLineDensity(out, r = as(costSurface, "Raster"))
+      paramTable$roadDensity[[i]] <- roadDensityResults
 
-    paramTable$roadDisturbance[[i]] <- roadDisturbanceResults
+      roadPresenceResults <- paramTable$roadDensity[[i]]
+      roadPresenceResults <- terra::classify(
+        roadPresenceResults,
+        rcl = matrix(c(-1, 0, 0, 0, Inf, 1), byrow = TRUE, ncol = 3)
+      )
+      paramTable$roadPresence[[i]] <- roadPresenceResults
 
-    roadDensityResults <- rasterizeLineDensity(out,
-                                               r = as(costSurface, "Raster"))
-
-    paramTable$roadDensity[[i]] <- roadDensityResults
-
-    roadPresenceResults <- paramTable$roadDensity[[i]]
-
-    roadPresenceResults <- terra::classify(
-      roadPresenceResults,
-      rcl = matrix(c(-1, 0, 0, 0, Inf, 1), byrow = TRUE, ncol = 3)
-    )
-
-    paramTable$roadPresence[[i]] <- roadPresenceResults
+      src <- terra::trim(roadPresenceResults[[1]]) # thinks this is a list
+      maxDist=10000 #in units of res
+      distanceToRoadResults <- getDistFromSource(src, maxDist, kwidth = 3, method = "pfocal")
+      paramTable$distanceToRoad[[i]] <- distanceToRoadResults
+    }
 
     forestryDisturanceResults <- disturbanceMetrics(
       out,
@@ -178,16 +182,14 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
       projectPoly = boundary,
       anthroDist = as(cutblocksRaster, "Raster")
     )
-
     paramTable$forestryDisturbance[[i]] <- terra::rast(forestryDisturanceResults@processedData$Anthro)
 
 
-    src <- terra::trim(roadPresenceResults[[1]]) # thinks this is a list
+    roadDisturbanceResults <- roadDisturbanceFootprint(out, r = costSurface, b = boundary)
+    paramTable$roadDisturbance[[i]] <- roadDisturbanceResults
 
-    maxDist=10000 #in units of res
-    distanceToRoadResults <- getDistFromSource(src, maxDist, kwidth = 3, method = "pfocal")
 
-    paramTable$distanceToRoad[[i]] <- distanceToRoadResults
+
   }
 
   return(paramTable)
@@ -217,17 +219,20 @@ getMetricMeans <- function(paramTable, cutblocks){
     roadDisturbanceMean <- terra::global(cRow$roadDisturbance[[1]], "mean", na.rm = TRUE)
     metricsTable$roadDisturbanceMean[i] <- roadDisturbanceMean
 
-    roadDensityMean <- terra::global(cRow$roadDensity[[1]], "mean", na.rm = TRUE)
-    metricsTable$roadDensityMean[i] <- roadDensityMean
-
-    roadPresenceMean <- terra::global(cRow$roadPresence[[1]], "mean", na.rm = TRUE)
-    metricsTable$roadPresenceMean[i] <- roadPresenceMean
-
-    distanceToRoadMean <- terra::global(cRow$distanceToRoad[[1]], "mean", na.rm = TRUE)
-    metricsTable$distanceToRoadMean[i] <- distanceToRoadMean
-
     forestryDisturbanceMean <- terra::global(cRow$forestryDisturbance[[1]], "mean", na.rm = TRUE)
     metricsTable$forestryDisturbanceMean[i] <- forestryDisturbanceMean
+
+    if(cRow$sampleType != "cutOnly"){
+      roadDensityMean <- terra::global(cRow$roadDensity[[1]], "mean", na.rm = TRUE)
+      metricsTable$roadDensityMean[i] <- roadDensityMean
+
+      roadPresenceMean <- terra::global(cRow$roadPresence[[1]], "mean", na.rm = TRUE)
+      metricsTable$roadPresenceMean[i] <- roadPresenceMean
+
+      distanceToRoadMean <- terra::global(cRow$distanceToRoad[[1]], "mean", na.rm = TRUE)
+      metricsTable$distanceToRoadMean[i] <- distanceToRoadMean
+    }
+
 
   }
 
@@ -248,25 +253,28 @@ getMetricMeans <- function(paramTable, cutblocks){
     cRow = paramTable[i,]
 
     croppedroadDisturbance <- mask(cRow$roadDisturbance[[1]], cutblocks)
-    croppedroadDensity <- mask(cRow$roadDensity[[1]], cutblocks)
-    croppedroadPresence <- mask(cRow$roadPresence[[1]], cutblocks)
-    croppeddistanceToRoad <- mask(cRow$distanceToRoad[[1]], cutblocks)
     croppedforestryDisturbance <- mask(cRow$forestryDisturbance[[1]], cutblocks)
 
     croppedroadDisturbanceMean <- terra::global(croppedroadDisturbance, "mean", na.rm = TRUE)
     metricsTable1$roadDisturbanceMean[i] <- croppedroadDisturbanceMean
 
-    croppedroadDensityMean <- terra::global(croppedroadDensity, "mean", na.rm = TRUE)
-    metricsTable1$roadDensityMean[i] <- croppedroadDensityMean
-
-    croppedroadPresenceMean <- terra::global(croppedroadPresence, "mean", na.rm = TRUE)
-    metricsTable1$roadPresenceMean[i] <- croppedroadPresenceMean
-
-    croppeddistanceToRoadMean <- terra::global(croppeddistanceToRoad, "mean", na.rm = TRUE)
-    metricsTable1$distanceToRoadMean[i] <- croppeddistanceToRoadMean
-
     croppedforestryDisturbanceMean <- terra::global(croppedforestryDisturbance, "mean", na.rm = TRUE)
     metricsTable1$forestryDisturbanceMean[i] <- croppedforestryDisturbanceMean
+
+    if(cRow$sampleType != "cutOnly"){
+      croppedroadDensity <- mask(cRow$roadDensity[[1]], cutblocks)
+      croppedroadPresence <- mask(cRow$roadPresence[[1]], cutblocks)
+      croppeddistanceToRoad <- mask(cRow$distanceToRoad[[1]], cutblocks)
+
+      croppedroadDensityMean <- terra::global(croppedroadDensity, "mean", na.rm = TRUE)
+      metricsTable1$roadDensityMean[i] <- croppedroadDensityMean
+
+      croppedroadPresenceMean <- terra::global(croppedroadPresence, "mean", na.rm = TRUE)
+      metricsTable1$roadPresenceMean[i] <- croppedroadPresenceMean
+
+      croppeddistanceToRoadMean <- terra::global(croppeddistanceToRoad, "mean", na.rm = TRUE)
+      metricsTable1$distanceToRoadMean[i] <- croppeddistanceToRoadMean
+    }
 
   }
 
@@ -287,6 +295,11 @@ getMetricMeans <- function(paramTable, cutblocks){
 #' @return a table
 #' @noRd
 calcAgree <- function(obs_rast, proj_rast, prex_rast){
+
+  if(is(proj_rast, "character")){
+    return(NULL)
+  }
+
   proj_rast <- terra::crop(proj_rast, obs_rast)
   prex_rast <- terra::crop(prex_rast, obs_rast)
   res <- obs_rast + prex_rast + proj_rast
@@ -446,7 +459,7 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
   # recreate allResults after a restart using saved files
   # allResults <- paramTable %>%
   #   mutate(output = paste0(outPth, sampleType, "_",
-  #                          sampleDens, ".gpkg"))
+  #                          sampleDens, "_", method, ".gpkg"))
 
   # Using David's saved results
   # allResults <- paramTable %>%
@@ -468,17 +481,17 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
                             klementProj = klementProj,
                             cutblocks = cutblocks,
                             cutblocksPth = cutblocksPth,
+                            existingRoads = roadsExist,
                             costSurface = tsaCost_st)
 
   # save the metrics for further study
   select(allMetrics, -c(sampleType, sampleDens, method, runTime, output)) %>%
     colnames() %>%
     purrr::cross2(1:nrow(allMetrics)) %>%
-    purrr::walk(~terra::writeRaster(allMetrics[[.x[[1]]]][[.x[[2]]]],
+    purrr::walk(~writeRastNotNull(allMetrics[[.x[[1]]]][[.x[[2]]]],
                                     file.path(outPth, paste0(.x[[1]], allMetrics$sampleType[.x[[2]]], "_",
                                                              allMetrics$sampleDens[.x[[2]]], "_",
-                                                             allMetrics$method[.x[[2]]], ".tif")),
-                                    overwrite = TRUE))
+                                                             allMetrics$method[.x[[2]]], ".tif"))))
 
 
   #Retrieving mean values for cutover and overall
@@ -492,10 +505,9 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
                          sampleDens == low ~ "low sample density",
                          sampleDens == high ~"high sample density"))
 
+  meanTable <- mutate(meanTable, across(where(is.list), unlist))
 
   meanTable #resulting table with all mean values from the metrics (overall & cutover)
-
-  meanTable <- mutate(meanTable, across(where(is.list), unlist))
 
   write.csv(meanTable, file.path(outPth, "mean_table.csv"), row.names = FALSE)
 
@@ -506,4 +518,12 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
                                 nonAggregatedCostSurface = bc_cost_surface)
 
   write.csv(agreeTable, file.path(outPth, "agree_table.csv"), row.names = FALSE)
+}
+
+writeRastNotNull <- function(rast, filename){
+  if(is(rast, "character")){
+    return(NULL)
+  }
+  terra::writeRaster(rast, filename, overwrite = TRUE)
+
 }
