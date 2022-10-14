@@ -105,11 +105,8 @@ fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 ```{r fig1, fig.cap="Revelstoke timber supply area in British Colombia, Canada. The colour shows the cost of building roads across each pixel.", cache=TRUE}
 tsaBoundary <- read_sf(here(data_path_raw, "tsa27_boundaries.gpkg"))
 #cost surface raster layer
-bc_cost_surface <- terra::rast(here(data_path_raw, "cost_surface_bc_ha.tif"))
-lakeValue <- 65000
+tsaCost <- terra::rast(here(data_path_drvd, "input_cost.tif"))
 
-tsaCost <- terra::crop(bc_cost_surface, tsaBoundary)
-tsaCost <- terra::subst(tsaCost, from = NA, to = lakeValue)
 tsaCost <- terra::mask(tsaCost, terra::vect(tsaBoundary))
 
 canada <- geodata::gadm("CAN", level = 1, path = here(data_path_raw))
@@ -149,17 +146,17 @@ knitr::include_graphics(here("analysis/figures/Figure1_StudyArea.png"))
 
 ## Data
 
-To spatially define the cost of constructing and traveling on a forestry road we developed a cost raster. We used several spatial raster layers to construct our cost surface. Following the Interior Appraisal Manual of BC, the base cost per kilometer of road was a linear function of slope [@governmentofbritishcolumbia2021a]. Separate costs for river and pipeline crossings were then added and major water bodies were considered barriers and assigned a very high cost. Lastly, existing roads were assigned a cost of 0 (Table 1). The cost raster produced consists of 1703936 pixels with a resolution of 100 meters by 100 meters.
+Our road network data was obtained by combining the digital road atlas (DRA) [@databc2021] and forest tenure road [@britishcolumbiaministryofforestslandsnaturalresourceoperationsandruraldevelopmentflnrord2021] data sets for BC. To avoid situations where the same road was included in both data sets with slightly different coordinates, we removed all roads from the DRA data set that were within 50m of a road in the forest tenure road data set. The existing road network, used as the starting point for projections, was created by filtering out forest tenure roads with an award date greater than 1990, all roads from the DRA data set were assumed to be built before 1990. Cutblock information was obtained from the Harvest Areas of BC (Consolidated Cutblocks) dataset [@governmentofbritishcolumbia2021b]. Cutblock information is compiled from provincial Forest Cover, the RESULTS Reporting system, Forest Tenure applications, and satellite imagery using change detection processes. The dataset does not exclude non-harvested 'reserved' areas, and satellite image change detection may not always represent the entire cutblock area [@governmentofbritishcolumbia2021b]. Forest harvest cutblocks with harvest years greater than 1990 were filtered and used as targets for the projections.
+
+To spatially define the cost of building and traveling on a forestry road we developed a simple cost raster based on the slope and major barriers. Following the Interior Appraisal Manual of BC, the base cost per kilometer of road was a linear function of slope [@governmentofbritishcolumbia2021a]. Major water bodies were considered barriers and assigned a very high cost. Lastly, existing roads were assigned a cost of 0 (Table 1). The cost raster produced consists of 1703936 pixels with a resolution of 100 meters by 100 meters.
 
 Table 1. Definitions of road building costs used to build the cost raster.
 
 ```{r}
-tbl <- "Cost Type|Road Attribute|Value ($ per km)|Source
-Barriers of road development|Major lakes|65000|Major water bodies of BC
-Impedance|Existing roads|0|Assumed
-Road Construction Cost Structure|Pipe crossing|1911|Interior Appraisal Manual
-|River crossing|2130|Interior Appraisal Manual
-|Base cost|16178 + 504*slope|Interior Appraisal Manual
+tbl <- "Cost Type|Value ($ per km)|Source
+Slope|16178 + 504*slope|Interior appraisal manual
+Major lakes|65000|Major water bodies of BC
+Existing roads|0|Digital road atlas and forest tenure roads for BC
 "
 df <- read.delim(textConnection(tbl),header=FALSE,sep="|",strip.white=TRUE,stringsAsFactors=FALSE)
 names(df) <- unname(as.list(df[1,]))
@@ -167,8 +164,6 @@ df <- df[-1,] # remove first row
 row.names(df)<-NULL
 knitr::kable(df)
 ```
-
-Our road network data was obtained by combining the digital road atlas (DRA) [@databc2021] and forest tenure road [@britishcolumbiaministryofforestslandsnaturalresourceoperationsandruraldevelopmentflnrord2021] data sets for BC. To avoid situations where the same road was included in both data sets with slightly different coordinates, we removed all roads from the DRA data set that were within 50m of a road in the forest tenure road data set. The existing road network, used as the starting point for projections, was created by filtering out forest tenure roads with an award date greater than 1990, all roads from the DRA data set were assumed to be built before 1990. Cutblock information was obtained from the Harvest Areas of BC (Consolidated Cutblocks) dataset [@governmentofbritishcolumbia2021b]. Cutblock information is compiled from provincial Forest Cover, the RESULTS Reporting system, Forest Tenure applications, and satellite imagery using change detection processes. The dataset does not exclude non-harvested 'reserved' areas, and satellite image change detection may not always represent the entire cutblock area [@governmentofbritishcolumbia2021b]. Forest harvest cutblocks with harvest years greater than 1990 were filtered and used as targets for the projections.
 
 All data sets were accessed using the `bcdata` R package and filtered to the extent of the Revelstoke TSA [@teucher2021].
 
