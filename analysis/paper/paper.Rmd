@@ -1,5 +1,5 @@
 ---
-title: "Assessment of forestry road network projection methods using the “roads” package in R"
+title: "Assessment and implementation of forestry road network projection methods"
 author:
   - name: Josie Hughes
     email: josie.hughes@ec.gc.ca
@@ -9,8 +9,23 @@ author:
     email: sarah.endicott@ec.gc.ca
     institute: [ECCC]
     correspondence: false
+  - name: David Lapins
+    email: david.lapins@pc.gc.ca
+    institute: [ECCC]
+    correspondence: false
+  - name: Kyle Lochhead
+    email: Kyle.Lochhead@gov.bc.ca
+    institute: [FLNR]
+    correspondence: false
+  - name: Gregory Paradis
+    email: gregory.paradis@ubc.ca
+    institute: [UBC]
+    correspondence: false
+
 institute:
   - ECCC: Environment and Climate Change Canada 
+  - FLNR: British Columbia Ministry of Forests 
+  - UBC: University of British Columbia 
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
     bookdown::word_document2:
@@ -21,7 +36,7 @@ output:
       - --lua-filter=../templates/scholarly-metadata.lua
       - --lua-filter=../templates/author-info-blocks.lua
       - --lua-filter=../templates/pagebreak.lua
-bibliography: references.bib
+bibliography: Roads.bib
 csl: "../templates/journal-of-forest-ecology-and-management.csl" # Insert path for the bib-style
 abstract: |
   Text of abstract
@@ -36,6 +51,7 @@ editor_options:
 <!-- This is the format for text comments that will be ignored during renderings. Do not put R code in these comments because it will not be ignored. -->
 
 <!-- With the following code you can access and display values from the yml header above. -->
+<!-- Link to data here: https://drive.google.com/file/d/179lw6MPK4l3xGmded9kofzJkB6VlJVb9/view?usp=sharing -->
 
 Keywords: `r rmarkdown::metadata$keywords`
 
@@ -59,25 +75,38 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-Global biodiversity is being lost at an unprecedented rate as a result of human activities. One of the major world-wide threats to biodiversity is increasing infrastructural development (Benítez-López et al., 2010). Land transformation has resulted in the loss and fragmentation of habitats in many different ecosystem types worldwide (Benítez-López et al., 2010; Sanderson et al., 2002). Roads and other linear infrastructure, in particular, are key components of landscapes as they have become a major cause of habitat loss, fragmentation, and degradation and are ubiquitous in most landscapes around the world (van der Ree et al., 2011). Although linear infrastructure is important for society because it provides connectivity for people, it also exerts significant negative effects on adjacent habitats, wildlife populations, communities, and ecosystems (van der Ree et al., 2011).
+The impacts of roads on wildlife are complex and varied. Mortality risk and stress on or near roads can be elevated due to vehicle collisions, hunting pressure, predation, noise and other stressors, but roads can also provide food, facilitate movement, and provide refuge [@hill_a_2021;@trombulak_review_2000;@fahrig_effects_2009].    
+In Canadian forests, there is ample evidence of linear features attracting predators such as black bears and wolves seeking food or easy movement, while repelling prey such as caribou and moose [@dickie_corridors_2020;@polfus_identifying_2011;@mumma_predation_2018;@beauchesne_disentangling_2013;@leblond_avoidance_2013;@laurian_interactions_2012]; there is also evidence of predators avoiding features heavily used by humans [@muhly_human_2011;@whittington_towns_2022]. Changes in mortality risks, habitat quality, and connectivity associated with anthropogenic disturbance can in turn alter movement patterns [@tucker_moving_2018], demography and population viability [@johnson_science_2020; @decesare_linking_2014; @barrientos_the_2021;@apps_spatial_2013;@pinard_calving_2012;@fahrig_effects_2009]. Roads can also facilitate spread of invasive species [], and enable other development activities [@johnson_growth-inducing_2020].
 
-Resource extraction, such as forest harvesting, is the main driver of road construction in much of Canada's forested area. In British Columbia, over 600 000 kilometers of resource roads make up the vast majority of the province's total road network (83%) (Environmental Reporting BC, 2018; Forest Practices Board, 2015). Over 75% of resource roads in the province were built by the forest industry (Forest Practices Board, 2015). Resource extraction activities provide jobs and renewable raw materials (Canada, 2013b), but they also can create threats for wildlife. For example, the main threats to woodland caribou, a species at risk in Canada, are human disturbances such as forest harvesting, oil and gas exploration/extraction, and road networks. These particular disturbances fragment their habitat, and create open areas and extensive young forests that attract other species such as moose and deer which in turn, attracts an increased number of predators, such as wolves and even poachers (Canada, 2013a). Woodland caribou are often considered to be an umbrella species, which means that protecting and restoring their habitat would benefit other species also dependent on old forests, such as fishers, pine martens, and many species of birds (Mulvihill, 2018).
+Increasingly rapid environmental change, improvements in available cyberinfrastructure, and development of open source data, tools and methods have contributed to growing interest in ecological forecasting models [bodner, dietze, perfict]. Recent efforts to forecast impacts of climate change and anthropogenic disturbance on Canadian forests and forest-dwelling wildlife [@tremblay_harvesting_2018;@snell_importance_2018;@daniel_incorporating_2017;@stewart_;@michelletti_;recent quebec examples] build on a rich history of spatial-stochastic models of forest growth and succession following disturbance [landis;overview;stms;seles]. Despite the importance of roads for wildlife, none of these efforts have included forecasts of the development of road networks associated with forest harvest, largely because tools to project road network development over large spatial scales are not available.
 
-With certain wildlife, such as woodland caribou, being highly sensitive to road development and use, there is a need to spatially simulate future roads in order to test the implications of alternative recovery policies and resource development scenarios. Landscape models are mathematical simulations designed to represent at least one landscape pattern-process relationship of interest. Landscape models can be great ways to make predictions about specific scenarios that allow ecologists and land managers to assess alternative management scenarios or to assess the potential impact of anthropogenic change scenarios (climate or land use change) (McGarigal, n.d.). Simulating the effects of disturbances, such as forestry road development, helps to broaden the scope of models, especially for species with complex ecological requirements who reside in disturbance-prone landscapes that undergo dynamic changes which may substantially alter habitat quality (Whitman et al., 2017). Land managers are often responsible for multiple species and populations distributed over large regions and often rely on models to determine habitat suitability (Whitman et al., 2017).
+Forest roads are also essential for harvest planning. Some forest management decision support systems include forest road projection methods [patchworks], but methods implemented in proprietary closed-source commercial software cannot be used in other contexts. Published methods intended to support strategic planning [@Anderson_projecting_2004;Clark et al., 2000; Dean, 1997] require inputs that are not publicly available, and employ algorithms that are too complex and detailed for application at regional, provincial or national scales. More promising options for projecting forest road network development at large scales include an iterative least cost path method developed by Clement [2021], and a least cost path minimum spanning tree algorithm used to project roads and reconstruct development history in British Columbia [lochhead published and not]. The former method is available as QGIS and Landis plugins, and the latter is not easily extricated from a larger open source modelling project that is specific to British Columbia []. Neither method has not been formally assessed, compared, published, or implemented in a way that allows for easy integration into the variety of modelling frameworks used for forecasting forest change in Canada and elsewhere [spades/syncrosim/landis].
 
-Forest simulation models generally either fall into two categories: deterministic and stochastic (Boychuk et al., 2009; Helmes & Stockbridge, 2011). Stochastic simulation approaches use probability distributions in combination with random number generators to determine events (He & Mladenoff, 1999). Despite the importance of roads on the environment, previous spatial stochastic harvest simulation models rarely include forest road network development in their projections. The "roads" package in R aims to fill this gap in landscape modelling by projecting large-scale forest road networks based on future harvest cut blocks, an existing road network, and a road cost surface. This paper uses the "roads" package to run forestry road network simulations in British Columbia from approximately 1990 to present and compares the results to the observed modern-day forest road networks in order to assess the performance of the package and to showcase its usefulness within forest simulations.
+Comment on metrics relevant to wildlife and what exactly accuracy means. 
 
-(Introduction round 2: road context) Several papers have previously introduced forest road network projections (Anderson & Nelson, 2004; Clark et al., 2000; Dean, 1997) however many of these methods are complex with many input parameters and are not readily available for public use. These previous projections have mainly been developed in order to facilitate operational forest road network planning and therefore require precise data and many input parameters in order to obtain the most effective network. These projection methods are therefore not very applicable for projecting forest roads over large-scale landscapes. On the other hand, many spatial stochastic forest management simulations haven't included forest road development at all (citations). One unpublished QGIS plugin by Clement (2021) is available for projecting forest roads and is also included in the analysis of this paper (GitHub - Klemet/ForestRoadNetworkPluginForQGIS: A plugin for QGIS that is able to construct a forest road network based on a cost matrix, polygons to reach, a current road network, the dijkstra algorithm and 3 network-creation heuristics.). There is therefore a need in large scale landscape simulations for a tool that can adequately project forest road development with less complexity and minimal input parameters that can easily be incorporated into other complex simulations in large scale landscapes. As many ecological forecasts use increasingly complex methods and data, forecasting tools (e.g., models) should also be scalable and leverage existing models (Bodner et al., in press) ("Bridging the divide between ecological forecasts and environmental decision-making").
+In this work, we address the need for adequately accurate forest road network projection tools that are also widely and easily applicable by implementing simple iterative least cost path and minimum spanning tree methods in an open source R package. We compare the ability of these methods to reconstruct observed forest road network development in a mountainous region of British Columbia using performance metrics relevant to wildlife.
 
-The goal of our model is to provide simple, accessible, and usable forest road network projections that can easily be applied in the context of large-scale landscapes and wildlife impact simulations, and can also be applied as an element of more complex models. Our model will be openly accessible and uses minimal input parameters (an existing road network, harvest cutblocks, and cost surface) which makes it easily transferable to many forest resource dominated landscapes. Here, we evaluate its accuracy at simulating forest road development across a large landscape by recreating the network starting from approximately 1990 and comparing it to the present day observed forest road network. In order to compare the projected and observed road networks, we used various metrics that are similar to those used in wildlife impact studies to compare the projected and observed landscapes both spatially and aspatially.
+#One unpublished QGIS plugin by Clement (2021) is available for projecting forest roads and is also included in the analysis of this paper (GitHub - Klemet/ForestRoadNetworkPluginForQGIS: A plugin for QGIS that is able to construct a forest road network based on a cost matrix, polygons to reach, a current road network, the dijkstra algorithm and 3 network-creation heuristics.).
 
-In the first section of the paper (methods), we introduce the study area used to assess the accuracy of the projection, we describe the forest road projection methods, the data required, and the various metrics used in order to analyze the similarities and differences between the projected and observed forest road networks across the landscape. Next, we present and discuss the results of our projections across the landscape and compare the metrics spatially and aspatially.
+#Our goal is provide simple, accessible, and usable forest road network projections that can easily be applied in the context of large-scale landscapes and wildlife impact simulations. Our model will be openly accessible and uses minimal input parameters (an existing road network, harvest cutblocks, and cost surface) which makes it easily transferable to many forest resource dominated landscapes. Here, we evaluate its accuracy at simulating forest road development across a large landscape by recreating the network starting from approximately 1990 and comparing it to the present day observed forest road network. In order to compare the projected and observed road networks, we used various metrics that are similar to those used in wildlife impact studies to compare the projected and observed landscapes both spatially and aspatially.
+
+#value of roadless areas: [@ibisch_a_2016; @talty_conservation_2020; @psaralexi_importance_2017]
+
+#forest mgmt planning models: [@depellegrinllorente_recognizing_2017]
+
+#other of interest: caribou habitat metric [@whitman_a_2017]
+
+#Resource extraction, such as forest harvesting, is the main driver of road construction in much of Canada's forested area. In British Columbia, over 600 000 kilometers of resource roads make up the vast majority of the province's total road network (83%) (Environmental Reporting BC, 2018; Forest Practices Board, 2015). Over 75% of resource roads in the province were built by the forest industry (Forest Practices Board, 2015). 
+
+#Forest simulation models generally either fall into two categories: deterministic and stochastic (Boychuk et al., 2009; Helmes & Stockbridge, 2011). 
 
 # Methods
 
 ## Study Area
 
-We chose the Revelstoke timber supply area (TSA 27), in British Columbia, Canada as our study area because forestry is the dominant resource extraction activity in this region and much of the TSA's road network is composed of forestry resource roads built to gain access to forest harvest cutblocks (Figure 1). This allows us to project road building based on forest harvest data. With approximately 55% of Revelstoke TSA's area being non-forested land (alpine, lakes, swamp, brush, rock, etc) [@brown2010], the TSA also provides an ideal location to observe the behaviour of the projections across a landscape which presents multiple barriers to road development. The Revelstoke TSA is in the interior-wet belt of the province and its forests are dominated by Englemann spruce (31%), Hemlock (23%), Cedar (22%), and Douglas-fir (18%) [@ministryofforests]. The TSA contains wildlife species that are at risk due to their declining populations and are thought to be negatively affected by road development, such as members of the southern mountain woodland caribou population [@brown2010]. The Revelstoke TSA is an example of a landscape where road projections could be used to inform management of critical wildlife habitats. 
+#TO DO: dynamic links to figs and tables.
+
+We chose the Revelstoke timber supply area (TSA 27), in British Columbia, Canada as an assessment area because forestry is the dominant resource extraction activity in this region and much of the TSA's road network is composed of forestry resource roads built to gain access to forest harvest cutblocks (Figure 1). This allows us to project road building based on historic forest harvest data. With approximately 55% of Revelstoke TSA's area being non-forested land (alpine, lakes, swamp, brush, rock, etc) [@brown2010], the TSA also provides an ideal location to observe the behaviour of the projections across a landscape which presents multiple barriers to road development. The Revelstoke TSA is in the interior-wet belt of the province and its forests are dominated by Englemann spruce (31%), Hemlock (23%), Cedar (22%), and Douglas-fir (18%) [@ministryofforests]. The TSA contains wildlife species that are at risk due to their declining populations and are thought to be negatively affected by road development, such as members of the southern mountain woodland caribou population [@brown2010]. The Revelstoke TSA is an example of a landscape where road projections could be used to inform management of critical wildlife habitats. 
 
 ```{r setup2}
 library(ggplot2)
