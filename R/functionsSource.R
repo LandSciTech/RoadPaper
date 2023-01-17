@@ -144,7 +144,7 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
   paramTable <- rbind(paramTable, c("cutOnly", NA, NA, NA, NA, NA, NA, NA, NA, NA))
 
   # combine with existing roads
-  cutOnly <- st_union(cutblocks, existingRoads)
+  cutOnly <- bind_rows(cutblocks, existingRoads)
 
   cutblocksRaster <- terra::rasterize(terra::vect(cutblocks), nonAggregatedCostSurface)
 
