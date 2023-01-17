@@ -143,9 +143,6 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
   # row for if only consider roads in disturbance
   paramTable <- rbind(paramTable, c("cutOnly", NA, NA, NA, NA, NA, NA, NA, NA, NA))
 
-  # combine with existing roads
-  cutOnly <- bind_rows(cutblocks, existingRoads)
-
   cutblocksRaster <- terra::rasterize(terra::vect(cutblocks), nonAggregatedCostSurface)
 
   for(i in 1:nrow(paramTable)) {
@@ -154,27 +151,25 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
     cRow = paramTable[i,]
 
     if(cRow$sampleType == "cutOnly"){
-      out <- cutOnly
+      out <- existingRoads
     } else {
       out <- sf::read_sf(cRow$output)
     }
 
-    if(cRow$sampleType != "cutOnly"){
-      roadDensityResults <- rasterizeLineDensity(out, r = as(costSurface, "Raster"))
-      paramTable$roadDensity[[i]] <- roadDensityResults
+    roadDensityResults <- rasterizeLineDensity(out, r = as(costSurface, "Raster"))
+    paramTable$roadDensity[[i]] <- roadDensityResults
 
-      roadPresenceResults <- paramTable$roadDensity[[i]]
-      roadPresenceResults <- terra::classify(
-        roadPresenceResults,
-        rcl = matrix(c(-1, 0, 0, 0, Inf, 1), byrow = TRUE, ncol = 3)
-      )
-      paramTable$roadPresence[[i]] <- roadPresenceResults
+    roadPresenceResults <- paramTable$roadDensity[[i]]
+    roadPresenceResults <- terra::classify(
+      roadPresenceResults,
+      rcl = matrix(c(-1, 0, 0, 0, Inf, 1), byrow = TRUE, ncol = 3)
+    )
+    paramTable$roadPresence[[i]] <- roadPresenceResults
 
-      src <- terra::trim(roadPresenceResults[[1]]) # thinks this is a list
-      maxDist=10000 #in units of res
-      distanceToRoadResults <- getDistFromSource(src, maxDist, kwidth = 3, method = "pfocal")
-      paramTable$distanceToRoad[[i]] <- distanceToRoadResults
-    }
+    src <- terra::trim(roadPresenceResults[[1]]) # thinks this is a list
+    maxDist=10000 #in units of res
+    distanceToRoadResults <- getDistFromSource(src, maxDist, kwidth = 3, method = "pfocal")
+    paramTable$distanceToRoad[[i]] <- distanceToRoadResults
 
     forestryDisturanceResults <- disturbanceMetrics(
       out,

@@ -78,3 +78,11 @@ tmap_arrange(allMaps)
 
 meanTable <- read.csv(here(data_path_drvd, "test_tsb", "mean_table.csv"))
 
+cutOnly_rdDist <- terra::rast(here(data_path_drvd, "test_tsb", "roadDisturbancecutOnly_NA_NA.tif"))
+obs_rdDist <- terra::rast(here(data_path_drvd, "test_tsb", "roadDisturbanceobserved_NA_NA.tif"))
+
+qtm(cutOnly_rdDist)+
+  qtm(read_sf(here(data_path_drvd, "testing_cutblocks.gpkg")),
+      fill = NULL, borders = pal[1], borders.lwd = 1.5)+
+  qtm(read_sf(here(data_path_drvd, "testing_ex_roads.gpkg")),
+      fill = NULL, lines.col = "black")
