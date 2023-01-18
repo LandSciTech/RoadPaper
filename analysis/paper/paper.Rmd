@@ -403,11 +403,7 @@ prop_dif <- projected_values %>%
             by = c("areaMean", "metric"), 
             suffix = c("_proj", "_obs")) %>% 
   mutate(prop_dif = (response_proj-response_obs)/response_obs,
-         areaMean = factor(areaMean, labels = c("Cutblocks", "Overall"))) %>% 
-  mutate(prop_dif = ifelse(sampleDens == "Cutblocks only" & 
-                             metric %in% c("Road\ndensity", "Road\npresence",
-                                           "Distance\nto road"),
-                           NA_real_, prop_dif))
+         areaMean = factor(areaMean, labels = c("Cutblocks", "Overall")))
 
 
 # save runTimes for later comparison
@@ -488,14 +484,14 @@ matchData_sum <- matchData %>% ungroup() %>%
 # performance table
 perf_tbl <- matchData_sum %>% 
   pivot_wider(c(metric, sampleDens), names_from = agreement, 
-              values_from = count) %>% 
+              values_from = count, values_fill = 0) %>% 
   mutate(sensitivity = `Agree roaded`/(`Agree roaded` + `False negative`),
          precision = `Agree roaded`/(`Agree roaded` + `False positive`),
          F_measure = (2*precision*sensitivity)/(precision+sensitivity)) %>% 
   select(metric, sampleDens, sensitivity, precision, F_measure) 
 
 perf_tbl_rng <- perf_tbl %>% group_by(metric) %>% 
-  summarise(rng_F = range(F_measure) %>% round(3) %>% paste0(collapse = " - "), .groups = "drop") %>% pull(rng_F, name = metric)
+  summarise(rng_F = range(F_measure, na.rm = TRUE) %>% round(3) %>% paste0(collapse = " - "), .groups = "drop") %>% pull(rng_F, name = metric)
 
 perf_tbl %>% 
   pivot_longer(c(sensitivity, precision, F_measure), names_to = "perf_meas",

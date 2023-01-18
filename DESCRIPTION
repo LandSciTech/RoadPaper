@@ -37,7 +37,8 @@ Imports:
     bcdata (>= 0.3.2),
     geodata (>= 0.4-6),
     spatstat.geom,
-    grid (>= 4.1.2)
+    grid (>= 4.1.2),
+    osfr
 Suggests: devtools,
     git2r
 URL: https://github.com/LandSciTech/RoadPaper
