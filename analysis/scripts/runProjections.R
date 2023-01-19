@@ -96,6 +96,7 @@ run_projections(
   klementProj = paste0(data_path_drvd, "TSA27/", "klementProjection.shp"),
 
   aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
+  # load_file = "results",
   saveInputs = TRUE
 )
 

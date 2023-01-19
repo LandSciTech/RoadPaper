@@ -53,7 +53,8 @@ run_projections(
   #Klement QGIS projection results shapefile
   klementProj = NULL,
   aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
-  saveInputs = FALSE
+  saveInputs = FALSE,
+  load_file = "results"
 )
 
 resPths <- list.files(here(data_path_drvd, "test_tsb"), pattern = ".gpkg")
@@ -78,11 +79,39 @@ tmap_arrange(allMaps)
 
 meanTable <- read.csv(here(data_path_drvd, "test_tsb", "mean_table.csv"))
 
-cutOnly_rdDist <- terra::rast(here(data_path_drvd, "test_tsb", "roadDisturbancecutOnly_NA_NA.tif"))
-obs_rdDist <- terra::rast(here(data_path_drvd, "test_tsb", "roadDisturbanceobserved_NA_NA.tif"))
+meanTablenew <- read.csv(here(data_path_drvd, "test_tsb", "mean_table.csv"))
+
+# look at agree metric rasters
+
+cutOnly_rdDist <- terra::rast(here(data_path_drvd, "test_tsb", "forestryDisturbancecutOnly_NA_NA.tif"))
+obs_rdDist <- terra::rast(here(data_path_drvd, "test_tsb", "forestryDisturbanceobserved_NA_NA.tif"))
+
+cost_rast <- terra::rast(here(data_path_drvd, "testing_cost.tif"))
+
+prex_vect <- read_sf(here(data_path_drvd, "testing_ex_roads.gpkg"))
+prex_rast <- terra::rasterize(terra::vect(prex_vect), cost_rast, background = 0)
+boundary <- read_sf(here(data_path_drvd, "testing_tsb.gpkg"))
+cutblocks <-  read_sf(here(data_path_drvd, "testing_cutblocks.gpkg"))
+prex_rdDist <- roadDisturbanceFootprint(prex_vect, !is.na(prex_rast),
+                         boundary)
+prex_forDist <- disturbanceMetrics(linFeat = prex_vect,
+                                    landCover = as(cost_rast, "Raster"),
+                                    projectPoly = boundary,
+                                    anthroDist = terra::rasterize(terra::vect(cutblocks), cost_rast) %>%
+                                      as("Raster"))@processedData$Anthro %>% terra::rast()
+
+aggCutOnly <- calcAgree(terra::subst(obs_rdDist, from = 1, to = 100) %>%
+                          terra::crop(prex_forDist),
+                        proj_rast = cutOnly_rdDist%>%
+                          terra::crop(prex_forDist),
+                        prex_rast =  prex_forDist %>%
+                          terra::subst(from = 1, to = 10),
+                        return_res = TRUE)
+
+qtm(aggCutOnly, raster.style = "cat")
 
 qtm(cutOnly_rdDist)+
   qtm(read_sf(here(data_path_drvd, "testing_cutblocks.gpkg")),
-      fill = NULL, borders = pal[1], borders.lwd = 1.5)+
+      fill = NULL, borders = "red", borders.lwd = 1.5)+
   qtm(read_sf(here(data_path_drvd, "testing_ex_roads.gpkg")),
       fill = NULL, lines.col = "black")

@@ -357,9 +357,9 @@ matchData <- read.csv(here(data_path_drvd, "agree_table.csv"))
 
 ```
 
-```{r aspat-perf-fig, fig.height=3, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants with a 1 ha resolution cost raster across the entire Revelstoke Timber Supply Area (“overall”) and within cutblocks (“cutblocks”). Values greater than 0 indicate overprojection of the metric and negative values indicate an underprojection. The cutblocks only method is not defined for the road density, road presence or distance to road characteristics."}
+```{r aspat-perf-fig, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants with a 1 ha resolution cost raster. Metrics were summarised within cutblocks, outside cutblocks, and overall. Values greater than 0 indicate overprojection of the metric and negative values indicate an underprojection. The cutblocks only method is not defined for the road density, road presence or distance to road characteristics."}
 # organize data for ggplot
-meanTable_long <- meanTable %>% dplyr::select(-runTime) %>% 
+meanTable_long <- meanTable %>% dplyr::select(-runTime, -order) %>% 
   pivot_longer(-c(sampleType, sampleDens, areaMean, method),
                names_to = "metric", values_to = "response")%>%
   mutate(sampleType = ifelse(sampleType == sampleDens, NA_character_, 
@@ -403,7 +403,8 @@ prop_dif <- projected_values %>%
             by = c("areaMean", "metric"), 
             suffix = c("_proj", "_obs")) %>% 
   mutate(prop_dif = (response_proj-response_obs)/response_obs,
-         areaMean = factor(areaMean, labels = c("Cutblocks", "Overall")))
+         areaMean = factor(areaMean, labels = c("Cutblocks", "Outside\ncutblocks",
+                                                "Overall")))
 
 
 # save runTimes for later comparison
@@ -419,7 +420,7 @@ prop_dif %>%
   geom_hline(aes(yintercept = 0), color = "grey")+
   geom_col(position = position_dodge2(preserve = "single",
                                       width = 0.75))+
-  facet_grid(areaMean~ metric)+
+  facet_grid(areaMean~ metric, scales = "free")+
   theme_classic()+
   scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:7)],
                     name = "Sampling\nMethod", guide = "none")+
@@ -485,7 +486,7 @@ matchData_sum <- matchData %>% ungroup() %>%
 perf_tbl <- matchData_sum %>% 
   pivot_wider(c(metric, sampleDens), names_from = agreement, 
               values_from = count, values_fill = 0) %>% 
-  mutate(sensitivity = `Agree roaded`/(`Agree roaded` + `False negative`),
+  mutate(sensitivity = `Agree roaded`/(`Agree roaded` + `False negative`)
          precision = `Agree roaded`/(`Agree roaded` + `False positive`),
          F_measure = (2*precision*sensitivity)/(precision+sensitivity)) %>% 
   select(metric, sampleDens, sensitivity, precision, F_measure) 
@@ -497,14 +498,15 @@ perf_tbl %>%
   pivot_longer(c(sensitivity, precision, F_measure), names_to = "perf_meas",
                values_to = "value") %>% 
   mutate(perf_meas = factor(perf_meas,
-                            labels = c("F-measure", "Precision", "Sensitivity"))) %>% 
+                            labels = c("F-measure", "Precision", "Sensitivity")),
+         value = value  +0.0001) %>%   # adding so 0 shows in figure
   ggplot(aes(sampleDens, value, fill = sampleDens))+
   geom_col()+
   scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:7)],
                     name = "Sampling\nMethod", guide = "none")+
   facet_grid(metric ~ perf_meas)+
   coord_flip()+
-  ylim(0, 1)+
+  ylim(0, 1.0001)+
   theme_classic()+
   labs(y = "Performance", x = NULL)
 
@@ -603,7 +605,7 @@ matchData <- matchData %>% mutate(resolution = "100") %>% bind_rows(matchData2) 
 
 ```
 
-```{r figA1, fig.height=10, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods across the entire Revelstoke Timber Supply Area (“overall”) and within cutblocks (“cutblocks”) for the fine resolutiom (1 ha) and coarse resolution (100 ha) cost rasters. Values greater than 0 indicate the projection overestimated the metric and negative values indicate an underestimation."}
+```{r figA1, fig.height=12, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods for the fine resolutiom (1 ha) and coarse resolution (100 ha) cost rasters. Metrics were summarised within cutblocks, outside cutblocks, and overall. Values greater than 0 indicate the projection overestimated the metric and negative values indicate an underestimation."}
 # organize data for ggplot
 meanTable_long <- meanTable %>% dplyr::select(-runTime) %>% 
   pivot_longer(-c(sampleType, sampleDens, areaMean, resolution, method),
@@ -649,7 +651,8 @@ prop_dif <- projected_values %>%
             by = c("areaMean", "metric", "resolution"), 
             suffix = c("_proj", "_obs")) %>% 
   mutate(prop_dif = (response_proj-response_obs)/response_obs,
-         areaMean = factor(areaMean, labels = c("Cutblocks", "Overall")))
+         areaMean = factor(areaMean, labels = c("Cutblocks", "Outside\ncutblocks",
+                                                "Overall")))
 
 prop_dif %>% 
   ggplot(aes(x = sampleDens, prop_dif, fill = resolution))+

@@ -260,7 +260,7 @@ getMetricMeans <- function(paramTable, cutblocks){
 #'
 #' @return a table
 #' @noRd
-calcAgree <- function(obs_rast, proj_rast, prex_rast){
+calcAgree <- function(obs_rast, proj_rast, prex_rast, return_res = FALSE){
 
   if(is(proj_rast, "character")){
     return(NULL)
@@ -269,6 +269,10 @@ calcAgree <- function(obs_rast, proj_rast, prex_rast){
   proj_rast <- terra::crop(proj_rast, obs_rast)
   prex_rast <- terra::crop(prex_rast, obs_rast)
   res <- obs_rast + prex_rast + proj_rast
+
+  if(return_res){
+    return(res)
+  }
 
   lu_tbl <- tibble::tribble(~value, ~agreement,
                             0, "Agree roadless",
