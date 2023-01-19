@@ -159,11 +159,9 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
     roadDensityResults <- rasterizeLineDensity(out, r = as(costSurface, "Raster"))
     paramTable$roadDensity[[i]] <- roadDensityResults
 
-    roadPresenceResults <- paramTable$roadDensity[[i]]
-    roadPresenceResults <- terra::classify(
-      roadPresenceResults,
-      rcl = matrix(c(-1, 0, 0, 0, Inf, 1), byrow = TRUE, ncol = 3)
-    )
+    roadPresenceResults <- terra::rasterize(terra::vect(out), costSurface,
+                                            background = 0)
+
     paramTable$roadPresence[[i]] <- roadPresenceResults
 
     src <- terra::trim(roadPresenceResults[[1]]) # thinks this is a list
@@ -192,79 +190,61 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
 
 getMetricMeans <- function(paramTable, cutblocks){
 
+  # Overall
   metricsTable <- tibble(sampleType = paramTable$sampleType,
                          sampleDens = paramTable$sampleDens,
                          runTime = paramTable$runTime,
                          method = paramTable$method,
-                         areaMean = "overall",
-                         roadDisturbanceMean = vector("numeric", nrow(paramTable)),
-                         roadDensityMean = vector("numeric", nrow(paramTable)),
-                         roadPresenceMean = vector("numeric", nrow(paramTable)),
-                         distanceToRoadMean = vector("numeric", nrow(paramTable)),
-                         forestryDisturbanceMean = vector("numeric", nrow(paramTable)))
+                         areaMean = "overall")
 
-  for(i in 1:nrow(paramTable)) {
-  # i = 1
-    cRow = paramTable[i,]
+  metricsAll <- paramTable %>% select(roadDisturbance:forestryDisturbance) %>%
+    unlist() %>%
+    map_dbl(~terra::global(.x, "mean", na.rm = TRUE)[1,1]) %>%
+    as_tibble(rownames = "name") %>%
+    tidyr::separate(name, into = c("name", "order"), sep = -1) %>%
+    mutate(name = paste0(name, "Mean")) %>%
+    tidyr::pivot_wider(names_from = "name", values_from = "value")
 
-    roadDisturbanceMean <- terra::global(cRow$roadDisturbance[[1]], "mean", na.rm = TRUE)
-    metricsTable$roadDisturbanceMean[i] <- roadDisturbanceMean
+  metricsTable <- bind_cols(metricsTable, metricsAll)
 
-    forestryDisturbanceMean <- terra::global(cRow$forestryDisturbance[[1]], "mean", na.rm = TRUE)
-    metricsTable$forestryDisturbanceMean[i] <- forestryDisturbanceMean
-
-    roadDensityMean <- terra::global(cRow$roadDensity[[1]], "mean", na.rm = TRUE)
-    metricsTable$roadDensityMean[i] <- roadDensityMean
-
-    roadPresenceMean <- terra::global(cRow$roadPresence[[1]], "mean", na.rm = TRUE)
-    metricsTable$roadPresenceMean[i] <- roadPresenceMean
-
-    distanceToRoadMean <- terra::global(cRow$distanceToRoad[[1]], "mean", na.rm = TRUE)
-    metricsTable$distanceToRoadMean[i] <- distanceToRoadMean
-
-  }
-
+  # Inside Cutblocks
   metricsTable1 <- tibble(sampleType = paramTable$sampleType,
                           sampleDens = paramTable$sampleDens,
                           runTime = paramTable$runTime,
                           method = paramTable$method,
-                          areaMean = "cutover",
-                          roadDisturbanceMean = vector("numeric", nrow(paramTable)),
-                          roadDensityMean = vector("numeric", nrow(paramTable)),
-                          roadPresenceMean = vector("numeric", nrow(paramTable)),
-                          distanceToRoadMean = vector("numeric", nrow(paramTable)),
-                          forestryDisturbanceMean = vector("numeric", nrow(paramTable)))
+                          areaMean = "cutover")
   cutblocks <- terra::vect(cutblocks)
 
-  for(i in 1:nrow(paramTable)) {
+  metricsCut <- paramTable %>% select(roadDisturbance:forestryDisturbance) %>%
+    unlist() %>%
+    map_dbl(~ terra::mask(.x, cutblocks) %>%
+              terra::global("mean", na.rm = TRUE) %>% .[1,1]) %>%
+    as_tibble(rownames = "name") %>%
+    tidyr::separate(name, into = c("name", "order"), sep = -1) %>%
+    mutate(name = paste0(name, "Mean")) %>%
+    tidyr::pivot_wider(names_from = "name", values_from = "value")
 
-    cRow = paramTable[i,]
+  metricsTable1 <- bind_cols(metricsTable1, metricsCut)
 
-    croppedroadDisturbance <- mask(cRow$roadDisturbance[[1]], cutblocks)
-    croppedforestryDisturbance <- mask(cRow$forestryDisturbance[[1]], cutblocks)
+  # Outside Cutblocks
+  metricsTable2 <- tibble(sampleType = paramTable$sampleType,
+                          sampleDens = paramTable$sampleDens,
+                          runTime = paramTable$runTime,
+                          method = paramTable$method,
+                          areaMean = "notCutover")
 
-    croppedroadDisturbanceMean <- terra::global(croppedroadDisturbance, "mean", na.rm = TRUE)
-    metricsTable1$roadDisturbanceMean[i] <- croppedroadDisturbanceMean
+  metricsNCut <- paramTable %>% select(roadDisturbance:forestryDisturbance) %>%
+    unlist() %>%
+    map_dbl(~ terra::mask(.x, cutblocks, inverse = TRUE) %>%
+              terra::global("mean", na.rm = TRUE) %>% .[1,1]) %>%
+    as_tibble(rownames = "name") %>%
+    tidyr::separate(name, into = c("name", "order"), sep = -1) %>%
+    mutate(name = paste0(name, "Mean")) %>%
+    tidyr::pivot_wider(names_from = "name", values_from = "value")
 
-    croppedforestryDisturbanceMean <- terra::global(croppedforestryDisturbance, "mean", na.rm = TRUE)
-    metricsTable1$forestryDisturbanceMean[i] <- croppedforestryDisturbanceMean
+  metricsTable2 <- bind_cols(metricsTable2, metricsNCut)
 
-    croppedroadDensity <- mask(cRow$roadDensity[[1]], cutblocks)
-    croppedroadPresence <- mask(cRow$roadPresence[[1]], cutblocks)
-    croppeddistanceToRoad <- mask(cRow$distanceToRoad[[1]], cutblocks)
-
-    croppedroadDensityMean <- terra::global(croppedroadDensity, "mean", na.rm = TRUE)
-    metricsTable1$roadDensityMean[i] <- croppedroadDensityMean
-
-    croppedroadPresenceMean <- terra::global(croppedroadPresence, "mean", na.rm = TRUE)
-    metricsTable1$roadPresenceMean[i] <- croppedroadPresenceMean
-
-    croppeddistanceToRoadMean <- terra::global(croppeddistanceToRoad, "mean", na.rm = TRUE)
-    metricsTable1$distanceToRoadMean[i] <- croppeddistanceToRoadMean
-
-  }
-
-  metricsTable <- rbind(metricsTable, metricsTable1)
+  metricsTable <- rbind(metricsTable, metricsTable1, metricsTable2)
 
   return(metricsTable)
 
@@ -423,7 +403,7 @@ prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
 # run all projections and summarise results for one tsa
 run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
                             outPth, klementProj, aggFact, method = "mst",
-                            saveInputs = FALSE){
+                            saveInputs = FALSE, load_file = NULL){
 
   inputs <- prepInputs(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
              outPth, aggFact, saveInputs = saveInputs)
@@ -436,48 +416,69 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
   tsaBoundary <- inputs$tsaBoundary
 
   #Running projections
-  allResults <- projectAll(tsbs = tsbs, paramTable = paramTable,
-                           costSurface = tsaCost_st,
-                           cutblocks = cutblocks,
-                           existingRoads = roadsExist,
-                           fileLocation = outPth)
+  if(is.null(load_file)){
+    allResults <- projectAll(tsbs = tsbs, paramTable = paramTable,
+                             costSurface = tsaCost_st,
+                             cutblocks = cutblocks,
+                             existingRoads = roadsExist,
+                             fileLocation = outPth)
+  } else {
+    # recreate allResults after a restart using saved files
+    allResults <- paramTable %>%
+      mutate(output = file.path(outPth, paste0( sampleType, "_",
+                             sampleDens, "_", method, ".gpkg"))) %>%
+      mutate(runTime = NA_real_)
+  }
 
-  # recreate allResults after a restart using saved files
-  # allResults <- paramTable %>%
-  #   mutate(output = paste0(outPth, sampleType, "_",
-  #                          sampleDens, "_", method, ".gpkg"))
+  if(is.null(load_file) | load_file == "results"){
+    # creating raster layers of the various metrics
+    allMetrics <- calcMetrics(paramTable = allResults,
+                              boundary = tsaBoundary,
+                              nonAggregatedCostSurface = bc_cost_surface,
+                              observedRoads = roadsPth,
+                              klementProj = klementProj,
+                              cutblocks = cutblocks,
+                              cutblocksPth = cutblocksPth,
+                              existingRoads = roadsExist,
+                              costSurface = tsaCost_st)
 
-  # Using David's saved results
-  # allResults <- paramTable %>%
-  #   mutate(output = paste0(data_path_drvd, "combinedTSBRoads", "_",
-  #                          dplyr::case_when(sampleType == "centroid" ~ "C",
-  #                                    sampleType == "random" & sampleDens == 1e-04 ~ "RA2",
-  #                                    sampleType == "random" & sampleDens == 1e-06 ~ "RA1",
-  #                                    sampleType == "regular" & sampleDens == 1e-04 ~ "RE2",
-  #                                    sampleType == "regular" & sampleDens == 1e-06 ~ "RE1"),
-  #                          ".shp"))
-
-
-
-  # creating raster layers of the various metrics
-  allMetrics <- calcMetrics(paramTable = allResults,
-                            boundary = tsaBoundary,
-                            nonAggregatedCostSurface = bc_cost_surface,
-                            observedRoads = roadsPth,
-                            klementProj = klementProj,
-                            cutblocks = cutblocks,
-                            cutblocksPth = cutblocksPth,
-                            existingRoads = roadsExist,
-                            costSurface = tsaCost_st)
-
-  # save the metrics for further study
-  dplyr::select(allMetrics, -c(sampleType, sampleDens, method, runTime, output)) %>%
-    colnames() %>%
-    purrr::cross2(1:nrow(allMetrics)) %>%
-    purrr::walk(~writeRastNotNull(allMetrics[[.x[[1]]]][[.x[[2]]]],
+    # save the metrics for further study
+    dplyr::select(allMetrics, -c(sampleType, sampleDens, method, runTime, output)) %>%
+      colnames() %>%
+      purrr::cross2(1:nrow(allMetrics)) %>%
+      purrr::walk(~writeRastNotNull(allMetrics[[.x[[1]]]][[.x[[2]]]],
                                     file.path(outPth, paste0(.x[[1]], allMetrics$sampleType[.x[[2]]], "_",
                                                              allMetrics$sampleDens[.x[[2]]], "_",
                                                              allMetrics$method[.x[[2]]], ".tif"))))
+  }
+
+  # load metrics from saved files
+  if(load_file == "metrics"){
+    allMetrics <- allResults %>%
+      bind_rows(data.frame(sampleType = c("observed", "cutOnly")))
+
+    if(!is.null(klementProj)){
+      allMetrics <- allMetrics %>%
+        bind_rows(data.frame(sampleType = c("klementQGIS")))
+    }
+
+    met_res <- dplyr::select(allMetrics, -c(sampleType, sampleDens, method, runTime, output)) %>%
+      colnames() %>%
+      purrr::cross2(1:nrow(allMetrics)) %>%
+      set_names(purrr::map_chr(., ~paste0(.x[[1]], "_", .x[[2]]))) %>%
+      purrr::map(~terra::rast(file.path(outPth,
+                                        paste0(.x[[1]], allMetrics$sampleType[.x[[2]]], "_",
+                                               allMetrics$sampleDens[.x[[2]]], "_",
+                                               allMetrics$method[.x[[2]]], ".tif")))) %>%
+      tibble::as_tibble_col() %>%
+      mutate(name = names(value)) %>%
+      tidyr::separate(name, into = c("name", "order")) %>%
+      tidyr::pivot_wider(names_from = "name", values_from = "value")
+
+    allMetrics <- allMetrics %>%
+      select(sampleType, sampleDens, method, runTime, output) %>%
+      bind_cols(met_res)
+  }
 
 
   #Retrieving mean values for cutover and overall
