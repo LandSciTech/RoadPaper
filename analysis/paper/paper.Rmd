@@ -342,7 +342,6 @@ The aspatial performance of the projections was assessed by calculating the mean
 
 For each projection method variant the aspatial performance varied across the five road network metrics and also varied depending on whether we consider scores within cutblocks, outside cutblocks, or overall (Figure \@ref(fig:aspat-perf-fig)). All road network projection method variants perform better for all metrics than the "cutblocks only" method where cutblocks were the only disturbance considered. All road network projection method variants accurately predict the forestry disturbance footprint, and slightly overproject the road disturbance footprint within cutblocks. The high density methods overproject the outside cutblock road disturbance footprint more than low density methods, and underproject the outside cutblock distance to roads, but all method variants give reasonably good projections of the outside cutblock distance to roads. All methods underproject road density, in part because within 1 ha pixels all the methods generate straight road segments. All the methods also underproject road presence, and the problem is more severe for the low density method variants. In general, performance differences among low and high density method variants are larger than differences among projection algorithms. With the coarser resolution cost raster road projections had mean road presence that was closer to the observed, while road density was further from the observed mean and distance to the nearest road was further from the observed mean inside cutblocks but closer for the landscape overall (Figure A-\@ref(fig:figA1)).
 
-<!-- TO DO: consider breaking down aspatial results into 'cutblocks', 'outside cutblocks' and 'overall': it may make the results easier to explain and interpret. -->
 
 ```{r get-data}
 # load csv
@@ -584,8 +583,6 @@ A mathematical weighted graph consisting of nodes and edges was used to paramete
 
 ## Coarse resolution results
 
-<!-- TO DO: switch fig resolution labels from metres to ha. -->
-
 ```{r get-data2}
 data_path_drvd <- "analysis/data/derived_data/TSA27_1000"
 
@@ -658,14 +655,16 @@ prop_dif %>%
   geom_hline(aes(yintercept = 0), color = "grey")+
   geom_col(position = position_dodge2(preserve = "single",
                                       width = 0.75))+
-  facet_grid(areaMean + metric ~1)+
+  facet_grid(areaMean + metric ~"")+
   theme_classic()+
-  scale_fill_manual(values = met.brewer(pal_nm))+
+  scale_fill_manual(values = met.brewer(pal_nm), labels = c("1 ha", "100 ha"))+
   theme(text = element_text(size = 10), axis.title.x = element_blank(),
         axis.title.y = element_blank(),
+        strip.background.x = element_blank(),
         legend.position = "right",
         axis.text.x=element_text(size=11, angle=50, vjust=1, hjust=1))+
-  coord_flip()
+  coord_flip()+
+  labs(fill = "Resolution")
 
 ```
 
@@ -726,12 +725,12 @@ perf_tbl %>%
   ggplot(aes(sampleDens, value, fill = resolution))+
   geom_col(position = position_dodge2(preserve = "single",
                                       width = 0.75))+
-  scale_fill_manual(values = met.brewer(pal_nm))+
+  scale_fill_manual(values = met.brewer(pal_nm), labels = c("1 ha", "100 ha"))+
   facet_grid(metric ~ perf_meas)+
   coord_flip()+
   ylim(0, 1)+
   theme_classic()+
-  labs(y = "Performance", x = NULL)
+  labs(y = "Performance", x = NULL, fill = "Resolution")
 
 ```
 
