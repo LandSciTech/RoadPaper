@@ -606,7 +606,7 @@ matchData <- matchData %>% mutate(resolution = "100") %>% bind_rows(matchData2) 
 
 ```{r figA1, fig.height=12, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods for the fine resolutiom (1 ha) and coarse resolution (100 ha) cost rasters. Metrics were summarised within cutblocks, outside cutblocks, and overall. Values greater than 0 indicate the projection overestimated the metric and negative values indicate an underestimation."}
 # organize data for ggplot
-meanTable_long <- meanTable %>% dplyr::select(-runTime) %>% 
+meanTable_long <- meanTable %>% dplyr::select(-runTime, -order) %>% 
   pivot_longer(-c(sampleType, sampleDens, areaMean, resolution, method),
                names_to = "metric", values_to = "response")%>%
   mutate(sampleType = ifelse(sampleType == sampleDens, NA_character_, 

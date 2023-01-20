@@ -111,7 +111,7 @@ run_projections(
 
   #Klement QGIS projection results shapefile
   klementProj = NULL,
-
+  # load_file = "results",
   aggFact = 10 #factor of aggregation of cost surface. 1 = no aggregation.
 )
 

@@ -1,5 +1,16 @@
 .Rproj.user
-analysis/data
+analysis/data/*
+!analysis/data/derived_data/
+
+analysis/data/derived_data/*
+!analysis/data/derived_data/TSA27
+!analysis/data/derived_data/TSA27_1000
+
+analysis/data/derived_data/TSA27/*
+!analysis/data/derived_data/TSA27/*.csv
+analysis/data/derived_data/TSA27_1000/*
+!analysis/data/derived_data/TSA27_1000/*.csv
+
 .Rhistory
 .Rdata
 .httr-oauth
