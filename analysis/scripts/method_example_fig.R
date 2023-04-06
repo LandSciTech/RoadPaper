@@ -30,7 +30,7 @@ cutblocks <- read_sf(cutblocksPth)
 roads <- read_sf(roadsPth)
 tsaCost <- rast(costPth)
 
-projRoads <- read_sf(paste0(data_path_drvd, "TSA27/", "random_1e-05.shp"))
+projRoads <- read_sf(paste0(data_path_drvd, "TSA27/", "random_1e-05_mst.gpkg"))
 
 exRoads <- roads %>% filter(AWARD_DATE <= as.Date("1990-01-01"))
 
@@ -69,5 +69,5 @@ tsb <- st_bbox(cutblocks) %>% st_as_sfc() %>% list()
 write_sf(exRoads, paste0(data_path_drvd, "testing_ex_roads.gpkg"))
 write_sf(tsb[[1]], paste0(data_path_drvd, "testing_tsb.gpkg"))
 write_sf(cutblocks, paste0(data_path_drvd, "testing_cutblocks.gpkg"))
-writeRaster(tsaCost, paste0(data_path_drvd, "testing_cost.tif"))
+writeRaster(tsaCost, paste0(data_path_drvd, "testing_cost.tif"),overwrite=T)
 write_sf(roads, paste0(data_path_drvd, "testing_obs_roads.gpkg"))
