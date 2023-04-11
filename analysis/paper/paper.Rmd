@@ -215,7 +215,7 @@ All data sets were accessed using the `bcdata` R package and filtered to the ext
 
 Simple methods for projecting low-cost routes from an existing road network to target locations (i.e. harvest cutblocks) include simple least cost paths (LCP), dynamic least cost paths (DLCP) and least cost path minimum spanning trees (MST) (Figure \@ref(fig:proj-meth-fig)). We use Dijkstra's shortest path algorithm [-@dijkstra_note_1959] to determine the least cost path between a target location (e.g. centroid of a cutblock) and the existing road network. Least cost paths to each cutblock are determined independently in the simple method (LCP). The dynamic least cost paths (DLCP) method evaluates the path to each cutblock in sequence so that earlier paths are considered in the cost for later paths. Sequence is determined by a heuristic, such as the distance to the nearest existing road in these examples. The minimum spanning tree (MST) method calculates the minimum cost network to connect all cutblocks to the road network using Kruskal's algorithm [-@kruskal_shortest_1956]. See Appendix A for a more detailed explanation of these methods. We focus our analysis on the DLCP and MST approaches which yield more realistic road networks (Figure \@ref(fig:proj-meth-fig)). We compared these methods to an alternative iterative least cost path method developed by Hardy [-@hardy_forest_2019].
 
-The DLCP and MST methods connect target or landing locations within each cutblock to the existing road network, so an important first step is to select one or more landing locations in each block. We investigated the sensitivity of results to the pattern and density of landing locations by comparing results derived from the centroid of each cutblock to regular or randomly selected landing densities of 1 (low) and 10 (high) points per km^2^ (Figure \@ref(fig:proj-meth-fig)). We used default settings in the Hardy QGIS plugin except for kidding distance which was set to 200m. A skidding distance of 200 m corresponds to \~ 9 pts/km^2^. We compared two resolutions of the cost surface by aggregating the 1 ha resolution cost raster to a coarser 100 ha (1000 by 1000 m) resolution. In total, we compared 12 road projection method variants to a cutblocks only scenario with no projected roads (Table \@ref(tab:method-tbl)).
+The DLCP and MST methods connect target or landing locations within each cutblock to the existing road network, so an important first step is to select one or more landing locations in each block. We investigated the sensitivity of results to the pattern and density of landing locations by comparing results derived from the centroid of each cutblock to regular or randomly selected landing densities of 1 (low) and 10 (high) points per km^2^ (Figure \@ref(fig:proj-meth-fig)). We used default settings in the Hardy QGIS plugin except for skidding distance which was set to 200m. A skidding distance of 200 m corresponds to \~ 9 pts/km^2^. We compared two resolutions of the cost surface by aggregating the 1 ha resolution cost raster to a coarser 100 ha (1000 by 1000 m) resolution. In total, we compared 12 road projection method variants to a cutblocks only scenario with no projected roads (Table \@ref(tab:method-tbl)).
 
 ```{r method-tbl}
 tbl2 <- "Projection method|Sample type|Sample density (pts/km^2^)|Resolutions
@@ -262,8 +262,8 @@ roads <- read_sf(here(data_path_drvd, "..", "testing_obs_roads.gpkg"))
 high <- 0.00001
 low <-  0.000001
 
-sampleDens <- c(low,high,low,high,low)
-sampleType <- c("regular","regular","random","random","centroid")
+sampleDens <- c(high, high, low)
+sampleType <- c("regular","random","centroid")
 paramTable <- tibble(sampleType, sampleDens,
                      method = "mst",
                      runTime = vector("list", length(sampleDens)),
@@ -291,40 +291,57 @@ dlcpProj <- projectAll(tsbs = tsb,
                       existingRoads = exRoads,
                       fileLocation = here(data_path_drvd, "..", "for_fig"))
 
-lcpProj <- projectAll(tsbs = tsb,
-                       paramTable = paramTable %>% 
-                        filter(sampleType == "centroid") %>% 
-                        mutate(method = "lcp"),
-                       costSurface = tsaCost,
-                       cutblocks = cutblocks,
-                       existingRoads = exRoads,
-                       fileLocation = here(data_path_drvd, "..", "for_fig"))
-
-allProj <- bind_rows(mstProj, dlcpProj, lcpProj, .id = "method") %>%
+allProj <- bind_rows(mstProj, dlcpProj, .id = "method") %>%
   arrange(desc(sampleType), sampleDens)
+
+# add Hardy QGIS results for the same area
+
+allProj <- bind_rows(
+  allProj,
+  tibble(sampleType = "", sampleDens = 0, method = "Hardy QGIS",
+             output = list(here(data_path_drvd, "..", "for_fig", 
+                                "HardyQGISTest.gpkg")))) %>% 
+  mutate(mapTitle =  paste(ifelse(method == 1, "MST",
+                                  ifelse(method == 2, "DLCP", method)),
+                           sampleType,
+                           ifelse(sampleDens == 1e-06 & 
+                                    sampleType != "centroid", "low density", 
+                                  ifelse(sampleDens == 1e-05, 
+                                         "high density", ""))))
+
+# add extra row for legend
+allProj <- bind_rows(allProj, 
+                     slice(allProj, 1))
 
 allMaps <- purrr::map(
   1:nrow(allProj),
   ~ qtm(tsaCost, raster.style = "cont", raster.palette = "Greys",
-        raster.alpha = 0.5)+
+        raster.alpha = 0.5, raster.title = "Cost")+
     qtm(cutblocks, fill = NULL, borders = "grey40", borders.lwd = 1.5)+
     qtm(roads, lines.col = "red", lines.lwd = 2)+
     qtm(read_sf(here(allProj$output[[.x]])), lines.col = "yellow", lines.lwd = 2)+
     qtm(exRoads, lines.col = "black", lines.lwd = 2)+
-    tm_layout(legend.show = FALSE,
-              main.title = paste(ifelse(allProj$method[.x]== 1, "MST",
-                                        ifelse(allProj$method[.x]== 2, "DLCP", "LCP")),
-                                 allProj$sampleType[.x],
-                                 ifelse(allProj$sampleType[.x] == "centroid", "",
-                                        ifelse(allProj$sampleDens[.x] == 1e-06, "low density", "high density"))),
+    tm_layout(legend.show = .x == nrow(allProj),
+              legend.only = .x == nrow(allProj),
+              main.title = allProj$mapTitle[[.x]],
               main.title.size = 0.75))
 
-tmap_save(tmap_arrange(allMaps, ncol = 2),
+allMaps[[nrow(allProj)]] <- allMaps[[nrow(allProj)]]+
+  tm_add_legend(type = "line", 
+                labels = c("Existing roads", "Projected roads", "Observed roads"),
+                col = c("black", "yellow", "red"))+
+    tm_add_legend(type = "fill", 
+                labels = "Cutblocks",
+                col = NA, border.col = "grey40")+
+  tm_layout(legend.only = TRUE, legend.position = c("center", "center"))
+
+
+tmap_save(tmap_arrange(allMaps, ncol = 3),
           here("analysis/figures/projection_methods_figure.png"),
-          dpi = 300, height = 8, width = 3.543)
+          dpi = 300, height = 5, width = fig_widths["two"])
 ```
 
-```{r proj-meth-fig, fig.cap="We compared minimum spanning tree (MST), dynamic least cost paths (DLCP) and least cost path (LCP) road network projection algorithms. Landing locations were selected as the centroid of the cutblock, or a random or regularly spaced sample of points inside each cutblock (Table 2). Target cutblocks are outlined in grey, existing roads are black, projected roads are yellow, observed roads are red. Cost (1 ha resolution) is indicated by grey shading."}
+```{r proj-meth-fig, fig.cap="We compared minimum spanning tree (MST), dynamic least cost paths (DLCP) and the Hardy QGIS plugin road network projection algorithms. Landing locations were selected as the centroid of the cutblock, or a random or regularly spaced sample of points inside each cutblock (Table 2). Target cutblocks are outlined in grey, existing roads are black, projected roads are yellow, observed roads are red. Cost (1 ha resolution) is indicated by grey shading, with darker grey indicating higher cost. The large four sided cutblock in the top right was added to give a better example of the algorithms behaviour inside cutblocks."}
 knitr::include_graphics(here("analysis/figures/projection_methods_figure.png"))
 ```
 
