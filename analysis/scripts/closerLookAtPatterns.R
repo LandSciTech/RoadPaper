@@ -49,8 +49,8 @@ exRoadsI <- roads %>% filter(AWARD_DATE <= as.Date("1990-01-01"))
 
  ext(tsaCost)
 # # get extent
- expX = 0.02
- expY = 0.02
+ expX = 0.03
+ expY = 0.03
 bound <- ext(c(1537685.65481532*(1-expX), 1546695.23062125*(1+expX), 741830.821988938*(1-expY), 750131.44756752*(1+expY)))
 
 roads <- vect(roadsI) %>% crop(bound) %>% st_as_sf()
