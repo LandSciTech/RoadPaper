@@ -7,6 +7,7 @@ library(tmap)
 library(purrr)
 library(here)
 library(terra)
+library(ggplot2)
 
 # set paths for data
 data_path_raw <- "analysis/data/raw_data/"
@@ -63,6 +64,9 @@ rast_temp <- rast(here(data_path_drvd, "TSA27", "input_cost.tif"))
 # study area boundary
 bound <- read_sf( here(data_path_raw, "tsa27_boundaries.gpkg"))
 
+# Cutblocks
+cutblocks <- read_sf(here(data_path_drvd, "TSA27", "input_cutblocks.gpkg"))
+
 metric_rasts <- map(files, read_sf) %>%
   map(roadDisturbanceFootprint, r = rast_temp, b = bound, d = 250)
 
@@ -70,6 +74,29 @@ metric_rasts <- map(files, read_sf) %>%
 # Step 3:  ----------------------------------------------------------------
 # Calculate the mean of the metric for each raster
 
-metric_means <- metric_rasts %>%
-  map_dbl(~terra::global(.x, "mean", na.rm = TRUE)[1,1])
+metric_means_overall <- metric_rasts %>%
+  map_dfr(~terra::global(.x, "mean", na.rm = TRUE)[1,1]) %>%
+  mutate(metric = "Footprint 250", Scale = "Overall")
 
+metric_means_in_cuts <- metric_rasts %>%
+  map_dfr(~ terra::mask(.x, cutblocks) %>%
+            terra::global("mean", na.rm = TRUE) %>% .[1,1]) %>%
+  mutate(metric = "Footprint 250", Scale = "Cutblocks")
+
+metric_means_out_cuts <- metric_rasts %>%
+  map_dfr(~ terra::mask(.x, cutblocks, inverse = TRUE) %>%
+            terra::global("mean", na.rm = TRUE) %>% .[1,1]) %>%
+  mutate(metric = "Footprint 250", Scale = "Outside cutblocks")
+
+metric_means <- bind_rows(metric_means_overall, metric_means_in_cuts,
+                          metric_means_out_cuts)
+
+metric_means %>%
+  tidyr::pivot_longer(cols = -c(Scale, observed, metric), names_to = "method",
+                      values_to = "response") %>%
+  mutate(prop_dif = (response - observed)/observed) %>%
+  ggplot(aes(method, prop_dif))+
+  geom_col()+
+  facet_grid(Scale ~ metric)+
+  coord_flip()+
+  labs(x = "Method", y = "(Projected - Observed)/Observed")
