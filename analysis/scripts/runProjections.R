@@ -115,6 +115,46 @@ run_projections(
   aggFact = 10 #factor of aggregation of cost surface. 1 = no aggregation.
 )
 
+# For Revelstoke at fine resolution with cutblocks not accessed by existing
+# roads removed
+cutblocks <- st_read(paste0(data_path_raw, "cutblocks_revelstoke.gpkg"))
+roads <- st_read(paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"))
+
+cutblocksReal <- st_filter(cutblocks, roads)
+
+# cutblocks removed
+# qtm(cutblocks, fill = "red", borders = "red")+qtm(cutblocksReal)
+
+write_sf(cutblocksReal, paste0(data_path_drvd, "cutblocks_revelstoke_real.gpkg"))
+
+# First run prepInputs to create filtered inputs for QGIS plugin
+prepInputs(
+  cutblocksPth = paste0(data_path_drvd, "cutblocks_revelstoke_real.gpkg"),
+  roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
+  tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
+  costPth = paste0(data_path_raw, "cost_surface_bc_ha.tif"),
+  outPth = paste0(data_path_drvd, "TSA27_real_cuts/"),
+  aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
+  saveInputs = TRUE
+)
+
+#
+run_projections(
+  paramTable,
+  cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke_real.gpkg"),
+  roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
+  tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
+  costPth = paste0(data_path_raw, "cost_surface_bc_ha.tif"),
+  outPth = paste0(data_path_drvd, "TSA27_real_cuts/"),
+
+  #Klement QGIS projection results shapefile
+  klementProj = paste0(data_path_drvd, "TSA27_real_cuts/", "klementProjection.shp"),
+
+  aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
+  # load_file = "results",
+  saveInputs = TRUE
+)
+
 # set rasterOptions back to previous value
 # terraOptions(memfrac = prevOpts$memfrac)
 print(Sys.time())
