@@ -141,7 +141,7 @@ prepInputs(
 #
 run_projections(
   paramTable,
-  cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke_real.gpkg"),
+  cutblocksPth = paste0(data_path_drvd, "cutblocks_revelstoke_real.gpkg"),
   roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
   tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
   costPth = paste0(data_path_raw, "cost_surface_bc_ha.tif"),
