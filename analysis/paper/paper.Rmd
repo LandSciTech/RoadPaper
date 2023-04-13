@@ -367,7 +367,8 @@ Outside cutblocks, all method variants underproject road density and road presen
 ```{r get-data}
 # load csv
 meanTable <- read.csv(here(data_path_drvd, "mean_table.csv"))
-
+meanTableRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts",
+                                   "mean_table.csv"))
 matchData <- read.csv(here(data_path_drvd, "agree_table.csv"))
 
 ```
