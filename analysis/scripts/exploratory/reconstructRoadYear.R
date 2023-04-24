@@ -69,3 +69,7 @@ write_sf(newSim$roads, here(data_path_drvd, "reconstructedRoads.gpkg"))
 
 
 plot(newSim$roads["Year"])
+
+# this didn't work that well becasue the reconstructed roads do not follow the
+# observed roads as well as expected. Maybe need cost of existing roads to be
+# closer to 0? or might just be related to rasterization and resolution
