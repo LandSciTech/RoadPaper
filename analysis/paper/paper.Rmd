@@ -42,12 +42,13 @@ output:
 bibliography: Roads.bib
 csl: "../templates/canadian-journal-of-forest-research.csl" # Insert path for the bib-style
 abstract: |
-  abstract to do
+  Despite a rapidly growing body of evidence of complex and varied impacts of road networks on wildlife and other values, and increasing use of spatial stochastic models for forecasting impacts of forest disturbance across regions, very few spatial stochastic projections of forest disturbance dynamics have included road network projections, in part because tools suited for this purpose have not been available. Hardy et al. [-@hardy_landis-ii_2023] partially addressed this need with a Landis-II extension. As a complementary and comparable alternative, we provide implementations of simple iterative least cost path and minimum spanning tree methods in an open source R package that can be easily integrated into R workflows and modelling frameworks used for forecasting forest change in Canada and elsewhere. Comparison of these methods in a mountainous region of British Columbia clarifies that performance is adequate according to some metrics but not others, that aspatial performance metrics obscure important differences in alorithm behaviour within and outside cutblocks, and that none of these algorithms mimic switchbacks in steep terrain. Method assessment is complicated by errors in available in cutblock and forest road data. Simple iterative least cost path road network simulation methods may be adequate for projecting important impacts on wildlife across large areas, and we hope that more easily useable open source implementations will help integrate resource roads into forest change projections.
 keywords: |
   keyword 1; keyword 2; keyword 3
 editor_options: 
   chunk_output_type: inline
 ---
+
 
 <!-- This is the format for text comments that will be ignored during renderings. Do not put R code in these comments because it will not be ignored. -->
 
@@ -160,7 +161,7 @@ pal_nm <- "Redon"
 fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 ```
 
-```{r study-area, fig.cap="Road construction costs according to a simple model informed by slope and major barriers (Table \@ref(tab:cost-tbl)) in the Revelstoke timber supply area in British Colombia, Canada.", cache=TRUE}
+```{r study-area, fig.cap="Road construction costs according to a simple model informed by slope and major barriers (Table 1) in the Revelstoke timber supply area in British Colombia, Canada.", cache=TRUE}
 tsaBoundary <- read_sf(here(data_path_raw, "tsa27_boundaries.gpkg"))
 #cost surface raster layer
 tsaCost <- terra::rast(here(data_path_drvd, "input_cost.tif"))
