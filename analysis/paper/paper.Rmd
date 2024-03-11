@@ -16,13 +16,13 @@ author:
     email: david.lapins@pc.gc.ca
     institute: [ECCC]
     correspondence: false
-  - name: Kyle Lochhead
-    email: Kyle.Lochhead@gov.bc.ca
-    institute: [FLNR]
-    correspondence: false
   - name: Gregory Paradis
     email: gregory.paradis@ubc.ca
     institute: [UBC]
+    correspondence: false
+  - name: Kyle Lochhead
+    email: Kyle.Lochhead@gov.bc.ca
+    institute: [FLNR]
     correspondence: false
 
 institute:
@@ -183,7 +183,7 @@ canada_overlay <- tm_shape(canada, projection = "+proj=lcc +lat_1=20 +lat_2=60 +
   tm_layout(frame=TRUE)
 
 tsa <- tm_shape(tsaCost, name = "Cost")+
-  tm_raster(style = "cont", title = "Cost")+
+  tm_raster(style = "cont", title = "Cost",palette="Greys")+
   tm_shape(st_union(tsaBoundary))+
   tm_borders(col = "black")+
   tm_compass(position = c(0.3, 0.11), size = 1)+
@@ -271,7 +271,7 @@ library(terra)
 library(tmap)
 library(purrr)
 library(caribouMetrics)
-library(pfocal)
+#library(pfocal)
 
 # read in example area data
 exRoads <- read_sf(here(data_path_drvd, "..", "testing_ex_roads.gpkg"))
@@ -337,11 +337,11 @@ allProj <- bind_rows(allProj,
 
 allMaps <- purrr::map(
   1:nrow(allProj),
-  ~ qtm(tsaCost, raster.style = "cont", raster.palette = "Greys",
-        raster.alpha = 0.5, raster.title = "Cost")+
-    qtm(cutblocks, fill = NULL, borders = "grey40", borders.lwd = 1.5)+
-    qtm(roads, lines.col = "red", lines.lwd = 2)+
-    qtm(read_sf(here(allProj$output[[.x]])), lines.col = "yellow", lines.lwd = 2)+
+  ~ qtm(cutblocks, borders = "#92c5de", fill="#92c5de", borders.lwd = 1,)+
+    qtm(tsaCost, raster.style = "cont", raster.palette = "Greys",
+        raster.alpha = 0.25, raster.title = "Cost")+
+    qtm(roads, lines.col = "#0571b0", lines.lwd = 2,lines.lty="solid")+
+    qtm(read_sf(here(allProj$output[[.x]])), lines.col = "#ca0020", lines.lwd = 2)+
     qtm(exRoads, lines.col = "black", lines.lwd = 2)+
     tm_layout(legend.show = .x == nrow(allProj),
               legend.only = .x == nrow(allProj),
@@ -351,10 +351,10 @@ allMaps <- purrr::map(
 allMaps[[nrow(allProj)]] <- allMaps[[nrow(allProj)]]+
   tm_add_legend(type = "line", 
                 labels = c("Existing roads", "Projected roads", "Observed roads"),
-                col = c("black", "yellow", "red"))+
+                col = c("black", "#ca0020", "#0571b0"),lty=c("solid","solid","solid"))+
     tm_add_legend(type = "fill", 
                 labels = "Cutblocks",
-                col = NA, border.col = "grey40")+
+                col = "#92c5de", border.col ="#92c5de")+
   tm_layout(legend.only = TRUE, legend.position = c("center", "center"))
 
 tmap_save(tmap_arrange(allMaps, ncol = 3),

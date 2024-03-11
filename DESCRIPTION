@@ -20,7 +20,6 @@ Imports:
     ggplot2 (>= 3.3.5),
     ggpubr (>= 0.4.0),
     knitr (>= 1.38),
-    maptools (>= 1.1-3),
     MetBrewer (>= 0.2.0),
     pfocal (>= 1.0.0),
     purrr (>= 0.3.4),

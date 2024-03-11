@@ -5,18 +5,41 @@
 
 # functions for roads
 
-
 # rasterize line density
+rasterizeLineDensity <- function(x, r, ptDensity = 1) {
+  if(any(c("POINT", "MULTIPOINT") %in%
+         sf::st_geometry_type(x, by_geometry = TRUE))){
+    lfPt <- sf::st_collection_extract(x, "POINT")
+    x <- sf::st_collection_extract(x, "LINESTRING")
+  } else {
+    lfPt <- slice(x, 0)
+  }
 
-rasterizeLineDensity <- function(x, r) {
-   spst_im <- spatstat.geom::pixellate(x = spatstat.geom::as.psp(sf::st_geometry(x)),
-                                      W = maptools::as.im.RasterLayer(r),
-                                      DivideByPixelArea = F)
-  spst_rast <- raster::raster(spst_im)/(res(r)[1]*res(r)[2]/10000)
-  spst_rast <- round(spst_rast, digits = 1)
-  spst_rast <- raster::`crs<-`(spst_rast, value = raster::crs(r))
+  line_len <- terra::rasterizeGeom(terra::vect(x), r, fun = "length")
 
-  return(terra::rast(spst_rast))
+  cell_area <- terra::cellSize(r)/10000
+
+  r <- round(line_len/cell_area, digits = 1)
+
+
+  if(!is.null(ptDensity)){
+    if(ptDensity > 2+2*2^0.5){
+      warning("ptDensity is greater than the expected max of 4.828.",
+              " see ?rasterizeLineDensity for details",
+              call. = FALSE)
+    }
+
+    if(nrow(lfPt) > 0){
+      lfR <- terra::rasterizeGeom(terra::vect(lfPt), r, fun = "count")
+
+      lfR <- lfR * ptDensity * terra::res(r)[1]
+
+      lfR <- round(lfR / (terra::res(r)[1] * terra::res(r)[2] / 10000), digits = 1)
+      r <- r + lfR
+    }
+  }
+
+  return(r)
 }
 
 roadDisturbanceFootprint <- function(x, r, b) {
