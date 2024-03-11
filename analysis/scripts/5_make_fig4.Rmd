@@ -42,8 +42,9 @@ rds <- lst(e_rds, p_rds, o_rds) %>%
   purrr::map(st_intersection, tsaBoundary)
 
 mp <- tm_shape(dist_dif)+
-  tm_raster(palette = "BrBG", breaks = c(-2000, -1000, 1000, 2000), 
+  tm_raster(palette = "PuOr", breaks = c(-2000, -1000, 1000, 2000), 
             midpoint = 0, style = "cont", 
+            contrast = 0.5,
             labels = c("<= -2000", "     -1000", "      1000", ">=  2000"),
             title = "Observed - projected\ndistance to road")+
   tm_shape(rds$o_rds)+
@@ -53,9 +54,10 @@ mp <- tm_shape(dist_dif)+
   tm_shape(rds$e_rds)+
   tm_lines(col = "black")+
   tm_layout(legend.position = c("LEFT", "BOTTOM"), legend.just = "left", frame = FALSE)+
-  tm_add_legend(type = "line", col = c("black", "#ca0020", "#0571b0"), 
+  tm_add_legend(type = "line", col = c("black", "#ca0020", "#0571b0"), lwd = 2,
                 labels = c("Existing roads", "Projected roads", "Observed roads"))+
-  tm_add_legend(type = "fill", col = "white", border.col = "#92c5de", labels = "Cutblocks")
+  tm_add_legend(type = "fill", col = "white", border.col = "#92c5de", labels = "Cutblocks",
+                border.lwd = 2)
 
 tmap_save(mp,
           here("analysis/figures/spatial_projections.png"),
