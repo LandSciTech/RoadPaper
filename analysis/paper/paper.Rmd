@@ -476,7 +476,7 @@ mst_time <- meanTableRealCuts %>%
 
 ```{r proj-map-fig, fig.height=9, fig.width=fig_widths["two"], fig.cap="Comparison of the minimum spanning tree projection with regular high density sampling to the observed road network. The main map shows observed distance to the nearest road minus the projected distance. Insets highlight areas of interest with satellite imagery (Google 2022) for context: (a) Projected and observed road networks follow valleys but projected roads cross valley bottoms more frequently; (b) some open areas are misidentified as cutblocks; (c) projected methods do no mimic observed switchbacks."}
 
-knitr::include_graphics(here("analysis/figures/Figure4_diff_map_update.png"))
+knitr::include_graphics(here("analysis/figures/Figure4_map_update.png"))
 
 ```
 
