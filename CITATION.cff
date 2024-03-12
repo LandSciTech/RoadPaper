@@ -1,0 +1,15 @@
+cff-version: 1.0.0
+message: "If you use this code, please cite it as below."
+authors:
+  - family-names: Endicott
+    given-names: Sarah
+    orcid: https://orcid.org/0000-0001-9644-5343
+  - family-names: Hughes
+    given-names: Josie
+    orcid: https://orcid.org/0000-0001-9644-5343
+title: "RoadPaper"
+version: 1.0.0-alpha
+date-released: 2024-03-12
+license: MIT
+repository-code: https://github.com/LandSciTech/RoadPaper
+doi: https://doi.org/
