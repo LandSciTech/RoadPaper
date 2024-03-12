@@ -37,9 +37,9 @@ paramTable <- tibble(sampleType, sampleDens, method = "mst",
                      forestryDisturbance = vector("list", length(sampleDens))) %>%
   distinct()
 
-# add row for dlcp with regular high density sampling
+# add row for ilcp with regular high density sampling
 paramTable <- bind_rows(paramTable, paramTable %>% slice(2) %>%
-                          mutate(method = "dlcp"))
+                          mutate(method = "ilcp"))
 
 
 run_projections(

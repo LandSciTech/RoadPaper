@@ -225,20 +225,20 @@ All data sets were accessed using the `bcdata` R package and filtered to the ext
 
 ## Road Projection Methods and Variants
 
-We focus on methods that link multiple target locations to an existing road network for strategic purposes by finding minimum-cost locations for new roadways that link landings within harvest cutblocks (i.e., log decks) to the existing road network, described by Dean [-@dean_finding_1997] as the multiple target access problem (MTAP). Specifically, we compare dynamic least cost path (DLCP) and minimum spanning tree approaches (MST) for solving the MTAP to an alternative iterative least cost path method developed by Hardy [-@hardy_forest_2019;-@hardy_landis-ii_2023] (Figure \@ref(fig:proj-meth-fig)). 
+We focus on methods that link multiple target locations to an existing road network for strategic purposes by finding minimum-cost locations for new roadways that link landings within harvest cutblocks (i.e., log decks) to the existing road network, described by Dean [-@dean_finding_1997] as the multiple target access problem (MTAP). Specifically, we compare iterative least cost path (ILCP) and minimum spanning tree approaches (MST) for solving the MTAP to an alternative iterative least cost path method developed by Hardy [-@hardy_forest_2019;-@hardy_landis-ii_2023] (Figure \@ref(fig:proj-meth-fig)). 
 
-The DLCP approach solves the MTAP by decomposing the problem into several smaller single target access problems (STAPs). For each landing target, the least cost path to the existing road network is solved using Dijkstra's shortest path algorithm [-@dijkstra_note_1959]. The algorithm is parameterized with a weighted graph wherein each node corresponds to a raster pixel representing one of three components of the potential forest road network: a landing, a point on an existing road, or an intermediate point that is a plausible location for road construction. Each node is connected with up to eight neighbours, and the cost of construction along edges is weighted by the distance to neighbouring nodes and the average of the construction cost at the source and destination nodes (Table \@ref(tab:cost-tbl)). The simple underlying grid is less computationally costly than methods designed to support curvature or switchbacks required in operational road design [@stuckelberger_improved_2007]. The algorithm starts with the landing nearest to an existing road, and updates the existing road network and construction cost surface with each new road segment before moving on to the next nearest landing. The method was developed by Anderson and Nelson [-@anderson_projecting_2004] who noted that the projected network is sensitive to the ordering of targets and recommended a heuristic for connecting the targets and finding optimal branch locations to deal with this sensitivity.
+The ILCP approach solves the MTAP by decomposing the problem into several smaller single target access problems (STAPs). For each landing target, the least cost path to the existing road network is solved using Dijkstra's shortest path algorithm [-@dijkstra_note_1959]. The algorithm is parameterized with a weighted graph wherein each node corresponds to a raster pixel representing one of three components of the potential forest road network: a landing, a point on an existing road, or an intermediate point that is a plausible location for road construction. Each node is connected with up to eight neighbours, and the cost of construction along edges is weighted by the distance to neighbouring nodes and the average of the construction cost at the source and destination nodes (Table \@ref(tab:cost-tbl)). The simple underlying grid is less computationally costly than methods designed to support curvature or switchbacks required in operational road design [@stuckelberger_improved_2007]. The algorithm starts with the landing nearest to an existing road, and updates the existing road network and construction cost surface with each new road segment before moving on to the next nearest landing. The method was developed by Anderson and Nelson [-@anderson_projecting_2004] who noted that the projected network is sensitive to the ordering of targets and recommended a heuristic for connecting the targets and finding optimal branch locations to deal with this sensitivity.
 
 The MST approach extends the LCP approach by providing a heuristic for linking landings and evaluating road branching opportunities. Dean [-@dean_finding_1997] showed that heuristics with branch evaluation were able to reproduce 80% of the observed road locations in their study area. The first step in our MST approach is to estimate the least cost paths that link each of the landings and the least cost paths that link each landing to the existing road network. These results are used to create a weighted graph wherein nodes are either landings or points on the existing road network, and edge weights correspond to the total cost of the least cost path between pairs of nodes. The minimum spanning tree for this graph is solved using Kruskal's algorithm [-@kruskal_shortest_1956], which links all nodes with a tree that minimizes edge weights and does not include loops. This method differs from Clark et al. [@clark_three-stage_2000] who used Euclidean distances for edge weights.
 
-Hardy's method [-@hardy_forest_2019;-@hardy_landis-ii_2023] is similar to our DLCP method in that it breaks the MTAP down into many STAPs and finds the least cost path for each with the ordering of road construction determined by the distance from the existing road network. One difference is that Hardy uses the Dijkstra algorithm to solve a “single-source many-targets shortest path problem”, which is a special case of STAPs that finds the path between the harvested cell and one of multiple potential connection points on the road network. In contrast our algorithm first finds the closest point on the road network to the selected landing point and then uses the Dijkstra algorithm to solve least cost path between the two. However, since the cost of construction on existing roads is zero we expect that in practice these two approaches are similar and the algorithm will select the least cost location for the road to connect to the existing road network. It is possible that a sub-optimal road connection location is chosen by our algorithm when the existing road network is not fully connected and the closest point is on an existing road fragment that is not connected to the optimal part of the road network. Within cutblocks, Hardy's method iterates over each cell in the harvest area and builds a road if it is not within skidding distance of an existing road, while we create landing points to serve as target locations for road construction.
+Hardy's method [-@hardy_forest_2019;-@hardy_landis-ii_2023] is similar to our ILCP method in that it breaks the MTAP down into many STAPs and finds the least cost path for each with the ordering of road construction determined by the distance from the existing road network. One difference is that Hardy uses the Dijkstra algorithm to solve a “single-source many-targets shortest path problem”, which is a special case of STAPs that finds the path between the harvested cell and one of multiple potential connection points on the road network. In contrast our algorithm first finds the closest point on the road network to the selected landing point and then uses the Dijkstra algorithm to solve least cost path between the two. However, since the cost of construction on existing roads is zero we expect that in practice these two approaches are similar and the algorithm will select the least cost location for the road to connect to the existing road network. It is possible that a sub-optimal road connection location is chosen by our algorithm when the existing road network is not fully connected and the closest point is on an existing road fragment that is not connected to the optimal part of the road network. Within cutblocks, Hardy's method iterates over each cell in the harvest area and builds a road if it is not within skidding distance of an existing road, while we create landing points to serve as target locations for road construction.
 
 <!--
 TO DO: should this paragraph about speed and memory go in the results or discussion rather than methods?
 -->
 The MST method is expected to be closer to an optimal solution than iterative least cost path methods, and also more computationally costly. The Hardy QGIS plugin is much faster than our R package, and better able to handle large landscapes. The `igraph` package that we used to implement the Dijkstra algorithm requires the values of the cost raster to be read into memory in R which can lead to high memory usage on larger landscapes. See Appendix X for a more detailed exploration of the speed and memory requirements of the different methods.   
 
-The DLCP and MST methods connect landings within each cutblock to the existing road network, so an important first step is to select one or more landing locations in each block. We investigated the sensitivity of results to the pattern and density of landing locations by comparing results derived from the centroid of each cutblock to regular or randomly selected landing densities of 1 (low) and 10 (high) points per km^2^ (Figure \@ref(fig:proj-meth-fig)). We used default settings in the Hardy QGIS plugin except for skidding distance which was set to 200m. A skidding distance of 200 m corresponds to \~ 9 pts/km^2^. We compared two resolutions of the cost surface by aggregating the 1 ha resolution cost raster to a coarser 100 ha (1000 by 1000 m) resolution. In total, we compared 12 road projection method variants to a cutblocks only scenario with no projected roads (Table \@ref(tab:method-tbl)).
+The ILCP and MST methods connect landings within each cutblock to the existing road network, so an important first step is to select one or more landing locations in each block. We investigated the sensitivity of results to the pattern and density of landing locations by comparing results derived from the centroid of each cutblock to regular or randomly selected landing densities of 1 (low) and 10 (high) points per km^2^ (Figure \@ref(fig:proj-meth-fig)). We used default settings in the Hardy QGIS plugin except for skidding distance which was set to 200m. A skidding distance of 200 m corresponds to \~ 9 pts/km^2^. We compared two resolutions of the cost surface by aggregating the 1 ha resolution cost raster to a coarser 100 ha (1000 by 1000 m) resolution. In total, we compared 12 road projection method variants to a cutblocks only scenario with no projected roads (Table \@ref(tab:method-tbl)).
 
 ```{r method-tbl}
 tbl2 <- "Projection method|Sample type|Sample density (pts/km^2^)|Resolutions
@@ -247,7 +247,7 @@ MST|Regular|10|1 ha and 100 ha
 MST|Random|1|1 ha and 100 ha
 MST|Random|10|1 ha and 100 ha
 MST|Centroid|N/A|1 ha and 100 ha
-DLCP|Regular|10|1 ha 
+ILCP|Regular|10|1 ha 
 Hardy QGIS|N/A|~9|1 ha
 Cutblocks only|N/A|N/A|1 ha
 
@@ -259,7 +259,7 @@ row.names(df2)<-NULL
 knitr::kable(df2, caption = "Road projection method variants.")
 ```
 
-To help make these road network projection methods more easily and widely useable, we implemented the DLCP and MST methods in the open source R package `roads` [@endicott_roads_2023]. The `roads` package is dependent on several other R packages that made this work possible, including, among others: `igraph` for calculating least cost paths and minimum spanning trees [@csardi_igraph_2006; @noauthor_igraph_2022], `terra` for manipulating spatial raster data [@hijmans_terra_2023], and `sf` for manipulating spatial vector data [@pebesma_simple_2018; @pebesma_sf_2022]. The package is available on CRAN (The Comprehensive R Archive Network). The source code for the package is available on GitHub (<https://github.com/LandSciTech/roads>), along with tutorials and documentation (<https://landscitech.github.io/roads/>).
+To help make these road network projection methods more easily and widely useable, we implemented the ILCP and MST methods in the open source R package `roads` [@endicott_roads_2023]. The `roads` package is dependent on several other R packages that made this work possible, including, among others: `igraph` for calculating least cost paths and minimum spanning trees [@csardi_igraph_2006; @noauthor_igraph_2022], `terra` for manipulating spatial raster data [@hijmans_terra_2023], and `sf` for manipulating spatial vector data [@pebesma_simple_2018; @pebesma_sf_2022]. The package is available on CRAN (The Comprehensive R Archive Network). The source code for the package is available on GitHub (<https://github.com/LandSciTech/roads>), along with tutorials and documentation (<https://landscitech.github.io/roads/>).
 
 ```{r, cache=TRUE}
 # Example area for demonstrating different methods
@@ -304,16 +304,16 @@ mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
                       existingRoads = exRoads,
                       fileLocation = here(data_path_drvd, "..", "for_fig"))
 
-dlcpProj <- projectAll(tsbs = tsb,
+ilcpProj <- projectAll(tsbs = tsb,
                       paramTable = paramTable %>% 
                         filter(sampleType == "regular") %>% 
-                        mutate(method = "dlcp"),
+                        mutate(method = "ilcp"),
                       costSurface = tsaCost,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
                       fileLocation = here(data_path_drvd, "..", "for_fig"))
 
-allProj <- bind_rows(mstProj, dlcpProj, .id = "method") %>%
+allProj <- bind_rows(mstProj, ilcpProj, .id = "method") %>%
   arrange(desc(sampleType), sampleDens)
 
 # add Hardy QGIS results for the same area
@@ -324,7 +324,7 @@ allProj <- bind_rows(
              output = list(here(data_path_drvd, "..", "for_fig", 
                                 "HardyQGISTest.gpkg")))) %>% 
   mutate(mapTitle =  paste(ifelse(method == 1, "MST",
-                                  ifelse(method == 2, "DLCP", method)),
+                                  ifelse(method == 2, "ILCP", method)),
                            sampleType,
                            ifelse(sampleDens == 1e-06 & 
                                     sampleType != "centroid", "low density", 
@@ -362,7 +362,7 @@ tmap_save(tmap_arrange(allMaps, ncol = 3),
           dpi = 300, height = 5, width = fig_widths["two"])
 ```
 
-```{r proj-meth-fig, fig.cap="Comparison of minimum spanning tree (MST), dynamic least cost paths (DLCP), and the Hardy QGIS plugin road network projection algorithms. Landing locations were selected as the centroid of the cutblock, or a random or regularly spaced sample of points inside each cutblock (Table 2). Target cutblocks are outlined in grey, existing roads are black, projected roads are yellow, observed roads are red. Cost (1 ha resolution) is indicated by grey shading. The large four sided cutblock in the top right was added to more clearly show algorithm behaviour within cutblocks."}
+```{r proj-meth-fig, fig.cap="Comparison of minimum spanning tree (MST), iterative least cost paths (ILCP), and the Hardy QGIS plugin road network projection algorithms. Landing locations were selected as the centroid of the cutblock, or a random or regularly spaced sample of points inside each cutblock (Table 2). Target cutblocks are outlined in grey, existing roads are black, projected roads are yellow, observed roads are red. Cost (1 ha resolution) is indicated by grey shading. The large four sided cutblock in the top right was added to more clearly show algorithm behaviour within cutblocks."}
 knitr::include_graphics(here("analysis/figures/projection_methods_figure.png"))
 ```
 
@@ -410,7 +410,7 @@ doAspatPlot <- function(tab){
                              "mst regular low sample density",
                              "mst random high sample density",
                              "mst regular high sample density",
-                             "dlcp regular high sample density",
+                             "ilcp regular high sample density",
                              "NA NA klementQGIS",
                              "NA NA NA"),
                   labels = c("MST centroid", 
@@ -419,7 +419,7 @@ doAspatPlot <- function(tab){
                              "MST regular low density",
                              "MST random high density",
                              "MST regular high density",
-                             "DLCP regular high density",
+                             "ILCP regular high density",
                              "Hardy QGIS",
                              "Cutblocks only")),
          metric = factor(metric,
@@ -463,8 +463,8 @@ prop_dif %>%
 doAspatPlot(meanTableRealCuts)
 
 # save runTimes for later comparison
-dlcp_time <- meanTableRealCuts %>% 
-  filter(method == "dlcp", areaMean == "overall") %>% 
+ilcp_time <- meanTableRealCuts %>% 
+  filter(method == "ilcp", areaMean == "overall") %>% 
   pull(runTime) %>% round(2)
 
 mst_time <- meanTableRealCuts %>%
@@ -497,7 +497,7 @@ doSpatPerf <- function(tab){
                                "mst regular low density",
                                "mst random high density",
                                "mst regular high density",
-                               "dlcp regular high density",
+                               "ilcp regular high density",
                                "NA klementQGIS", 
                                "NA cutOnly NA"),
                     labels = c("MST centroid", 
@@ -505,7 +505,7 @@ doSpatPerf <- function(tab){
                                "MST regular low density",
                                "MST random high density",
                                "MST regular high density",
-                               "DLCP regular high density",
+                               "ILCP regular high density",
                                "Hardy QGIS", 
                                "Cutblocks only")),
            metric = factor(metric,
@@ -556,9 +556,9 @@ doSpatPlot(perf_tbl)
 
 ```
 
-As expected, none of the projection methods yield accurate spatial projections of road presence (i.e. the exact locations of roads) (F-Measure: `r perf_tbl_rng["Road presence"]`). Neither do any of the methods provide better information about the exact location of the forestry disturbance footprint than the locations of cutblocks only (F-Measure: `r perf_tbl_rng["Forestry disturbance\nfootprint"]`). All methods provide comparably good projections of the road disturbance footprint (F-Measure: `r perf_tbl_rng["Road disturbance\nfootprint"]`), though higher sampling densities yield fewer false negatives and more false positives (Figure \@ref(fig:spat-perf-fig)). The DLCP projection method had comparable performance to the MST projection method with the same sampling strategy. The DLCP method was faster to compute however, with a run time of `r dlcp_time` minutes compared to `r mst_time` minutes for the MST method.
+As expected, none of the projection methods yield accurate spatial projections of road presence (i.e. the exact locations of roads) (F-Measure: `r perf_tbl_rng["Road presence"]`). Neither do any of the methods provide better information about the exact location of the forestry disturbance footprint than the locations of cutblocks only (F-Measure: `r perf_tbl_rng["Forestry disturbance\nfootprint"]`). All methods provide comparably good projections of the road disturbance footprint (F-Measure: `r perf_tbl_rng["Road disturbance\nfootprint"]`), though higher sampling densities yield fewer false negatives and more false positives (Figure \@ref(fig:spat-perf-fig)). The ILCP projection method had comparable performance to the MST projection method with the same sampling strategy. The ILCP method was faster to compute however, with a run time of `r ilcp_time` minutes compared to `r mst_time` minutes for the MST method.
 
-<!-- TO DO: Sarah figure out why `r dlcp_time` and `r mst_time` are coming out as NA, and how to fix that.-->
+<!-- TO DO: Sarah figure out why `r ilcp_time` and `r mst_time` are coming out as NA, and how to fix that.-->
 
 # Discussion
 
@@ -568,7 +568,7 @@ We evaluated performance of these algorithms in a topographically complex region
 
 Aspatial metrics of overall projection accuracy can be difficult to interpret. To more deeply understand variation in the behaviour of road network projection algorithms we found it helpful to distinguish between performance within cutblocks and outside of them, and to examine spatial variation in discrepancies. Examination of spatial mismatch between observed and projected roads highlighted errors in our input data, and removing mapped cutblocks without observed access roads from our analysis helped resolve the apparently contradictory results. These input data errors are not unique to our study area; there is considerable variation in the consistency and accuracy of available resource road information across Canada and elsewhere [@poley_identifying_2022; @ministry_of_forests_resource_nodate] that users should keep in mind interpreting discrepancies between observed and projected road networks.  
 
-Outside cutblocks, we saw very little variation in performance among projection method variants. All were somewhat better than nothing, but the improvement was small because in this landscape new landings were fairly close to existing roads. Outside cutblocks our DLCP algorithm is similar to Hardy's algorithm, so we expect little difference in behaviour where targets are far from existing roads. Within cutblocks, the density of landing points had a much larger impact on performance than the choice of DCLP or MST algorthm. The Hardy algorithm most accurately projected high road density within blocks, but examination of spatial patterns clarified that the projected tortuousity is quite different from observed switchbacks, and may be an artefact of searching for nearest destinations >200 m away on a 100 m grid. One could increase the density of landing points in the DCLP/MST projections to match the observed high density of roads within cutblocks, but if realistic switchbacks in mountainous terrain is a key goal then none of these algorithms are sufficient.
+Outside cutblocks, we saw very little variation in performance among projection method variants. All were somewhat better than nothing, but the improvement was small because in this landscape new landings were fairly close to existing roads. Outside cutblocks our ILCP algorithm is similar to Hardy's algorithm, so we expect little difference in behaviour where targets are far from existing roads. Within cutblocks, the density of landing points had a much larger impact on performance than the choice of DCLP or MST algorthm. The Hardy algorithm most accurately projected high road density within blocks, but examination of spatial patterns clarified that the projected tortuousity is quite different from observed switchbacks, and may be an artefact of searching for nearest destinations >200 m away on a 100 m grid. One could increase the density of landing points in the DCLP/MST projections to match the observed high density of roads within cutblocks, but if realistic switchbacks in mountainous terrain is a key goal then none of these algorithms are sufficient.
 
 Simple algorithms can recreate some aspects of observed road networks but not others, and more complex realistic algorithms are more costly to develop and use. Before investing in additional complexity, it is important to recognize that adequacy depends on the goal. For some purposes, projections from relatively crude cost models and simple algorithms may be adequate. For example, models of caribou movement often include distance to roads as a predictor [e.g. @labadie_global_2023], and a combined metric of buffered anthropogenic disturbance best explains variation in boreal caribou demographic rates among ranges [@johnson_science_2020]. In our example landscape, projections of size disturbance footprints (500 m and 1km buffer) and distance to road are reasonably accurate, and for wildlife response models informed by these measures our somewhat crude road projections are likely good enough. 
 
@@ -626,10 +626,10 @@ matchData2 <- read.csv(here(data_path_drvd, "agree_table.csv")) %>%
   mutate(resolution = "1000")
 
 meanTable <- meanTable %>% mutate(resolution = "100") %>% bind_rows(meanTable2) %>% 
-  filter((method != "dlcp"| is.na(method)) & (sampleType != "cutOnly" | is.na(sampleType)))
+  filter((method != "ilcp"| is.na(method)) & (sampleType != "cutOnly" | is.na(sampleType)))
 
 matchData <- matchData %>% mutate(resolution = "100") %>% bind_rows(matchData2) %>% 
-  filter(method != "dlcp", sampleType != "cutOnly")
+  filter(method != "ilcp", sampleType != "cutOnly")
 
 ```
 
@@ -647,7 +647,7 @@ meanTable_long <- meanTable %>% dplyr::select(-runTime, -order) %>%
                              "mst regular low sample density",
                              "mst random high sample density",
                              "mst regular high sample density",
-                             "dlcp regular high sample density",
+                             "ilcp regular high sample density",
                              "NA klementQGIS", 
                              "NA NA NA"),
                   labels = c("MST centroid", 
@@ -656,7 +656,7 @@ meanTable_long <- meanTable %>% dplyr::select(-runTime, -order) %>%
                              "MST regular low density",
                              "MST random high density",
                              "MST regular high density",
-                             "DLCP regular high density",
+                             "ILCP regular high density",
                              "Hardy QGIS",
                              "Cutblocks only")),
          metric = factor(metric,
@@ -715,14 +715,14 @@ matchData_sum <- matchData %>% ungroup() %>%
                              "mst regular low density",
                              "mst random high density",
                              "mst regular high density",
-                             "dlcp regular high density",
+                             "ilcp regular high density",
                              "NA klementQGIS"),
                   labels = c("MST centroid", 
                              "Random low density",
                              "Regular low density",
                              "Random high density",
                              "Regular high density",
-                             "DLCP regular high density",
+                             "ILCP regular high density",
                              "Hardy QGIS")),
          metric = factor(metric,
                          levels = c("roadPresence",
