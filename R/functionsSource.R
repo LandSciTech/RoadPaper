@@ -541,3 +541,133 @@ writeRastNotNull <- function(rast, filename){
   terra::writeRaster(rast, filename, overwrite = TRUE)
 
 }
+
+doAspatPlot <- function(tab){
+  meanTable_long <- tab %>% dplyr::select(-runTime, -order) %>%
+    pivot_longer(-c(sampleType, sampleDens, areaMean, method),
+                 names_to = "metric", values_to = "response")%>%
+    mutate(sampleType = ifelse(sampleType == sampleDens, NA_character_,
+                               sampleType),
+           sampleDens = paste(method, sampleType, sampleDens) %>%
+             factor(levels = c("mst NA centroid",
+                               "NA NA observed",
+                               "mst random low sample density",
+                               "mst regular low sample density",
+                               "mst random high sample density",
+                               "mst regular high sample density",
+                               "ilcp regular high sample density",
+                               "NA NA klementQGIS",
+                               "NA NA NA"),
+                    labels = c("MST centroid",
+                               "Observed",
+                               "MST random low density",
+                               "MST regular low density",
+                               "MST random high density",
+                               "MST regular high density",
+                               "ILCP regular high density",
+                               "Hardy QGIS",
+                               "Cutblocks only")),
+           metric = factor(metric,
+                           levels = c("roadDensityMean", "roadPresenceMean",
+                                      "distanceToRoadMean",
+                                      "forestryDisturbanceMean",
+                                      "roadDisturbanceMean"),
+                           labels = c("Road\ndensity", "Road\npresence",
+                                      "Distance\nto road",
+                                      "Forestry\ndisturbance\nfootprint",
+                                      "Road\ndisturbance\nfootprint")))
+
+  observed_values <- filter(meanTable_long, sampleDens == "Observed")
+  projected_values <- filter(meanTable_long, sampleDens != "Observed")
+
+  # get proportional difference from observed
+  prop_dif <- projected_values %>%
+    left_join(observed_values %>% select(areaMean, metric, response),
+              by = c("areaMean", "metric"),
+              suffix = c("_proj", "_obs")) %>%
+    mutate(prop_dif = (response_proj-response_obs)/response_obs,
+           areaMean = factor(areaMean, labels = c("Cutblocks", "Outside\ncutblocks",
+                                                  "Overall")))
+
+  prop_dif %>%
+    ggplot(aes(x = sampleDens, prop_dif, fill = sampleDens))+
+    geom_hline(aes(yintercept = 0), color = "grey")+
+    geom_col(position = position_dodge2(preserve = "single",
+                                        width = 0.75))+
+    facet_grid(areaMean~ metric, scales = "free")+
+    theme_classic()+
+    scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:7)],
+                      name = "Sampling\nMethod", guide = "none")+
+    theme(text = element_text(size = 10), axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          legend.position = "right",
+          axis.text.x=element_text(size=11, angle=50, vjust=1, hjust=1))+
+    coord_flip()
+}
+
+doSpatPerf <- function(tab){
+  matchData_sum <- tab %>% ungroup() %>%
+    mutate(agreement = factor(agreement,
+                              levels = c("False negative", "False positive",
+                                         "Agree roaded","Agree roadless",
+                                         "Pre-existing roads")),
+           sampleDens = paste(method, sampleType, sampleDens) %>%
+             str_replace("1e-06", "low density") %>%
+             str_replace("1e-05", "high density") %>%
+             str_replace("centroid low density", "centroid") %>%
+             str_replace("klementQGIS NA", "klementQGIS") %>%
+             factor(levels = c("mst centroid",
+                               "mst random low density",
+                               "mst regular low density",
+                               "mst random high density",
+                               "mst regular high density",
+                               "ilcp regular high density",
+                               "NA klementQGIS",
+                               "NA cutOnly NA"),
+                    labels = c("MST centroid",
+                               "MST random low density",
+                               "MST regular low density",
+                               "MST random high density",
+                               "MST regular high density",
+                               "ILCP regular high density",
+                               "Hardy QGIS",
+                               "Cutblocks only")),
+           metric = factor(metric,
+                           levels = c("roadPresence",
+                                      "forestryDisturbance",
+                                      "roadDisturbance"),
+                           labels = c("Road presence",
+                                      "Forestry disturbance\nfootprint",
+                                      "Road disturbance\nfootprint"))) %>%
+    group_by(metric, sampleDens, agreement) %>%
+    summarise(count = sum(count), .groups = "drop_last") %>%
+    mutate(perc = count/sum(count)*100)
+
+
+  # performance table
+  perf_tbl <- matchData_sum %>%
+    pivot_wider(c(metric, sampleDens), names_from = agreement,
+                values_from = count, values_fill = 0) %>%
+    mutate(sensitivity = `Agree roaded`/(`Agree roaded` + `False negative`),
+           precision = `Agree roaded`/(`Agree roaded` + `False positive`),
+           F_measure = (2*precision*sensitivity)/(precision+sensitivity)) %>%
+    select(metric, sampleDens, sensitivity, precision, F_measure)
+}
+
+doSpatPlot <- function(tab){
+  tab %>%
+    pivot_longer(c(sensitivity, precision, F_measure), names_to = "perf_meas",
+                 values_to = "value") %>%
+    mutate(perf_meas = factor(perf_meas,
+                              labels = c("F-measure", "Precision", "Sensitivity")),
+           value = value  +0.01) %>%   # adding so 0 shows in figure
+    ggplot(aes(sampleDens, value, fill = sampleDens))+
+    geom_col()+
+    scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:7)],
+                      name = "Sampling\nMethod", guide = "none")+
+    facet_grid(metric ~ perf_meas)+
+    coord_flip()+
+    ylim(0, 1.01)+
+    theme_classic()+
+    labs(y = "Performance", x = NULL)
+}
