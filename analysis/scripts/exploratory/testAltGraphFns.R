@@ -61,8 +61,8 @@ igraph::identical_graphs(g1$g,gNew$g,attrs=T)
 #method accounts for lengths of diagonals and other geographic distortions on the grid.
 
 #speed/memory benchmarking
-data_path_raw <- "C:/Users/HughesJo/Documents/gitprojects/RoadPaper/analysis/data/raw_data/"
-out_path <- "C:/Users/HughesJo/Documents/gitprojects/RoadPaper/analysis/figures/"
+data_path_raw <- "C:/Users/endicotts/Documents/gitprojects/RoadPaper/analysis/data/raw_data/"
+out_path <- "C:/Users/endicotts/Documents/gitprojects/RoadPaper/analysis/figures/"
 
 landscape <- rast(paste0(data_path_raw, "cost_surface_bc_ha.tif"))
 
@@ -90,6 +90,16 @@ bm <- bench::mark(min_iterations = 1, check = FALSE,
                   )
 
 bm
+
+# this one is supposed to tell us about max RAM used over the whole calculation
+ram_use <- peakRAM::peakRAM(g1_100 = getGraph(landscape_100,"octagon"),
+                            gNew_100 = getGraph(landscape_100,"octagon",method="ours"),
+                            g1_500 = getGraph(landscape_500,"octagon"),
+                            gNew_500 = getGraph(landscape_500,"octagon",method="ours"),
+                            g1_1000 = getGraph(landscape_1000,"octagon"),
+                            gNew_1000 = getGraph(landscape_1000,"octagon",method="ours"),
+                            g1_2000 = getGraph(landscape_2000,"octagon"),
+                            gNew_2000 = getGraph(landscape_2000,"octagon",method="ours"))
 
 pdf(paste0("outputs/figures/getGraph_compareTime.pdf"),width=4,height=4)
 plot(bm,type="boxplot")+
