@@ -37,8 +37,8 @@ text(x=5.75,y=4.2,labels='roads',adj=c(0,0.3),xpd=TRUE)
 
 sim = list(costSurface=costRaster)
 
-g1 = getGraph(sim,"rook")
-gNew = getGraph(sim,"rook",method="ours")
+g1 = getGraph(sim,"queen")
+gNew = getGraph(sim,"queen",method="ours")
 igraph::identical_graphs(g1$g,gNew$g,attrs=F)
 
 edge_attr(g1$g,"weight")=round(edge_attr(g1$g,"weight"),5)
@@ -46,17 +46,21 @@ edge_attr(gNew$g,"weight")=round(edge_attr(gNew$g,"weight"),5)
 
 edge_attr(g1$g,"weight")==edge_attr(gNew$g,"weight")
 igraph::identical_graphs(g1$g,gNew$g,attrs=T)
-#rook methods yield identical graphs, up to rounding errors.
+#queen and rook methods yield identical graphs, up to rounding errors.
 
 g1 = getGraph(sim,"octagon")
 gNew = getGraph(sim,"octagon",method="ours")
 igraph::identical_graphs(g1$g,gNew$g,attrs=F)
-#these graphs are not identical because the order of nodes is different.
-# TO DO: figure out how to confirm that they are otherwise identical.
 
+edge_attr(g1$g,"weight")=round(edge_attr(g1$g,"weight"),0)
+edge_attr(gNew$g,"weight")=round(edge_attr(gNew$g,"weight"),0)
 
+edge_attr(g1$g,"weight")==edge_attr(gNew$g,"weight")
+igraph::identical_graphs(g1$g,gNew$g,attrs=T)
+#octagon methods yield similar but not identical graphs because gdistance::geoCorrection
+#method accounts for lengths of diagonals and other geographic distortions on the grid.
 
-#speed/memory testing with big raster
+#speed/memory benchmarking
 data_path_raw <- "C:/Users/HughesJo/Documents/gitprojects/RoadPaper/analysis/data/raw_data/"
 out_path <- "C:/Users/HughesJo/Documents/gitprojects/RoadPaper/analysis/figures/"
 
