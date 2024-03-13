@@ -1,0 +1,68 @@
+Done in QGIS and PowerPoint to keep it simple
+
+In QGIS open input_cutblocks and input_roads for TSA 27 as well as combined_revelstoke_roads.  Get Google satellite imagery from XYZ tile service. 
+
+Assign colors to as follows
+Existing roads: black
+Projected roads: #ca0020
+Observed roads: #0571b0
+Cutblocks: #92c5de
+               
+Then capture images in the map views desired by clicking Project > Import/Export > Export map as image,
+setting the dpi to 300 and saving as png. 
+
+To make the raster map we need to manipulate some of the rasters.
+
+```{r}
+library(terra)
+library(sf)
+library(dplyr)
+library(tmap)
+
+data_path_raw <- "analysis/data/raw_data/"
+data_path_drvd <- "analysis/data/derived_data/TSA27"
+
+dist_obs <- rast(here::here(file.path(data_path_drvd, "distanceToRoadobserved_NA_NA.tif")))
+
+dist_proj <- rast(here::here(file.path(data_path_drvd, "distanceToRoadregular_1e-05_mst.tif")))
+
+dist_dif <- dist_obs - dist_proj
+
+# need to clip/mask everything to the tsa boundary to avoid problems outside tsa
+
+tsaBoundary <- read_sf(here(data_path_raw, "tsa27_boundaries.gpkg")) %>% st_union()
+
+dist_dif <- mask(dist_dif, vect(tsaBoundary))
+
+e_rds <- st_read(here::here(file.path(data_path_drvd, "input_roads.gpkg")))
+p_rds <- st_read(here::here(file.path(data_path_drvd, "regular_1e-05_mst.gpkg")))
+o_rds <- st_read(here::here(file.path(data_path_drvd, "../combined_revelstoke_roads.gpkg")))
+
+rds <- lst(e_rds, p_rds, o_rds) %>% 
+  purrr::map(st_intersection, tsaBoundary)
+
+mp <- tm_shape(dist_dif)+
+  tm_raster(palette = "PuOr", breaks = c(-2000, -1000, 1000, 2000), 
+            midpoint = 0, style = "cont", 
+            contrast = 0.5,
+            labels = c("<= -2000", "     -1000", "      1000", ">=  2000"),
+            title = "Observed - projected\ndistance to road")+
+  tm_shape(rds$o_rds)+
+  tm_lines(col = "#0571b0")+
+  tm_shape(rds$p_rds)+
+  tm_lines(col = "#ca0020")+
+  tm_shape(rds$e_rds)+
+  tm_lines(col = "black")+
+  tm_layout(legend.position = c("LEFT", "BOTTOM"), legend.just = "left", frame = FALSE)+
+  tm_add_legend(type = "line", col = c("black", "#ca0020", "#0571b0"), lwd = 2,
+                labels = c("Existing roads", "Projected roads", "Observed roads"))+
+  tm_add_legend(type = "fill", col = "white", border.col = "#92c5de", labels = "Cutblocks",
+                border.lwd = 2)
+
+tmap_save(mp,
+          here("analysis/figures/spatial_projections.png"),
+          dpi = 300, height = 7, width = fig_widths["one"])
+
+```
+
+Then arrange the images in powerpoint, modifying the contrast slightly to make the colours show on the satellite imagery. Save to png for inclusion in Rmd and pdf for final product. 

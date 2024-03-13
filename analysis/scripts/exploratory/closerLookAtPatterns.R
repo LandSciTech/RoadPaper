@@ -101,10 +101,10 @@ mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
                       existingRoads = exRoads,
                       fileLocation = here(data_path_drvd, "for_fig"))
 
-dlcpProj <- projectAll(tsbs = tsb,
+ilcpProj <- projectAll(tsbs = tsb,
                        paramTable = paramTable %>%
                          filter(sampleType == "regular") %>%
-                         mutate(method = "dlcp"),
+                         mutate(method = "ilcp"),
                        costSurface = tsaCost,
                        cutblocks = cutblocks,
                        existingRoads = exRoads,
@@ -124,7 +124,7 @@ hardyProj$sampleType="";hardyProj$sampleDens=NA
 hardyProj$method="Hardy QGIS"
 hardyProj$output =list(paste0(data_path_drvd, "testing2_hardyB.gpkg"))
 
-allProj <- bind_rows(mstProj, dlcpProj, lcpProj, hardyProj, .id = "method") %>%
+allProj <- bind_rows(mstProj, ilcpProj, lcpProj, hardyProj, .id = "method") %>%
   arrange(desc(sampleType), sampleDens)
 
 allMaps <- purrr::map(
@@ -137,7 +137,7 @@ allMaps <- purrr::map(
     qtm(exRoads, lines.col = "black", lines.lwd = 2)+
     tm_layout(legend.show = FALSE,
               main.title = paste(ifelse(allProj$method[.x]== 1, "MST",
-                                        ifelse(allProj$method[.x]== 2, "DLCP", "LCP")),
+                                        ifelse(allProj$method[.x]== 2, "ILCP", "LCP")),
                                  allProj$sampleType[.x],
                                  ifelse(allProj$sampleType[.x] == "centroid", "",
                                         ifelse(allProj$sampleDens[.x] == 1e-06, "low density", "high density"))),
