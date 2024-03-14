@@ -117,6 +117,58 @@ if(down_meth == "bcdata"){
 
   write.csv(meta_data, here(data_path_raw, "raw_data_readme.csv"))
 
+  # DEM
+  bcdc_search("digital elevation model")
+  dem <- bcdc_get_record("7b4fef7e-7cae-4379-97b8-62b03e9ac83d")
+  dem_dat <- bcdc_get_data("829937c4-6551-45a9-9f4b-4a1688a4190e")
+
+
+  # This is the map with the tile names:
+  # https://www2.gov.bc.ca/assets/gov/data/geographic/topography/250kgrid.pdf
+
+  # map tiles for revelstoke 82N, 82M, 82L, 82K
+  list.dem <- c("82n", "82m", "82l", "82k", "83d")
+  dem_path <- file.path(data_path_raw, "bc_dem_tiles")
+  dir.create(dem_path)
+  for (i in list.dem) { # loop though list to grab data for each tile;
+    # there are maximum 32 'sub-tiles' within each
+    for(j in 1:16){
+      j <- sprintf("%02d", j)
+      try ({# some tiles don't exist; the 'try' command skips them in some cases,
+        # but I noticed in other cases it fails, so be aware
+        # e
+        downloader::download(paste0 ("https://pub.data.gov.bc.ca/datasets/175624/",
+                                     i, "/0", i, j,"_e.dem.zip"),
+                             dest = paste0 (i, j, "_e.dem.zip"),
+                             mode = "wb")
+        unzip(paste0 (i, j, "_e.dem.zip"),
+              exdir = dem_path)
+        file.remove (paste0 (i, j, "_e.dem.zip"))
+        #w
+        downloader::download(paste0 ("https://pub.data.gov.bc.ca/datasets/175624/",
+                                     i, "/0", i, j,"_w.dem.zip"),
+                             dest = paste0 (i, j, "_w.dem.zip"),
+                             mode = "wb")
+        unzip(paste0 (i, j, "_w.dem.zip"),
+              exdir = dem_path)
+        file.remove (paste0 (i, j, "_w.dem.zip"))
+      })
+    }
+  }
+
+  filenames_82 <- list.files (dem_path, pattern = ".dem$", full.names = TRUE)
+
+  vrt_82 <- terra::vrt(filenames_82)
+
+  rev_dem <- terra::crop(vrt_82, tsa_27_buf %>% sf::st_transform(sf::st_crs(vrt_82)))
+
+  rev_dem <- rev_dem*1
+  # project to WGS84
+  rev_dem2 <- terra::project(rev_dem, "epsg:3005")
+  terra::writeRaster(rev_dem2,
+                     filename = file.path(data_path_drvd, "dem_revelstoke.tif"))
+
+
 }
 
 # Combining road data sets ------------------------------------------------
