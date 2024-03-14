@@ -210,7 +210,7 @@ Following the Interior Appraisal Manual of BC, we assume the base cost of constr
 ```{r cost-tbl}
 tbl <- "Cost Type|Value ($ per km)|Source
 Slope|16178 + 504*slope|Interior appraisal manual
-Major lakes|65000|Major water bodies of BC
+Major lakes|NA|Major water bodies of BC
 Existing roads|0|Digital road atlas and forest tenure roads for BC
 "
 df <- read.delim(textConnection(tbl),header=FALSE,sep="|",strip.white=TRUE,stringsAsFactors=FALSE)

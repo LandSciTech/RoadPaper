@@ -69,7 +69,7 @@ roadDisturbanceFootprint <- function(x, r, b) {
 
 fineResProject <- function(TSAsubset, cutblockPolygons, sampleDensity,
                            sampleType, costRaster, existingRoads,
-                           projectionMethod, sim = NULL) {
+                           projectionMethod, weightFunction, sim = NULL) {
 
   subLandings <- getLandingsFromTarget(cutblockPolygons,
                                        landingDens = sampleDensity,
@@ -87,12 +87,12 @@ fineResProject <- function(TSAsubset, cutblockPolygons, sampleDensity,
 
     sim$roadMethod <- projectionMethod
 
-    subProjectionResults <- projectRoads(subLandings, sim = sim)
+    subProjectionResults <- projectRoads(subLandings, sim = sim,weightFunction =weightFunction)
   } else{
     subProjectionResults <- projectRoads(subLandings,
                                          cost = costRaster,
                                          roads = existingRoads,
-                                         roadMethod = projectionMethod)
+                                         roadMethod = projectionMethod,weightFunction=weightFunction)
   }
 
 
@@ -106,6 +106,10 @@ fineResProject <- function(TSAsubset, cutblockPolygons, sampleDensity,
 
 projectAll <- function(tsbs,paramTable, costSurface,
                        cutblocks, existingRoads, fileLocation) {
+
+  if(!is.element("weightFunction",names(paramTable))){
+    paramTable$weightFunction = deparse1(formals(projectRoads)$weightFunction)
+  }
 
   for(i in 1:nrow(paramTable)) {
     # i = 1
@@ -122,6 +126,7 @@ projectAll <- function(tsbs,paramTable, costSurface,
                                            costRaster = costSurface,
                                            existingRoads = existingRoads,
                                            projectionMethod = cRow$method,
+                                           weightFunction = eval(str2lang(cRow$weightFunction)),
                                            sim = projectionsList[[1]])
 
 
