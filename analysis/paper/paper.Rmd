@@ -303,7 +303,7 @@ mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
                       costSurface = tsaCost,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
-                      fileLocation = here(data_path_drvd, "..", "for_fig"))
+                      fileLocation = here(data_path_drvd, "..", "for_fig"),roadsInCost = F)
 
 ilcpProj <- projectAll(tsbs = tsb,
                       paramTable = paramTable %>% 
@@ -312,7 +312,7 @@ ilcpProj <- projectAll(tsbs = tsb,
                       costSurface = tsaCost,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
-                      fileLocation = here(data_path_drvd, "..", "for_fig"))
+                      fileLocation = here(data_path_drvd, "..", "for_fig"),roadsInCost = F)
 
 allProj <- bind_rows(mstProj, ilcpProj, .id = "method") %>%
   arrange(desc(sampleType), sampleDens)

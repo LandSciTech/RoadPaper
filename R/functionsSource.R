@@ -69,7 +69,7 @@ roadDisturbanceFootprint <- function(x, r, b) {
 
 fineResProject <- function(TSAsubset, cutblockPolygons, sampleDensity,
                            sampleType, costRaster, existingRoads,
-                           projectionMethod, weightFunction, sim = NULL) {
+                           projectionMethod, weightFunction, sim = NULL,roadsInCost=T,...) {
 
   subLandings <- getLandingsFromTarget(cutblockPolygons,
                                        landingDens = sampleDensity,
@@ -87,12 +87,12 @@ fineResProject <- function(TSAsubset, cutblockPolygons, sampleDensity,
 
     sim$roadMethod <- projectionMethod
 
-    subProjectionResults <- projectRoads(subLandings, sim = sim,weightFunction =weightFunction)
+    subProjectionResults <- projectRoads(subLandings, sim = sim,weightFunction =weightFunction,...)
   } else{
     subProjectionResults <- projectRoads(subLandings,
                                          cost = costRaster,
                                          roads = existingRoads,
-                                         roadMethod = projectionMethod,weightFunction=weightFunction)
+                                         roadMethod = projectionMethod,weightFunction=weightFunction,roadsInCost=roadsInCost,...)
   }
 
 
@@ -105,10 +105,10 @@ fineResProject <- function(TSAsubset, cutblockPolygons, sampleDensity,
 # function to generate all projections and raster layers for metrics
 
 projectAll <- function(tsbs,paramTable, costSurface,
-                       cutblocks, existingRoads, fileLocation) {
+                       cutblocks, existingRoads, fileLocation,roadsInCost=T,...) {
 
   if(!is.element("weightFunction",names(paramTable))){
-    paramTable$weightFunction = deparse1(formals(projectRoads)$weightFunction)
+    paramTable$weightFunction = deparse1(formals(projectRoads)$weightFunction,collapse="\n")
   }
 
   for(i in 1:nrow(paramTable)) {
@@ -127,7 +127,8 @@ projectAll <- function(tsbs,paramTable, costSurface,
                                            existingRoads = existingRoads,
                                            projectionMethod = cRow$method,
                                            weightFunction = eval(str2lang(cRow$weightFunction)),
-                                           sim = projectionsList[[1]])
+                                           sim = projectionsList[[1]],
+                                           roadsInCost=roadsInCost,...)
 
 
     projections <- projectionsList[[i]]$roads
@@ -385,7 +386,7 @@ prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
   cutblocksYear <- 1990
 
   #if lakes block path then set high value for lakes (NA) on cost surface.
-  lakeValue <- 65000 #often this isn't needed but Revelstoke TSA requires this.
+  lakeValue <- NA#65000 #often this isn't needed but Revelstoke TSA requires this.
 
   ###############################################################################
 
