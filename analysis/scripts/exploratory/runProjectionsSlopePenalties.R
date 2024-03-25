@@ -65,8 +65,7 @@ plot(demCost)
 range(demCost)
 
 see = data.frame(demDif = seq(-0.3,0.3,length.out=1000))
-resolution=1
-see$cost = slopePenaltyFn(1,1+see$demDif)
+see$cost = slopePenaltyFn(1,1+see$demDif,resolution=100)
 plot(see$cost~see$demDif)
 
 # densities
@@ -88,6 +87,7 @@ paramTable <- tibble(sampleType, sampleDens,
 
 paramTable$weightFunction = deparse1(slopePenaltyFn,collapse="\n")
 paramTable$weightFunction = gsub("limitCost = NA","limitCost = 65000",paramTable$weightFunction,fixed=T)
+
 
 f2 <- eval(str2lang(paramTable$weightFunction[1]))
 
@@ -155,6 +155,75 @@ tmap_save(tmap_arrange(allMaps, ncol = 3),
           here("analysis/figures/projection_methods_figureDEM.png"),
           dpi = 300, height = 5, width = fig_widths["two"])
 
+
+
+#force resolution arg and compare
+paramTable$weightFunction = gsub("resolution = 1","resolution = 100",paramTable$weightFunction,fixed=T)
+f2 <- eval(str2lang(paramTable$weightFunction[1]))
+
+# re-run projections for just the small area with different parameters
+mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
+                      costSurface = demCost,
+                      cutblocks = cutblocks,
+                      existingRoads = exRoads,
+                      fileLocation = here(data_path_drvd, "for_fig"),roadsInCost=F)
+
+ilcpProj <- projectAll(tsbs = tsb,
+                       paramTable = paramTable %>%
+                         filter(sampleType == "regular") %>%
+                         mutate(method = "ilcp"),
+                       costSurface = demCost,
+                       cutblocks = cutblocks,
+                       existingRoads = exRoads,
+                       fileLocation = here(data_path_drvd, "for_fig"),roadsInCost=F)
+
+allProj <- bind_rows(mstProj, ilcpProj, .id = "method") %>%
+  arrange(desc(sampleType), sampleDens)
+
+# add Hardy QGIS results for the same area
+
+allProj <- bind_rows(
+  allProj,
+  tibble(sampleType = "", sampleDens = 0, method = "Hardy QGIS",
+         output = list(here(data_path_drvd, "for_fig",
+                            "HardyQGISTest.gpkg")))) %>%
+  mutate(mapTitle =  paste(ifelse(method == 1, "MST",
+                                  ifelse(method == 2, "ILCP", method)),
+                           sampleType,
+                           ifelse(sampleDens == 1e-06 &
+                                    sampleType != "centroid", "low density",
+                                  ifelse(sampleDens == 1e-05,
+                                         "high density", ""))))
+
+# add extra row for legend
+allProj <- bind_rows(allProj,
+                     slice(allProj, 1))
+
+allMaps <- purrr::map(
+  1:nrow(allProj),
+  ~ qtm(cutblocks, borders = "#92c5de", fill="#92c5de", borders.lwd = 1,)+
+    qtm(demCost, raster.style = "cont", raster.palette = "Greys",
+        raster.alpha = 0.25, raster.title = "Scaled Elevation")+
+    qtm(roads, lines.col = "#0571b0", lines.lwd = 2,lines.lty="solid")+
+    qtm(read_sf(here(allProj$output[[.x]])), lines.col = "#ca0020", lines.lwd = 2)+
+    qtm(exRoads, lines.col = "black", lines.lwd = 2)+
+    tm_layout(legend.show = .x == nrow(allProj),
+              legend.only = .x == nrow(allProj),
+              main.title = allProj$mapTitle[[.x]],
+              main.title.size = 0.75))
+
+allMaps[[nrow(allProj)]] <- allMaps[[nrow(allProj)]]+
+  tm_add_legend(type = "line",
+                labels = c("Existing roads", "Projected roads", "Observed roads"),
+                col = c("black", "#ca0020", "#0571b0"),lty=c("solid","solid","solid"))+
+  tm_add_legend(type = "fill",
+                labels = "Cutblocks",
+                col = "#92c5de", border.col ="#92c5de")+
+  tm_layout(legend.only = TRUE, legend.position = c("center", "center"))
+
+tmap_save(tmap_arrange(allMaps, ncol = 3),
+          here("analysis/figures/projection_methods_figureDEMResolution.png"),
+          dpi = 300, height = 5, width = fig_widths["two"])
 
 
 if(0){
