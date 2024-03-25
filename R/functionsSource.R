@@ -385,9 +385,6 @@ prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
   # set cutblock year
   cutblocksYear <- 1990
 
-  #if lakes block path then set high value for lakes (NA) on cost surface.
-  lakeValue <- NA#65000 #often this isn't needed but Revelstoke TSA requires this.
-
   ###############################################################################
 
   #filter roads by year to make existing forestry road network
@@ -409,9 +406,6 @@ prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
 
   tsaCost_st <- tsaCost * roadsExist_rast
   roadsExist <- roadsExist %>%  st_transform(st_crs(tsaCost_st))
-
-  # setting lake values high because they are blocking paths if NA - not necessary for all landscapes
-  tsaCost_st <- terra::subst(tsaCost_st, from = NA, to = lakeValue)
 
   # This doesn't work because some areas dont have any existing roads
   # # Break the area into smaller parts to process separately to avoid memory problems

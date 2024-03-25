@@ -42,7 +42,7 @@ cCost = crop(costOld,dem)
 #get average elevation in each cost cell
 cDem = resample(dem,cCost,method="average")
 cDem[is.na(cCost)]=NA
-cDem = cDem/res(cDem)[1] #Put in elevation in units of cell width
+cDem = cDem
 range(cDem)
 terra::writeRaster(cDem,
                    filename = file.path(data_path_drvd, "TSA27/dem_revelstokeCoarse.tif"), overwrite=T)
@@ -65,6 +65,7 @@ plot(demCost)
 range(demCost)
 
 see = data.frame(demDif = seq(-0.3,0.3,length.out=1000))
+resolution=1
 see$cost = slopePenaltyFn(1,1+see$demDif)
 plot(see$cost~see$demDif)
 
