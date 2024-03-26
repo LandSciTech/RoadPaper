@@ -243,12 +243,12 @@ The ILCP and MST methods connect landings within each cutblock to the existing r
 
 ```{r method-tbl}
 tbl2 <- "Projection method|Sample type|Sample density (pts/km^2^)|Resolutions
-MST|Regular|1|1 ha and 100 ha
-MST|Regular|10|1 ha and 100 ha
-MST|Random|1|1 ha and 100 ha
-MST|Random|10|1 ha and 100 ha
-MST|Centroid|N/A|1 ha and 100 ha
-ILCP|Regular|10|1 ha 
+MST grade penalty & simple cost|Regular|1|1 & 100 ha
+MST grade penalty & simple cost|Regular|10|1 & 100 ha
+MST grade penalty & simple cost|Random|1|1 & 100 ha
+MST grade penalty & simple cost|Random|10|1 & 100 ha
+MST grade penalty & simple cost|Centroid|N/A|1 & 100 ha
+ILCP grade penalty & simple cost|Regular|10|1 ha 
 Hardy QGIS|N/A|~9|1 ha
 Cutblocks only|N/A|N/A|1 ha
 
