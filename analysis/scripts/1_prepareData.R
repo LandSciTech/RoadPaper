@@ -126,7 +126,7 @@ if(down_meth == "bcdata"){
   # This is the map with the tile names:
   # https://www2.gov.bc.ca/assets/gov/data/geographic/topography/250kgrid.pdf
 
-  # map tiles for revelstoke 82N, 82M, 82L, 82K
+  # map tiles for revelstoke 82N, 82M, 82L, 82K, 83D
   list.dem <- c("82n", "82m", "82l", "82k", "83d")
   dem_path <- file.path(data_path_raw, "bc_dem_tiles")
   dir.create(dem_path)
@@ -166,7 +166,7 @@ if(down_meth == "bcdata"){
   # project to WGS84
   rev_dem2 <- terra::project(rev_dem, "epsg:3005")
   terra::writeRaster(rev_dem2,
-                     filename = file.path(data_path_drvd, "dem_revelstoke.tif"))
+                     filename = file.path(data_path_drvd, "TSA27/dem_revelstoke.tif"))
 
 
 }
@@ -233,6 +233,19 @@ osf_proj <- osf_retrieve_node("https://osf.io/8vmqh/")
 
 osf_ls_files(osf_proj) %>% filter(name == "cost_surface_bc_ha.tif") %>%
   osf_download(path = "data/raw_data")
+
+# Use NAs from cost surface to get water in DEM
+dem <- rast(paste0(data_path_drvd, "TSA27/dem_revelstoke.tif"))
+costOld <- rast(paste0(data_path_raw, "cost_surface_bc_ha.tif"))
+cCost <- crop(costOld, dem)
+# get average elevation in each cost cell
+cDem <- resample(dem, cCost, method = "average")
+cDem[is.na(cCost)] <- NA
+terra::writeRaster(cDem,
+                   filename = file.path(data_path_drvd,
+                                        "TSA27/dem_revelstokeCoarse.tif"),
+                   overwrite = T)
+
 
 # Repeat for Fort Nelson --------------------------------------------------
 if(down_meth == "bcdata"){

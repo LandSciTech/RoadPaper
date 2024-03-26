@@ -21,14 +21,13 @@ library(terra)
 devtools::load_all()
 
 # Prepare disaggregated cost surface
-# bc_cost <- rast(paste0(data_path_raw, "cost_surface_bc_ha.tif"))
+# dem <- rast(paste0(data_path_drvd, "TSA27/dem_revelstokeCoarse.tif"))
 #
 # tsaBoundary <- read_sf(paste0(data_path_raw, "tsa27_boundaries.gpkg"))
 #
-# rev_cost <- crop(bc_cost, vect(tsaBoundary), snap = "out")
-#
-# rev_cost10 <- disagg(rev_cost, 10,
-#                      filename = file.path(data_path_drvd, "revelstoke_cost_10.tif"))
+# # not using original 20m dem because need NAs from old cost
+# rev_cost10 <- disagg(dem, 10,
+#                      filename = file.path(data_path_drvd, "TSA27/dem_revelstoke_10.tif"))
 
 param_tbl <- expand.grid(method = c("ilcp", "mst"), agg = c(1, 3, 10, 50, 100),
                          stringsAsFactors = FALSE)
@@ -37,14 +36,14 @@ method <- param_tbl$method[row_ind]
 agg <- param_tbl$agg[row_ind]
 sampleDens <- 0.00001
 
-message("running row: ", row_ind, "agg: ", agg, "; method: ", method)
+message("running row: ", row_ind, "; agg: ", agg, "; method: ", method)
 
 inputs <- prepInputs(
   cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke.gpkg"),
   roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
   tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
-  costPth = paste0(data_path_drvd, "revelstoke_cost_10.tif"),
-  outPth = paste0(data_path_drvd, "TSA27/"),
+  costPth = paste0(data_path_drvd, "TSA27/dem_revelstoke_10.tif"),
+  outPth = paste0(data_path_drvd, "TSA27/bench/"),
   aggFact = agg, #factor of aggregation of cost surface. 1 = no aggregation.
   saveInputs = FALSE
 )

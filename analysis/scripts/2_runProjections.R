@@ -28,7 +28,8 @@ high <- 0.00001
 
 # For Revelstoke at fine resolution
 
-# First run prepInputs to create filtered inputs for QGIS plugin
+# First run prepInputs to create filtered inputs for QGIS plugin using the
+# original cost surface
 prepInputs(
   cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke.gpkg"),
   roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
@@ -83,14 +84,21 @@ paramTable <- tibble(sampleType, sampleDens, method = "mst",
 # add row for ilcp with regular high density sampling
 paramTable <- bind_rows(paramTable, paramTable %>% slice(2) %>% mutate(method = "ilcp"))
 
+# add weightFunction
+paramTable$weightFunction = deparse1(slopePenaltyFn,collapse="\n")
+
+# this means that slopes that are steeper than limit will be 65000 not NA
+paramTable$weightFunction = gsub("limitWeight = NA","limitWeight = 65000",paramTable$weightFunction,fixed=T)
+
+
 #
 run_projections(
   paramTable,
   cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke.gpkg"),
   roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
   tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
-  costPth = paste0(data_path_raw, "cost_surface_bc_ha.tif"),
-  outPth = paste0(data_path_drvd, "TSA27/"),
+  costPth = paste0(data_path_drvd, "TSA27/dem_revelstokeCoarse.tif"),
+  outPth = paste0(data_path_drvd, "TSA27/dem/"),
 
   #Klement QGIS projection results shapefile
   klementProj = paste0(data_path_drvd, "TSA27/", "klementProjection.shp"),
@@ -106,8 +114,8 @@ run_projections(
   cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke.gpkg"),
   roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
   tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
-  costPth = paste0(data_path_raw, "cost_surface_bc_ha.tif"),
-  outPth = paste0(data_path_drvd, "TSA27_1000/"),
+  costPth = paste0(data_path_drvd, "TSA27/dem_revelstokeCoarse.tif"),
+  outPth = paste0(data_path_drvd, "TSA27_1000/dem/"),
 
   #Klement QGIS projection results shapefile
   klementProj = NULL,
@@ -144,8 +152,8 @@ run_projections(
   cutblocksPth = paste0(data_path_drvd, "cutblocks_revelstoke_real.gpkg"),
   roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
   tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
-  costPth = paste0(data_path_raw, "cost_surface_bc_ha.tif"),
-  outPth = paste0(data_path_drvd, "TSA27_real_cuts/"),
+  costPth = paste0(data_path_drvd, "TSA27/dem_revelstokeCoarse.tif"),
+  outPth = paste0(data_path_drvd, "TSA27_real_cuts/dem/"),
 
   #Klement QGIS projection results shapefile
   klementProj = paste0(data_path_drvd, "TSA27_real_cuts/", "klementProjection.shp"),
