@@ -67,45 +67,10 @@ roadDisturbanceFootprint <- function(x, r, b) {
 }
 
 
-fineResProject <- function(TSAsubset, cutblockPolygons, sampleDensity,
-                           sampleType, costRaster, existingRoads,
-                           projectionMethod, weightFunction, sim = NULL,roadsInCost=T,...) {
-
-  subLandings <- getLandingsFromTarget(cutblockPolygons,
-                                       landingDens = sampleDensity,
-                                       sampleType = sampleType)
-  if(nrow(cutblockPolygons) == 0){
-    return(NULL)
-  }
-
-  if(!is.null(sim)){
-    # if sim list supplied use it so don't redo getGraph but change all the
-    # other parts to the current inputs
-    sim$costSurface <- costRaster
-
-    sim$roads <- existingRoads
-
-    sim$roadMethod <- projectionMethod
-
-    subProjectionResults <- projectRoads(subLandings, sim = sim,weightFunction =weightFunction,...)
-  } else{
-    subProjectionResults <- projectRoads(subLandings,
-                                         cost = costRaster,
-                                         roads = existingRoads,
-                                         roadMethod = projectionMethod,weightFunction=weightFunction,roadsInCost=roadsInCost,...)
-  }
-
-
-  gc(verbose = TRUE)
-
-  return(subProjectionResults)
-
-}
-
 # function to generate all projections and raster layers for metrics
 
-projectAll <- function(tsbs,paramTable, costSurface,
-                       cutblocks, existingRoads, fileLocation,roadsInCost=T,...) {
+projectAll <- function(tsbs,paramTable, weightRaster,
+                       cutblocks, existingRoads, fileLocation, roadsInWeight=T, ...) {
 
   if(!is.element("weightFunction",names(paramTable))){
     paramTable$weightFunction = deparse1(formals(projectRoads)$weightFunction,collapse="\n")
@@ -116,22 +81,18 @@ projectAll <- function(tsbs,paramTable, costSurface,
     cRow = paramTable[i,]
     start <- Sys.time()
 
-    projectionsList <- vector("list", nrow(paramTable))
+    subLandings <- getLandingsFromTarget(cutblocks,
+                                         landingDens = cRow$sampleDens,
+                                         sampleType = cRow$sampleType)
 
-    # use sim object so graph not re-calced, will be NULL for first iter
-    projectionsList[[i]] <- fineResProject(tsbs,
-                                           cutblockPolygons = cutblocks,
-                                           sampleDensity = cRow$sampleDens,
-                                           sampleType = cRow$sampleType,
-                                           costRaster = costSurface,
-                                           existingRoads = existingRoads,
-                                           projectionMethod = cRow$method,
-                                           weightFunction = eval(str2lang(cRow$weightFunction)),
-                                           sim = projectionsList[[1]],
-                                           roadsInCost=roadsInCost,...)
+    projections <- projectRoads(landings = subLandings,
+                                weightRaster =  weightRaster,
+                                roads = existingRoads,
+                                roadMethod = cRow$method,
+                                weightFunction = eval(str2lang(cRow$weightFunction)),
+                                roadsInWeight = roadsInWeight, ...)
 
-
-    projections <- projectionsList[[i]]$roads
+    projections <- projections$roads
 
     end <- Sys.time()
 
@@ -150,11 +111,11 @@ projectAll <- function(tsbs,paramTable, costSurface,
 }
 
 calcMetrics <- function(paramTable, klementProj, cutblocks,
-                        nonAggregatedCostSurface, observedRoads, boundary,
+                        nonAggregatedweightRaster, observedRoads, boundary,
                         cutblocksPth, existingRoads,
-                        costSurface){
+                        weightRaster){
   # row for observed
-  observedRow <- c("observed", NA, NA, NA, NA, NA, NA, NA, NA, NA)
+  observedRow <- c("observed", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
 
   paramTable <- rbind(paramTable, observedRow)
 
@@ -162,7 +123,7 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
 
   # row for QGIS Plugin
   if(!is.null(klementProj)){
-    klementRow <- c("klementQGIS", NA, NA, NA, NA, NA, NA, NA, NA, NA)
+    klementRow <- c("klementQGIS", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
 
     paramTable <- rbind(paramTable, klementRow)
 
@@ -170,9 +131,9 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
   }
 
   # row for if only consider roads in disturbance
-  paramTable <- rbind(paramTable, c("cutOnly", NA, NA, NA, NA, NA, NA, NA, NA, NA))
+  paramTable <- rbind(paramTable, c("cutOnly", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA))
 
-  cutblocksRaster <- terra::rasterize(terra::vect(cutblocks), nonAggregatedCostSurface)
+  cutblocksRaster <- terra::rasterize(terra::vect(cutblocks), nonAggregatedweightRaster)
 
   for(i in 1:nrow(paramTable)) {
     # i = 1
@@ -185,10 +146,10 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
       out <- sf::read_sf(cRow$output)
     }
 
-    roadDensityResults <- rasterizeLineDensity(out, r = as(costSurface, "Raster"))
+    roadDensityResults <- rasterizeLineDensity(out, r = weightRaster)
     paramTable$roadDensity[[i]] <- roadDensityResults
 
-    roadPresenceResults <- terra::rasterize(terra::vect(out), costSurface,
+    roadPresenceResults <- terra::rasterize(terra::vect(out), weightRaster,
                                             background = 0)
 
     paramTable$roadPresence[[i]] <- roadPresenceResults
@@ -200,13 +161,13 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
 
     forestryDisturanceResults <- disturbanceMetrics(
       out,
-      landCover = as(nonAggregatedCostSurface, "Raster"),
+      landCover = nonAggregatedweightRaster,
       projectPoly = boundary,
-      anthroDist = as(cutblocksRaster, "Raster")
+      anthroDist = cutblocksRaster
     )
-    paramTable$forestryDisturbance[[i]] <- terra::rast(forestryDisturanceResults@processedData$Anthro)
+    paramTable$forestryDisturbance[[i]] <- forestryDisturanceResults@processedData$Anthro
 
-    roadDisturbanceResults <- roadDisturbanceFootprint(out, r = costSurface, b = boundary)
+    roadDisturbanceResults <- roadDisturbanceFootprint(out, r = weightRaster, b = boundary)
     paramTable$roadDisturbance[[i]] <- roadDisturbanceResults
   }
 
@@ -325,7 +286,7 @@ calcAgree <- function(obs_rast, proj_rast, prex_rast, return_res = FALSE){
 #' @param boundary polygon boundary to mask rasters
 
 
-agreeMetricsAll <- function(paramTable, prex_rast, prex_vect, boundary, cutblocks, nonAggregatedCostSurface){
+agreeMetricsAll <- function(paramTable, prex_rast, prex_vect, boundary, cutblocks, nonAggregatedweightRaster){
   obs_tbl <- paramTable %>% filter(sampleType == "observed") %>%
     dplyr::select(roadDisturbance, roadPresence, forestryDisturbance) %>%
     tidyr::pivot_longer(everything(), names_to = "metric", values_to = "obs_rast") %>%
@@ -339,9 +300,9 @@ agreeMetricsAll <- function(paramTable, prex_rast, prex_vect, boundary, cutblock
     prex_rast = list(roadDisturbanceFootprint(prex_vect, !is.na(prex_rast), boundary),
                      prex_rast,
                      disturbanceMetrics(linFeat = prex_vect,
-                                        landCover = as(nonAggregatedCostSurface, "Raster"),
+                                        landCover = as(nonAggregatedweightRaster, "Raster"),
                                         projectPoly = boundary,
-                                        anthroDist = terra::rasterize(terra::vect(cutblocks), nonAggregatedCostSurface) %>%
+                                        anthroDist = terra::rasterize(terra::vect(cutblocks), nonAggregatedweightRaster) %>%
                                           as("Raster"))@processedData$Anthro %>% terra::rast())
   ) %>%
     mutate(prex_rast = prex_rast %>%
@@ -369,11 +330,11 @@ prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
   ######### load in data for projections ########################################
 
   #forest harvest cutblocks
-  cutblocks <- st_make_valid(st_read(cutblocksPth))
+  cutblocks <- st_make_valid(read_sf(cutblocksPth))
   #modern observed roads
-  roads <- st_read(roadsPth)
+  roads <- read_sf(roadsPth)
   #boundary for running projection
-  tsaBoundary <- st_read(tsaBoundaryPth)
+  tsaBoundary <- read_sf(tsaBoundaryPth)
   tsbs <- list(st_union(tsaBoundary))
   #cost surface raster layer
   bc_cost_surface <- terra::rast(costPth)
@@ -397,7 +358,7 @@ prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
   tsaCost <- crop(bc_cost_surface, st_buffer(tsaBoundary, 2000))
 
   if(aggFact > 1){
-    tsaCost <- terra::aggregate(tsaCost, fact = aggFact, fun = terra::mean)
+    tsaCost <- terra::aggregate(tsaCost, fact = aggFact, fun = terra::mean, na.rm = TRUE)
   }
 
   # burn roads into cost raster
@@ -417,9 +378,9 @@ prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
   #   split(factor(1:nrow(.)))
 
   if(saveInputs){
-    terra::writeRaster(tsaCost_st, paste0(outPth, "input_cost.tif"), overwrite = TRUE)
-    sf::write_sf(roadsExist,  paste0(outPth, "input_roads.gpkg"))
-    sf::write_sf(cutblocks,  paste0(outPth, "input_cutblocks.gpkg"))
+    terra::writeRaster(tsaCost_st, file.path(outPth, "input_cost.tif"), overwrite = TRUE)
+    sf::write_sf(roadsExist,  file.path(outPth, "input_roads.gpkg"))
+    sf::write_sf(cutblocks,  file.path(outPth, "input_cutblocks.gpkg"))
   }
 
   out <- dplyr::lst(tsaCost_st, roadsExist, cutblocks, tsbs, bc_cost_surface,
@@ -445,29 +406,46 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
   #Running projections
   if(is.null(load_file)){
     allResults <- projectAll(tsbs = tsbs, paramTable = paramTable,
-                             costSurface = tsaCost_st,
+                             weightRaster = tsaCost_st,
                              cutblocks = cutblocks,
                              existingRoads = roadsExist,
                              fileLocation = outPth)
   } else {
     # recreate allResults after a restart using saved files
+    if(file.exists(file.path(outPth, "mean_table.csv"))){
+      runT <- read.csv(file.path(outPth, "mean_table.csv"), na.strings = c("", "NA")) %>%
+        filter(areaMean == "overall") %>%
+        semi_join(paramTable %>% mutate(order = 1:n()) %>%
+                    select(sampleType, order, method, runTime),
+                  by = join_by(sampleType, order, method)) %>%
+        pull(runTime)
+    } else {
+      runT = NA_real_
+    }
+
     allResults <- paramTable %>%
       mutate(output = file.path(outPth, paste0( sampleType, "_",
                              sampleDens, "_", method, ".gpkg"))) %>%
-      mutate(runTime = NA_real_)
+      mutate(runTime = runT)
   }
 
-  if(is.null(load_file) | load_file == "results"){
+  if(!is.null(load_file)){
+    doResults <- load_file == "results"
+  } else {
+    doResults <- FALSE
+  }
+
+  if(is.null(load_file) | doResults){
     # creating raster layers of the various metrics
     allMetrics <- calcMetrics(paramTable = allResults,
                               boundary = tsaBoundary,
-                              nonAggregatedCostSurface = bc_cost_surface,
+                              nonAggregatedweightRaster = bc_cost_surface,
                               observedRoads = roadsPth,
                               klementProj = klementProj,
                               cutblocks = cutblocks,
                               cutblocksPth = cutblocksPth,
                               existingRoads = roadsExist,
-                              costSurface = tsaCost_st)
+                              weightRaster = tsaCost_st)
 
     # save the metrics for further study
     dplyr::select(allMetrics, -c(sampleType, sampleDens, method, runTime, output)) %>%
@@ -480,31 +458,34 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
   }
 
   # load metrics from saved files
-  if(load_file == "metrics"){
-    allMetrics <- allResults %>%
-      bind_rows(data.frame(sampleType = c("observed", "cutOnly")))
+  if(!is.null(load_file)){
+    if(load_file == "metrics"){
+      allMetrics <- allResults %>%
+        bind_rows(data.frame(sampleType = c("observed", "cutOnly")))
 
-    if(!is.null(klementProj)){
+      if(!is.null(klementProj)){
+        allMetrics <- allMetrics %>%
+          bind_rows(data.frame(sampleType = c("klementQGIS")))
+      }
+
+      met_res <- allMetrics %>%
+        dplyr::select(-c(sampleType, sampleDens, method, runTime, output, weightFunction)) %>%
+        colnames() %>%
+        purrr::cross2(1:nrow(allMetrics)) %>%
+        set_names(purrr::map_chr(., ~paste0(.x[[1]], "_", .x[[2]]))) %>%
+        purrr::map(~terra::rast(file.path(outPth,
+                                          paste0(.x[[1]], allMetrics$sampleType[.x[[2]]], "_",
+                                                 allMetrics$sampleDens[.x[[2]]], "_",
+                                                 allMetrics$method[.x[[2]]], ".tif")))) %>%
+        tibble::as_tibble_col() %>%
+        mutate(name = names(value)) %>%
+        tidyr::separate(name, into = c("name", "order")) %>%
+        tidyr::pivot_wider(names_from = "name", values_from = "value")
+
       allMetrics <- allMetrics %>%
-        bind_rows(data.frame(sampleType = c("klementQGIS")))
+        select(sampleType, sampleDens, method, runTime, output) %>%
+        bind_cols(met_res)
     }
-
-    met_res <- dplyr::select(allMetrics, -c(sampleType, sampleDens, method, runTime, output)) %>%
-      colnames() %>%
-      purrr::cross2(1:nrow(allMetrics)) %>%
-      set_names(purrr::map_chr(., ~paste0(.x[[1]], "_", .x[[2]]))) %>%
-      purrr::map(~terra::rast(file.path(outPth,
-                                        paste0(.x[[1]], allMetrics$sampleType[.x[[2]]], "_",
-                                               allMetrics$sampleDens[.x[[2]]], "_",
-                                               allMetrics$method[.x[[2]]], ".tif")))) %>%
-      tibble::as_tibble_col() %>%
-      mutate(name = names(value)) %>%
-      tidyr::separate(name, into = c("name", "order")) %>%
-      tidyr::pivot_wider(names_from = "name", values_from = "value")
-
-    allMetrics <- allMetrics %>%
-      select(sampleType, sampleDens, method, runTime, output) %>%
-      bind_cols(met_res)
   }
 
 
@@ -529,7 +510,7 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
   agreeTable <- agreeMetricsAll(allMetrics, prex_rast = inputs$roadsExist_rast == 0,
                                 prex_vect = roadsExist, boundary = tsaBoundary,
                                 cutblocks = inputs$cutblocksPrior,
-                                nonAggregatedCostSurface = bc_cost_surface)
+                                nonAggregatedweightRaster = bc_cost_surface)
 
   write.csv(agreeTable, file.path(outPth, "agree_table.csv"), row.names = FALSE)
 }

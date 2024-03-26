@@ -58,12 +58,12 @@ landings <- getLandingsFromTarget(inputs$cutblocks,
 prof <- peakRAM::peakRAM(
   #Running projections
   output <- projectRoads(landings,
-                         cost = inputs$tsaCost_st,
+                         weightRaster = inputs$tsaCost_st,
                          roads = inputs$roadsExist,
                          roadMethod = method)
 )
 
-out <- data.frame(method = method, resolution = res(output$costSurface)[1],
+out <- data.frame(method = method, resolution = res(output$weightRaster)[1],
                   n_verticies = igraph::vcount(output$g),
                   n_edges = igraph::ecount(output$g)) %>%
   bind_cols(prof[,-1])

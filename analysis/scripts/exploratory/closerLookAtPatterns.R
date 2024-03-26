@@ -96,7 +96,7 @@ devtools::load_all(here())
 
 #TO DO: troubleshooting - why isn't projectAll working here?
 mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
-                      costSurface = tsaCost,
+                      weightRaster = tsaCost,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
                       fileLocation = here(data_path_drvd, "for_fig"))
@@ -105,7 +105,7 @@ ilcpProj <- projectAll(tsbs = tsb,
                        paramTable = paramTable %>%
                          filter(sampleType == "regular") %>%
                          mutate(method = "ilcp"),
-                       costSurface = tsaCost,
+                       weightRaster = tsaCost,
                        cutblocks = cutblocks,
                        existingRoads = exRoads,
                        fileLocation = here(data_path_drvd,"for_fig"))
@@ -114,7 +114,7 @@ lcpProj <- projectAll(tsbs = tsb,
                       paramTable = paramTable %>%
                         filter(sampleType == "centroid") %>%
                         mutate(method = "lcp"),
-                      costSurface = tsaCost,
+                      weightRaster = tsaCost,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
                       fileLocation = here(data_path_drvd,  "for_fig"))

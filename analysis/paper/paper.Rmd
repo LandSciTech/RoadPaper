@@ -300,19 +300,21 @@ paramTable <- tibble(sampleType, sampleDens,
 
 # re-run projections for just the small area with different parameters
 mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
-                      costSurface = tsaCost,
+                      weightRaster = tsaCost,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
-                      fileLocation = here(data_path_drvd, "..", "for_fig"),roadsInCost = F)
+                      fileLocation = here(data_path_drvd, "..", "for_fig"),
+                      roadsInWeight = F)
 
 ilcpProj <- projectAll(tsbs = tsb,
                       paramTable = paramTable %>% 
                         filter(sampleType == "regular") %>% 
                         mutate(method = "ilcp"),
-                      costSurface = tsaCost,
+                      weightRaster = tsaCost,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
-                      fileLocation = here(data_path_drvd, "..", "for_fig"),roadsInCost = F)
+                      fileLocation = here(data_path_drvd, "..", "for_fig"),
+                      roadsInWeight = F)
 
 allProj <- bind_rows(mstProj, ilcpProj, .id = "method") %>%
   arrange(desc(sampleType), sampleDens)

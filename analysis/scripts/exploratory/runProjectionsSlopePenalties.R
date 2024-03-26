@@ -86,14 +86,14 @@ paramTable <- tibble(sampleType, sampleDens,
   distinct()
 
 paramTable$weightFunction = deparse1(slopePenaltyFn,collapse="\n")
-paramTable$weightFunction = gsub("limitCost = NA","limitCost = 65000",paramTable$weightFunction,fixed=T)
+paramTable$weightFunction = gsub("limitWeight = NA","limitWeight = 65000",paramTable$weightFunction,fixed=T)
 
 
 f2 <- eval(str2lang(paramTable$weightFunction[1]))
 
 # re-run projections for just the small area with different parameters
 mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
-                      costSurface = demCost,
+                      weightRaster = demCost,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
                       fileLocation = here(data_path_drvd, "for_fig"),roadsInCost=F)
@@ -102,7 +102,7 @@ ilcpProj <- projectAll(tsbs = tsb,
                        paramTable = paramTable %>%
                          filter(sampleType == "regular") %>%
                          mutate(method = "ilcp"),
-                       costSurface = demCost,
+                       weightRaster = demCost,
                        cutblocks = cutblocks,
                        existingRoads = exRoads,
                        fileLocation = here(data_path_drvd, "for_fig"),roadsInCost=F)
@@ -163,7 +163,7 @@ f2 <- eval(str2lang(paramTable$weightFunction[1]))
 
 # re-run projections for just the small area with different parameters
 mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
-                      costSurface = demCost,
+                      weightRaster = demCost,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
                       fileLocation = here(data_path_drvd, "for_fig"),roadsInCost=F)
@@ -172,7 +172,7 @@ ilcpProj <- projectAll(tsbs = tsb,
                        paramTable = paramTable %>%
                          filter(sampleType == "regular") %>%
                          mutate(method = "ilcp"),
-                       costSurface = demCost,
+                       weightRaster = demCost,
                        cutblocks = cutblocks,
                        existingRoads = exRoads,
                        fileLocation = here(data_path_drvd, "for_fig"),roadsInCost=F)
@@ -247,9 +247,13 @@ if(0){
 
   paramTable$weightFunction = deparse1(slopePenaltyFn,collapse="\n")
 
-  f2 <- eval(str2lang(paramTable$weightFunction[1]))
+  # this means that slopes that are steeper than limit will be 65000 not NA
+  paramTable$weightFunction = gsub("limitWeight = NA","limitWeight = 65000",paramTable$weightFunction,fixed=T)
 
-  #
+  # This works as long as no landings are on NA which they shouldn't be
+
+  f2 <- eval(str2lang(paramTable$weightFunction[1]))
+  # landing points that are on NA are causing failures in building roads
   run_projections(
     paramTable,
     cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke.gpkg"),
@@ -261,8 +265,8 @@ if(0){
     #Klement QGIS projection results shapefile
     klementProj = paste0(data_path_drvd, "TSA27/", "klementProjection.shp"),
 
-    aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
-    # load_file = "results",
+    aggFact = 10, #factor of aggregation of cost surface. 1 = no aggregation.
+    # load_file = "metrics",
     saveInputs = TRUE
   )
   print(Sys.time())
