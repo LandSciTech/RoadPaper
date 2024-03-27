@@ -7,8 +7,8 @@
 # Also record memory usage. Using separate nodes will ensure to memory overlap between runs
 
 #set path for data
-data_path_raw <- "analysis/data/raw_data/"
-data_path_drvd <- "analysis/data/derived_data/"
+data_path_raw <- ""
+data_path_drvd <- ""
 
 ###### Source scripts ######
 # load in required libraries
@@ -18,7 +18,7 @@ library(roads)
 library(terra)
 
 # load functions used in script
-devtools::load_all()
+source("functionsSource.R")
 
 # Prepare disaggregated cost surface
 # dem <- rast(paste0(data_path_drvd, "TSA27/dem_revelstokeCoarse.tif"))
@@ -35,6 +35,7 @@ param_tbl <- expand.grid(method = c("ilcp", "mst"), agg = c(1, 3, 10, 50, 100),
 method <- param_tbl$method[row_ind]
 agg <- param_tbl$agg[row_ind]
 sampleDens <- 0.00001
+sampleType <- "regular"
 
 message("running row: ", row_ind, "; agg: ", agg, "; method: ", method)
 
@@ -42,8 +43,8 @@ inputs <- prepInputs(
   cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke.gpkg"),
   roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
   tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
-  costPth = paste0(data_path_drvd, "TSA27/dem_revelstoke_10.tif"),
-  outPth = paste0(data_path_drvd, "TSA27/bench/"),
+  costPth = paste0(data_path_drvd, "dem_revelstoke_10.tif"),
+  outPth = ".",
   aggFact = agg, #factor of aggregation of cost surface. 1 = no aggregation.
   saveInputs = FALSE,
   replaceNA = -65000
@@ -52,7 +53,7 @@ inputs <- prepInputs(
 
 landings <- getLandingsFromTarget(inputs$cutblocks,
                                      landingDens = sampleDens,
-                                     sampleType = "regular")
+                                     sampleType = sampleType)
 
 # record memory, time, graph size and total cost
 prof <- peakRAM::peakRAM(
@@ -64,9 +65,22 @@ prof <- peakRAM::peakRAM(
                          weightFunction = slopePenaltyFn, limitWeight = 65000)
 )
 
-out <- data.frame(method = method, resolution = res(output$weightRaster)[1],
+res_out <- res(output$weightRaster)[1]
+out <- data.frame(method = method, resolution = res_out,
                   n_verticies = igraph::vcount(output$g),
                   n_edges = igraph::ecount(output$g)) %>%
   bind_cols(prof[,-1])
 
-saveRDS(out, file = paste0(method, "_", agg, ".rds"))
+saveRDS(out, file = paste0("bench_", method, "_", res_out, ".rds"))
+saveRDS(output$roads, file = paste0("result_", method, "_", res_out, "_", sampleDens, "_", sampleType, ".rds"))
+
+if(0){
+  # compile results after running on cloud
+  bench_res <- list.files("analysis/data/derived_data/bench_results", pattern = "bench_.*.rds",
+                          full.names = TRUE) %>%
+    purrr::map(readRDS) %>%
+    bind_rows()
+
+
+
+}
