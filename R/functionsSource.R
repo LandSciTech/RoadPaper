@@ -322,7 +322,7 @@ agreeMetricsAll <- function(paramTable, prex_rast, prex_vect, boundary, cutblock
 # load and filter inputs
 
 prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
-                       outPth, aggFact,
+                       outPth, aggFact, replaceNA = NULL,
                        saveInputs = FALSE){
   if(!dir.exists(outPth)){
     dir.create(outPth)
@@ -361,6 +361,10 @@ prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
     tsaCost <- terra::aggregate(tsaCost, fact = aggFact, fun = terra::mean, na.rm = TRUE)
   }
 
+  if(!is.null(replaceNA)){
+    tsaCost <- terra::mask(tsaCost, tsaCost, updatevalue = replaceNA)
+  }
+
   # burn roads into cost raster
   roadsExist_rast <- terra::rasterize(terra::vect(roadsExist), terra::rast(tsaCost),
                                       background = 0) == 0
@@ -391,10 +395,10 @@ prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
 # run all projections and summarise results for one tsa
 run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
                             outPth, klementProj, aggFact, method = "mst",
-                            saveInputs = FALSE, load_file = NULL){
+                            saveInputs = FALSE, load_file = NULL, replaceNA = NULL){
 
   inputs <- prepInputs(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
-             outPth, aggFact, saveInputs = saveInputs)
+             outPth, aggFact, saveInputs = saveInputs, replaceNA = replaceNA)
 
   tsaCost_st <- inputs$tsaCost_st
   roadsExist <- inputs$roadsExist

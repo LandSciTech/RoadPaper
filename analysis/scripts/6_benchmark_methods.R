@@ -45,7 +45,8 @@ inputs <- prepInputs(
   costPth = paste0(data_path_drvd, "TSA27/dem_revelstoke_10.tif"),
   outPth = paste0(data_path_drvd, "TSA27/bench/"),
   aggFact = agg, #factor of aggregation of cost surface. 1 = no aggregation.
-  saveInputs = FALSE
+  saveInputs = FALSE,
+  replaceNA = -65000
 )
 
 
@@ -59,7 +60,8 @@ prof <- peakRAM::peakRAM(
   output <- projectRoads(landings,
                          weightRaster = inputs$tsaCost_st,
                          roads = inputs$roadsExist,
-                         roadMethod = method)
+                         roadMethod = method,
+                         weightFunction = slopePenaltyFn, limitWeight = 65000)
 )
 
 out <- data.frame(method = method, resolution = res(output$weightRaster)[1],

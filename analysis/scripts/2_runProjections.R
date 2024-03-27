@@ -30,15 +30,16 @@ high <- 0.00001
 
 # First run prepInputs to create filtered inputs for QGIS plugin using the
 # original cost surface
-prepInputs(
-  cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke.gpkg"),
-  roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
-  tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
-  costPth = paste0(data_path_raw, "cost_surface_bc_ha.tif"),
-  outPth = paste0(data_path_drvd, "TSA27/"),
-  aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
-  saveInputs = TRUE
-)
+# prepInputs(
+#   cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke.gpkg"),
+#   roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
+#   tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
+#   costPth = paste0(data_path_raw, "cost_surface_bc_ha.tif"),
+#   outPth = paste0(data_path_drvd, "TSA27/"),
+#   aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
+#   saveInputs = TRUE,
+#   replaceNA = -65000
+# )
 
 # Logs copied from QIS for running the plugin and unioning the results to the input roads
 # QGIS version: 3.12.0-București
@@ -105,7 +106,8 @@ run_projections(
 
   aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
   # load_file = "results",
-  saveInputs = TRUE
+  saveInputs = TRUE,
+  replaceNA = -65000
 )
 
 # For Revelstoke at coarse resolution
@@ -120,7 +122,8 @@ run_projections(
   #Klement QGIS projection results shapefile
   klementProj = NULL,
   # load_file = "results",
-  aggFact = 10 #factor of aggregation of cost surface. 1 = no aggregation.
+  aggFact = 10, #factor of aggregation of cost surface. 1 = no aggregation.
+  replaceNA = -65000
 )
 
 # For Revelstoke at fine resolution with cutblocks not accessed by existing
@@ -135,16 +138,17 @@ cutblocksReal <- st_filter(cutblocks, roads)
 
 write_sf(cutblocksReal, paste0(data_path_drvd, "cutblocks_revelstoke_real.gpkg"))
 
-# First run prepInputs to create filtered inputs for QGIS plugin
-prepInputs(
-  cutblocksPth = paste0(data_path_drvd, "cutblocks_revelstoke_real.gpkg"),
-  roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
-  tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
-  costPth = paste0(data_path_raw, "cost_surface_bc_ha.tif"),
-  outPth = paste0(data_path_drvd, "TSA27_real_cuts/"),
-  aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
-  saveInputs = TRUE
-)
+# # First run prepInputs to create filtered inputs for QGIS plugin
+# prepInputs(
+#   cutblocksPth = paste0(data_path_drvd, "cutblocks_revelstoke_real.gpkg"),
+#   roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
+#   tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
+#   costPth = paste0(data_path_drvd, "TSA27/dem_revelstokeCoarse.tif"),
+#   outPth = paste0(data_path_drvd, "TSA27_real_cuts/dem/"),
+#   aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
+#   saveInputs = TRUE,
+#   replaceNA = -65000
+# )
 
 #
 run_projections(
@@ -160,7 +164,8 @@ run_projections(
 
   aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
   # load_file = "results",
-  saveInputs = TRUE
+  saveInputs = TRUE,
+  replaceNA = -65000
 )
 
 # set rasterOptions back to previous value
