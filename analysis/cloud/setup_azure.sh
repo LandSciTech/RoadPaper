@@ -31,7 +31,7 @@ sed 's,<subnetId>,'${subnetid//&/\\&}',g' analysis/cloud/pool_roads.json\
 # make a different json for each task
 mkdir -p analysis/cloud/task_jsons
 
-for rowi in 1 2 3 4 5 6 7 8 9 10
+for rowi in {1..24}
 do
   sed 's,<SASURL>,'${sasurl//&/\\&}',g' analysis/cloud/task_roads.json\
   | sed 's,<row>,'$rowi',g' > analysis/cloud/task_jsons/task_roads_$rowi.json
@@ -47,6 +47,7 @@ az storage blob list -c sendicott --account-name ecdcwls --sas-token $sastoken\
 
 az storage copy -d $sasurl -s analysis/cloud/make_to_use.R
 
+az storage copy -d $sasurl -s analysis/data/derived_data/cutblocks_revelstoke_real.gpkg
 az storage copy -d $sasurl -s analysis/data/raw_data/cutblocks_revelstoke.gpkg
 az storage copy -d $sasurl -s analysis/data/derived_data/combined_revelstoke_roads.gpkg
 az storage copy -d $sasurl -s analysis/data/raw_data/tsa27_boundaries.gpkg
@@ -60,14 +61,14 @@ az batch pool create --json-file analysis/cloud/pool_to_use.json
 az batch job create --pool-id $poolName --id $jobName
 
 # 1 2 3 4 5 6
-for rowi in  7 8 9 10
+for rowi in {1..24}
 do
   az batch task create --json-file analysis/cloud/task_jsons/task_roads_$rowi.json --job-id $jobName
 done
 
-# az batch task delete --task-id connectivity-combine --job-id $jobName
+# az batch task delete --task-id connectivity-combine --job-id $jobName --yes
 #
-# for rowi in 7 8 9 10
+# for rowi in {1..24}
 # do
 #   az batch task delete --job-id $jobName --task-id roads-benchmark-$rowi --yes
 # done

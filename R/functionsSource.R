@@ -143,7 +143,7 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
     if(cRow$sampleType == "cutOnly"){
       out <- existingRoads
     } else {
-      out <- sf::read_sf(cRow$output)
+      out <- readRDS(cRow$output)
     }
 
     roadDensityResults <- rasterizeLineDensity(out, r = weightRaster)
@@ -427,10 +427,15 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
       runT = NA_real_
     }
 
-    allResults <- paramTable %>%
-      mutate(output = file.path(outPth, paste0( sampleType, "_",
-                             sampleDens, "_", method, ".gpkg"))) %>%
-      mutate(runTime = runT)
+    if(is.character(paramTable$output)){
+      allResults <- paramTable %>% mutate(runTime = runT)
+    } else {
+      allResults <- paramTable %>%
+        mutate(output = file.path(outPth, paste0("result_", method, "_", aggFact*10, "_",
+                                                 sampleDens, "_", sampleType, ".rds"))) %>%
+        mutate(runTime = runT)
+    }
+
   }
 
   if(!is.null(load_file)){
