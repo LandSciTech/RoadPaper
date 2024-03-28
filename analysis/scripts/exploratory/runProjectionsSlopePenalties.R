@@ -96,7 +96,7 @@ mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
                       weightRaster = demCost,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
-                      fileLocation = here(data_path_drvd, "for_fig"),roadsInCost=F)
+                      fileLocation = here(data_path_drvd, "for_fig"),roadsInWeight=F)
 
 ilcpProj <- projectAll(tsbs = tsb,
                        paramTable = paramTable %>%
@@ -105,7 +105,7 @@ ilcpProj <- projectAll(tsbs = tsb,
                        weightRaster = demCost,
                        cutblocks = cutblocks,
                        existingRoads = exRoads,
-                       fileLocation = here(data_path_drvd, "for_fig"),roadsInCost=F)
+                       fileLocation = here(data_path_drvd, "for_fig"),roadsInWeight=F)
 
 allProj <- bind_rows(mstProj, ilcpProj, .id = "method") %>%
   arrange(desc(sampleType), sampleDens)
