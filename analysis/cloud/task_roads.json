@@ -6,7 +6,7 @@
     "destination": {
       "container": {
         "containerUrl": "<SASURL>",
-        "path": "logs"
+        "path": "logs_<row>"
         }
       },
     "filePattern": "../*.txt",

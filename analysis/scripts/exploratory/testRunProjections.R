@@ -95,10 +95,9 @@ cutblocks <-  read_sf(here(data_path_drvd, "testing_cutblocks.gpkg"))
 prex_rdDist <- roadDisturbanceFootprint(prex_vect, !is.na(prex_rast),
                          boundary)
 prex_forDist <- disturbanceMetrics(linFeat = prex_vect,
-                                    landCover = as(cost_rast, "Raster"),
+                                    landCover = cost_rast,
                                     projectPoly = boundary,
-                                    anthroDist = terra::rasterize(terra::vect(cutblocks), cost_rast) %>%
-                                      as("Raster"))@processedData$Anthro %>% terra::rast()
+                                    anthroDist = terra::rasterize(terra::vect(cutblocks), cost_rast))@processedData$Anthro
 
 aggCutOnly <- calcAgree(terra::subst(obs_rdDist, from = 1, to = 100) %>%
                           terra::crop(prex_forDist),

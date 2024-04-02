@@ -31,7 +31,7 @@ sed 's,<subnetId>,'${subnetid//&/\\&}',g' analysis/cloud/pool_roads.json\
 # make a different json for each task
 mkdir -p analysis/cloud/task_jsons
 
-for rowi in 1 2 3 4 5 6 7 8 9 10
+for rowi in {1..24}
 do
   sed 's,<SASURL>,'${sasurl//&/\\&}',g' analysis/cloud/task_roads.json\
   | sed 's,<row>,'$rowi',g' > analysis/cloud/task_jsons/task_roads_$rowi.json
@@ -43,37 +43,57 @@ sed 's,<pat>,'$ghpat',g' analysis/cloud/make.R > analysis/cloud/make_to_use.R
 #### Move files to container ##############
 # First check container is empty. All files in container will be copied to nodes
 az storage blob list -c sendicott --account-name ecdcwls --sas-token $sastoken\
---query "[].{name:name}" --output yaml
+ --query "[].{name:name}" --output yaml
 
 az storage copy -d $sasurl -s analysis/cloud/make_to_use.R
 
+az storage copy -d $sasurl -s analysis/data/derived_data/cutblocks_revelstoke_real.gpkg
 az storage copy -d $sasurl -s analysis/data/raw_data/cutblocks_revelstoke.gpkg
 az storage copy -d $sasurl -s analysis/data/derived_data/combined_revelstoke_roads.gpkg
 az storage copy -d $sasurl -s analysis/data/raw_data/tsa27_boundaries.gpkg
-az storage copy -d $sasurl -s analysis/data/derived_data/revelstoke_cost_10.tif
+az storage copy -d $sasurl -s analysis/data/derived_data/TSA27/dem_revelstoke_10.tif
 
 az storage copy -d $sasurl -s analysis/scripts/6_benchmark_methods.R
+az storage copy -d $sasurl -s R/functionsSource.R
 
 #### Create pool, job, tasks ##########################
-# AWS machine was m5a.4xlarge with 16 vCPU and 64 gb RAM
-
 az batch pool create --json-file analysis/cloud/pool_to_use.json
 az batch job create --pool-id $poolName --id $jobName
+
 # 1 2 3 4 5 6
-for rowi in  7 8 9 10
+for rowi in 7 8 9 10 11 13 14 15 16 17 19 20 21 22
 do
   az batch task create --json-file analysis/cloud/task_jsons/task_roads_$rowi.json --job-id $jobName
 done
 
-# az batch task delete --task-id connectivity-combine --job-id $jobName
-
-# for rowi in 1 2 3 4 5 6 7 8 9 10
+# az batch task delete --task-id connectivity-combine --job-id $jobName --yes
+#
+# for rowi in 7 8 9 10 11 13 14 15 16 17 19 20 21 22
 # do
-#   az batch task delete --job-id $jobName --task-id roads-benchmark-$rowi --yes
+#   az batch task reactivate --job-id $jobName --task-id roads-benchmark-$rowi
 # done
 
+# set target dedicated nodes
+az batch pool resize --pool-id $poolName --target-dedicated-nodes 14
+
 # prompt auto scaleing of pool by changing time interval
-az batch pool autoscale enable --pool-id $poolName --auto-scale-evaluation-interval "PT5M"
+# enabling this as soon as the tasks are created seems to make it think there are no tasks
+az batch pool autoscale enable --pool-id $poolName --auto-scale-evaluation-interval "PT5M"\
+ --auto-scale-formula 'percentage = 70;
+ span = TimeInterval_Second * 15;
+ $samples = $ActiveTasks.GetSamplePercent(span);
+ $tasks = $samples < percentage ? max(0,$ActiveTasks.GetSample(1)) : max( $ActiveTasks.GetSample(1), avg($ActiveTasks.GetSample(span)));
+ multiplier = 1;
+ $cores = $TargetDedicatedNodes;
+ $extraVMs = (($tasks - $cores) + 0) * multiplier;
+ $targetVMs = ($TargetDedicatedNodes + $extraVMs);
+ $TargetDedicatedNodes = max(0, min($targetVMs, 50));
+ $NodeDeallocationOption = taskcompletion;'
+
+# check pool node counts
+az batch pool list  \
+--query "[].{id:id, curNodes: currentDedicatedNodes,tarNodes: targetDedicatedNodes, allocState:allocationState}" \
+--output yaml
 
 #### Monitor tasks ############################
 
@@ -99,14 +119,14 @@ az storage blob list -c sendicott --account-name ecdcwls --sas-token $sastoken \
 --query "[].{name:name}" --output yaml
 
 #### Download results and remove from storage ################################
-az storage copy -s https://ecdcwls.blob.core.windows.net/sendicott/outputs/rasters/?$sastoken \
--d "D:/Josie/LSTD-Connectivity-Paper/outputs" --recursive
+az storage copy -s https://ecdcwls.blob.core.windows.net/sendicott/*?$sastoken \
+-d "analysis/data/derived_data/bench_results" --include-pattern "*.rds"
 
-az storage copy -s https://ecdcwls.blob.core.windows.net/sendicott/outputs/objects/?$sastoken \
--d "outputs" --recursive
+# Remove just files matching pattern
+az storage remove -c sendicott --include-pattern "*.rds" --account-name ecdcwls --sas-token $sastoken --recursive
 
 # NOTE removes ***everything*** from the storage container
-az storage remove -c sendicott -n outputs --account-name ecdcwls --sas-token $sastoken --recursive
+az storage remove -c sendicott --include-pattern "*.rds" --account-name ecdcwls --sas-token $sastoken --recursive
 
 #### Delete pool and job ##########################
 az batch job delete --job-id $jobName
