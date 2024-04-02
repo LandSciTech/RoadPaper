@@ -115,23 +115,20 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
                         cutblocksPth, existingRoads,
                         weightRaster){
   # row for observed
-  observedRow <- c("observed", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
-
-  paramTable <- rbind(paramTable, observedRow)
+  paramTable <- dplyr::add_row(paramTable, sampleType = "observed")
 
   paramTable$output[[nrow(paramTable)]] <- observedRoads
 
   # row for QGIS Plugin
   if(!is.null(klementProj)){
-    klementRow <- c("klementQGIS", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)
 
-    paramTable <- rbind(paramTable, klementRow)
+    paramTable <- dplyr::add_row(paramTable, sampleType = "klementQGIS")
 
     paramTable$output[[nrow(paramTable)]] <- klementProj
   }
 
   # row for if only consider roads in disturbance
-  paramTable <- rbind(paramTable, c("cutOnly", NA, NA, NA, NA, NA, NA, NA, NA, NA, NA))
+  paramTable <- dplyr::add_row(paramTable,  sampleType = "cutOnly")
 
   cutblocksRaster <- terra::rasterize(terra::vect(cutblocks), nonAggregatedweightRaster)
 
@@ -143,7 +140,11 @@ calcMetrics <- function(paramTable, klementProj, cutblocks,
     if(cRow$sampleType == "cutOnly"){
       out <- existingRoads
     } else {
-      out <- readRDS(cRow$output)
+      if(stringr::str_detect(cRow$output, "gpkg|shp")){
+        out <- sf::read_sf(cRow$output)
+      } else {
+        out <- readRDS(cRow$output)
+      }
     }
 
     roadDensityResults <- rasterizeLineDensity(out, r = weightRaster)
@@ -187,7 +188,7 @@ getMetricMeans <- function(paramTable, cutblocks){
                          method = paramTable$method,
                          areaMean = "overall")
 
-  metricsAll <- paramTable %>% select(roadDisturbance:forestryDisturbance) %>%
+  metricsAll <- paramTable %>% select(matches("road|Disturbance")) %>%
     unlist() %>%
     map_dbl(~terra::global(.x, "mean", na.rm = TRUE)[1,1]) %>%
     as_tibble(rownames = "name") %>%
@@ -205,7 +206,7 @@ getMetricMeans <- function(paramTable, cutblocks){
                           areaMean = "cutover")
   cutblocks <- terra::vect(cutblocks)
 
-  metricsCut <- paramTable %>% select(roadDisturbance:forestryDisturbance) %>%
+  metricsCut <- paramTable %>% select(matches("road|Disturbance")) %>%
     unlist() %>%
     map_dbl(~ terra::mask(.x, cutblocks) %>%
               terra::global("mean", na.rm = TRUE) %>% .[1,1]) %>%
@@ -223,7 +224,7 @@ getMetricMeans <- function(paramTable, cutblocks){
                           method = paramTable$method,
                           areaMean = "notCutover")
 
-  metricsNCut <- paramTable %>% select(roadDisturbance:forestryDisturbance) %>%
+  metricsNCut <- paramTable %>% select(matches("road|Disturbance")) %>%
     unlist() %>%
     map_dbl(~ terra::mask(.x, cutblocks, inverse = TRUE) %>%
               terra::global("mean", na.rm = TRUE) %>% .[1,1]) %>%
@@ -299,11 +300,12 @@ agreeMetricsAll <- function(paramTable, prex_rast, prex_vect, boundary, cutblock
     metric = c("roadDisturbance", "roadPresence", "forestryDisturbance"),
     prex_rast = list(roadDisturbanceFootprint(prex_vect, !is.na(prex_rast), boundary),
                      prex_rast,
-                     disturbanceMetrics(linFeat = prex_vect,
-                                        landCover = as(nonAggregatedweightRaster, "Raster"),
-                                        projectPoly = boundary,
-                                        anthroDist = terra::rasterize(terra::vect(cutblocks), nonAggregatedweightRaster) %>%
-                                          as("Raster"))@processedData$Anthro %>% terra::rast())
+                     disturbanceMetrics(
+                       linFeat = prex_vect,
+                       landCover = nonAggregatedweightRaster,
+                       projectPoly = boundary,
+                       anthroDist = terra::rasterize(terra::vect(cutblocks), nonAggregatedweightRaster)
+                     )@processedData$Anthro)
   ) %>%
     mutate(prex_rast = prex_rast %>%
              map(~terra::subst(.x, from = 1, to = 10)) )
@@ -420,7 +422,7 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
       runT <- read.csv(file.path(outPth, "mean_table.csv"), na.strings = c("", "NA")) %>%
         filter(areaMean == "overall") %>%
         semi_join(paramTable %>% mutate(order = 1:n()) %>%
-                    select(sampleType, order, method, runTime),
+                    select(sampleType, order, method),
                   by = join_by(sampleType, order, method)) %>%
         pull(runTime)
     } else {
@@ -477,8 +479,16 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
           bind_rows(data.frame(sampleType = c("klementQGIS")))
       }
 
+
+
       met_res <- allMetrics %>%
-        dplyr::select(-c(sampleType, sampleDens, method, runTime, output, weightFunction)) %>%
+        mutate(roadDisturbance = vector("list", length(sampleDens)),
+               roadDensity = vector("list", length(sampleDens)),
+               roadPresence = vector("list", length(sampleDens)),
+               distanceToRoad = vector("list", length(sampleDens)),
+               forestryDisturbance = vector("list", length(sampleDens))) %>%
+        dplyr::select(-any_of(c("sampleType", "sampleDens", "method", "runTime",
+                                "output", "weightFunction", "agg", "cutblocks_real"))) %>%
         colnames() %>%
         purrr::cross2(1:nrow(allMetrics)) %>%
         set_names(purrr::map_chr(., ~paste0(.x[[1]], "_", .x[[2]]))) %>%
