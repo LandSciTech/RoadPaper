@@ -63,22 +63,17 @@ sampleType <- c("regular","random","centroid")
 paramTable <- tibble(sampleType, sampleDens,
                      method = "mst",
                      runTime = vector("list", length(sampleDens)),
-                     output = vector("list", length(sampleDens)),
-                     roadDisturbance = vector("list", length(sampleDens)),
-                     roadDensity = vector("list", length(sampleDens)),
-                     roadPresence = vector("list", length(sampleDens)),
-                     distanceToRoad = vector("list", length(sampleDens)),
-                     forestryDisturbance = vector("list", length(sampleDens))) %>%
+                     output = vector("list", length(sampleDens))) %>%
   distinct()
 
 simpleCostFn = function(x1,x2,...) (x1+x2)/2
 paramTable$weightFunction = deparse1(simpleCostFn,collapse="\n")
-paramTable$weightMethod = "simple cost"
+paramTable$weightMethod = "Simple cost"
 
 paramTableDem = paramTable
 paramTableDem$weightFunction = deparse1(slopePenaltyFn,collapse="\n")
 paramTableDem$weightFunction = gsub("limitWeight = NA","limitWeight = 65000",paramTableDem$weightFunction,fixed=T)
-paramTableDem$weightMethod = "grade penalty"
+paramTableDem$weightMethod = "Grade penalty"
 
 paramTableDem<- subset(paramTableDem,sampleType!="centroid")
 
@@ -125,6 +120,7 @@ ilcpProjDem <- projectAll(tsbs = tsb,
                           fileLocation = here(data_path_drvd, "for_fig"),
                           roadsInWeight = F)
 
+terra::writeRaster(tsaCost, here(data_path_drvd, "for_fig","HardyQGISTestweight.tif"),overwrite=T)
 
 allProj <- bind_rows(mstProj, ilcpProj, mstProjDem, ilcpProjDem) %>%
   arrange(weightMethod,desc(sampleType), sampleDens)
@@ -136,17 +132,11 @@ allProj <- bind_rows(
   tibble(sampleType = "", sampleDens = 0, method = "Hardy QGIS",
          output = list(here(data_path_drvd, "for_fig",
                             "HardyQGISTest.gpkg")))) %>%
-  mutate(mapTitle =  paste(weightMethod,
+  mutate(mapTitle =  paste(ifelse(is.na(weightMethod), "", weightMethod),
                            ifelse(method == "mst", "MST",
                                   ifelse(method == "ilcp", "ILCP", method)),
-                           sampleType,
-                           ifelse(sampleDens == 1e-06 &
-                                    sampleType != "centroid", "low density",
-                                  ifelse(sampleDens == 1e-05,
-                                         "high density", ""))))
-terra::writeRaster(tsaCost, here(data_path_drvd, "for_fig","HardyQGISTestweight.tif"),overwrite=T)
-
-
+                           sampleType) %>%
+           trimws())
 
 # add extra row for legend
 allProj <- bind_rows(allProj,
@@ -156,8 +146,9 @@ allProj <- bind_rows(allProj,
 allMaps <- purrr::map(
   1:nrow(allProj),
   ~ qtm(cutblocks, borders = "#92c5de", fill="#92c5de", borders.lwd = 1,)+
-    qtm(rast(here(gsub(".gpkg","weight.tif",allProj$output[[.x]],fixed=T))), raster.style = "cont", raster.palette = "Greys",
-        raster.alpha = 0.25, raster.title = NA)+
+    qtm(rast(here(gsub(".gpkg","weight.tif",allProj$output[[.x]],fixed=T))),
+        raster.style = "cont", raster.palette = "Greys",
+        raster.alpha = 0.25, raster.title = NA, raster.legend.show = FALSE)+
     qtm(roads, lines.col = "#0571b0", lines.lwd = 2,lines.lty="solid")+
     qtm(read_sf(here(allProj$output[[.x]])), lines.col = "#ca0020", lines.lwd = 2)+
     qtm(exRoads, lines.col = "black", lines.lwd = 2)+
@@ -184,6 +175,9 @@ tmap_save(tmap_arrange(allMaps, ncol = 3),
           here("analysis/figures/projection_methods_figureV2.png"),
           dpi = 300, height = 8, width = fig_widths["two"])
 
+# tmap_save(tmap_arrange(c(allMaps[4:6], allMaps[8], allMaps[1:3], allMaps[9]), ncol = 4),
+#           here("analysis/figures/projection_methods_figureV2.png"),
+#           dpi = 300, height = 4, width = fig_widths["two"])
 
 if(0){
   # parameter table creation for running projections
