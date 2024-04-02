@@ -20,6 +20,7 @@ cutblocksPth = paste0(data_path_raw, "cutblocks_revelstoke.gpkg")
 roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg")
 tsaBoundaryPth = paste0(data_path_raw, "tsa27_58_testing.gpkg")
 costPth = paste0(data_path_raw, "cost_surface_bc_ha.tif")
+demPth = paste0(data_path_drvd, "TSA27/dem_revelstokeCoarse.tif")
 
 # densities
 high <- 0.00001
@@ -29,6 +30,9 @@ low <-  0.000001
 cutblocks <- read_sf(cutblocksPth)
 roads <- read_sf(roadsPth)
 tsaCost <- rast(costPth)
+dem <- rast(demPth)
+
+#get average elevation in each cost cell
 
 projRoads <- read_sf(paste0(data_path_drvd, "TSA27/", "random_1e-05_mst.gpkg"))
 
@@ -53,6 +57,7 @@ cutblocks <- vect(cutblocks) %>% crop(bound) %>% st_as_sf()
 projRoads <- vect(projRoads) %>% crop(bound) %>% st_as_sf()
 exRoads <- vect(exRoads) %>% crop(bound) %>% st_as_sf()
 tsaCost <- crop(tsaCost, bound)
+dem <- crop(dem, bound)
 
 # add a large cutblock
 plot(roads %>% st_geometry())
@@ -70,4 +75,5 @@ write_sf(exRoads, paste0(data_path_drvd, "testing_ex_roads.gpkg"))
 write_sf(tsb[[1]], paste0(data_path_drvd, "testing_tsb.gpkg"))
 write_sf(cutblocks, paste0(data_path_drvd, "testing_cutblocks.gpkg"))
 writeRaster(tsaCost, paste0(data_path_drvd, "testing_cost.tif"),overwrite=T)
+writeRaster(dem, paste0(data_path_drvd, "testing_dem.tif"),overwrite=T)
 write_sf(roads, paste0(data_path_drvd, "testing_obs_roads.gpkg"))

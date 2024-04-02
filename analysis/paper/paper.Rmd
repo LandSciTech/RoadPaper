@@ -279,6 +279,7 @@ exRoads <- read_sf(here(data_path_drvd, "..", "testing_ex_roads.gpkg"))
 tsb <- read_sf(here(data_path_drvd, "..", "testing_tsb.gpkg"))
 cutblocks <- read_sf(here(data_path_drvd, "..", "testing_cutblocks.gpkg"))
 tsaCost <- raster::raster(here(data_path_drvd, "..", "testing_cost.tif"))
+dem <- raster::raster(here(data_path_drvd, "..", "testing_dem.tif"))
 roads <- read_sf(here(data_path_drvd, "..", "testing_obs_roads.gpkg"))
 
 # densities
@@ -298,6 +299,14 @@ paramTable <- tibble(sampleType, sampleDens,
                      forestryDisturbance = vector("list", length(sampleDens))) %>%
   distinct()
 
+simpleCostFn = function(x1,x2,...) (x1+x2)/2
+paramTable$weightFunction = deparse1(simpleCostFn,collapse="\n")
+paramTable$weightMethod = "simple cost"
+
+paramTableDem = paramTable
+paramTableDem$weightFunction = deparse1(slopePenaltyFn,collapse="\n")
+paramTableDem$weightFunction = gsub("limitWeight = NA","limitWeight = 65000",paramTableDem$weightFunction,fixed=T)
+
 # re-run projections for just the small area with different parameters
 mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
                       weightRaster = tsaCost,
@@ -316,7 +325,25 @@ ilcpProj <- projectAll(tsbs = tsb,
                       fileLocation = here(data_path_drvd, "..", "for_fig"),
                       roadsInWeight = F)
 
-allProj <- bind_rows(mstProj, ilcpProj, .id = "method") %>%
+# re-run projections for just the small area with different parameters
+mstProjDem <- projectAll(tsbs = tsb, paramTable = paramTableDem,
+                      weightRaster = dem,
+                      cutblocks = cutblocks,
+                      existingRoads = exRoads,
+                      fileLocation = here(data_path_drvd, "..", "for_fig"),
+                      roadsInWeight = F)
+
+ilcpProjDem <- projectAll(tsbs = tsb,
+                      paramTable = paramTableDem %>% 
+                        filter(sampleType == "regular") %>% 
+                        mutate(method = "ilcp"),
+                      weightRaster = dem,
+                      cutblocks = cutblocks,
+                      existingRoads = exRoads,
+                      fileLocation = here(data_path_drvd, "..", "for_fig"),
+                      roadsInWeight = F)
+
+allProj <- bind_rows(mstProj, ilcpProj, mstProjDem, ilcpDem, .id = "method") %>%
   arrange(desc(sampleType), sampleDens)
 
 # add Hardy QGIS results for the same area
@@ -328,6 +355,7 @@ allProj <- bind_rows(
                                 "HardyQGISTest.gpkg")))) %>% 
   mutate(mapTitle =  paste(ifelse(method == 1, "MST",
                                   ifelse(method == 2, "ILCP", method)),
+                           weightMethod,
                            sampleType,
                            ifelse(sampleDens == 1e-06 & 
                                     sampleType != "centroid", "low density", 

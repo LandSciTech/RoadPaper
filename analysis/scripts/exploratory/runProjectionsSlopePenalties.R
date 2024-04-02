@@ -34,19 +34,6 @@ high <- 0.00001
 
 # For Revelstoke at fine resolution
 
-#build new cost raster
-
-dem = rast(paste0(data_path_drvd, "TSA27/dem_revelstoke.tif"))
-costOld = rast(paste0(data_path_raw, "cost_surface_bc_ha.tif"))
-cCost = crop(costOld,dem)
-#get average elevation in each cost cell
-cDem = resample(dem,cCost,method="average")
-cDem[is.na(cCost)]=NA
-cDem = cDem
-range(cDem)
-terra::writeRaster(cDem,
-                   filename = file.path(data_path_drvd, "TSA27/dem_revelstokeCoarse.tif"), overwrite=T)
-
 pal_nm <- "Redon"
 
 fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
@@ -58,11 +45,8 @@ exRoads <- read_sf(here(data_path_drvd, "testing_ex_roads.gpkg"))
 tsb <- read_sf(here(data_path_drvd,  "testing_tsb.gpkg"))
 cutblocks <- read_sf(here(data_path_drvd,  "testing_cutblocks.gpkg"))
 tsaCost <- rast(here(data_path_drvd,  "testing_cost.tif"))
+dem <- rast(here(data_path_drvd,  "testing_dem.tif"))
 roads <- read_sf(here(data_path_drvd,  "testing_obs_roads.gpkg"))
-demCost = crop(cDem,tsaCost)
-demCost[tsaCost==0]=0
-plot(demCost)
-range(demCost)
 
 see = data.frame(demDif = seq(-0.3,0.3,length.out=1000))
 see$cost = slopePenaltyFn(1,1+see$demDif,resolution=100)
@@ -93,19 +77,19 @@ f2 <- eval(str2lang(paramTable$weightFunction[1]))
 
 # re-run projections for just the small area with different parameters
 mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
-                      weightRaster = demCost,
+                      weightRaster = dem,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
-                      fileLocation = here(data_path_drvd, "for_fig"),roadsInCost=F)
+                      fileLocation = here(data_path_drvd, "for_fig"),roadsInWeight=F)
 
 ilcpProj <- projectAll(tsbs = tsb,
                        paramTable = paramTable %>%
                          filter(sampleType == "regular") %>%
                          mutate(method = "ilcp"),
-                       weightRaster = demCost,
+                       weightRaster = dem,
                        cutblocks = cutblocks,
                        existingRoads = exRoads,
-                       fileLocation = here(data_path_drvd, "for_fig"),roadsInCost=F)
+                       fileLocation = here(data_path_drvd, "for_fig"),roadsInWeight=F)
 
 allProj <- bind_rows(mstProj, ilcpProj, .id = "method") %>%
   arrange(desc(sampleType), sampleDens)
@@ -132,7 +116,7 @@ allProj <- bind_rows(allProj,
 allMaps <- purrr::map(
   1:nrow(allProj),
   ~ qtm(cutblocks, borders = "#92c5de", fill="#92c5de", borders.lwd = 1,)+
-    qtm(demCost, raster.style = "cont", raster.palette = "Greys",
+    qtm(dem, raster.style = "cont", raster.palette = "Greys",
         raster.alpha = 0.25, raster.title = "Scaled Elevation")+
     qtm(roads, lines.col = "#0571b0", lines.lwd = 2,lines.lty="solid")+
     qtm(read_sf(here(allProj$output[[.x]])), lines.col = "#ca0020", lines.lwd = 2)+
@@ -163,19 +147,19 @@ f2 <- eval(str2lang(paramTable$weightFunction[1]))
 
 # re-run projections for just the small area with different parameters
 mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
-                      weightRaster = demCost,
+                      weightRaster = dem,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
-                      fileLocation = here(data_path_drvd, "for_fig"),roadsInCost=F)
+                      fileLocation = here(data_path_drvd, "for_fig"),roadsInWeight=F)
 
 ilcpProj <- projectAll(tsbs = tsb,
                        paramTable = paramTable %>%
                          filter(sampleType == "regular") %>%
                          mutate(method = "ilcp"),
-                       weightRaster = demCost,
+                       weightRaster = dem,
                        cutblocks = cutblocks,
                        existingRoads = exRoads,
-                       fileLocation = here(data_path_drvd, "for_fig"),roadsInCost=F)
+                       fileLocation = here(data_path_drvd, "for_fig"),roadsInWeight=F)
 
 allProj <- bind_rows(mstProj, ilcpProj, .id = "method") %>%
   arrange(desc(sampleType), sampleDens)
@@ -202,7 +186,7 @@ allProj <- bind_rows(allProj,
 allMaps <- purrr::map(
   1:nrow(allProj),
   ~ qtm(cutblocks, borders = "#92c5de", fill="#92c5de", borders.lwd = 1,)+
-    qtm(demCost, raster.style = "cont", raster.palette = "Greys",
+    qtm(dem, raster.style = "cont", raster.palette = "Greys",
         raster.alpha = 0.25, raster.title = "Scaled Elevation")+
     qtm(roads, lines.col = "#0571b0", lines.lwd = 2,lines.lty="solid")+
     qtm(read_sf(here(allProj$output[[.x]])), lines.col = "#ca0020", lines.lwd = 2)+
