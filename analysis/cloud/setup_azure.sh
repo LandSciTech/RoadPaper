@@ -61,20 +61,24 @@ az batch pool create --json-file analysis/cloud/pool_to_use.json
 az batch job create --pool-id $poolName --id $jobName
 
 # 1 2 3 4 5 6
-for rowi in {1..24}
+for rowi in 7 8 9 10 11 13 14 15 16 17 19 20 21 22
 do
   az batch task create --json-file analysis/cloud/task_jsons/task_roads_$rowi.json --job-id $jobName
 done
 
 # az batch task delete --task-id connectivity-combine --job-id $jobName --yes
 #
-# for rowi in {1..24}
+# for rowi in 7 8 9 10 11 13 14 15 16 17 19 20 21 22
 # do
-#   az batch task delete --job-id $jobName --task-id roads-benchmark-$rowi --yes
+#   az batch task reactivate --job-id $jobName --task-id roads-benchmark-$rowi
 # done
 
+# set target dedicated nodes
+az batch pool resize --pool-id $poolName --target-dedicated-nodes 14
+
 # prompt auto scaleing of pool by changing time interval
-az batch pool autoscale enable --pool-id $poolName --auto-scale-evaluation-interval "PT6M"\
+# enabling this as soon as the tasks are created seems to make it think there are no tasks
+az batch pool autoscale enable --pool-id $poolName --auto-scale-evaluation-interval "PT5M"\
  --auto-scale-formula 'percentage = 70;
  span = TimeInterval_Second * 15;
  $samples = $ActiveTasks.GetSamplePercent(span);
