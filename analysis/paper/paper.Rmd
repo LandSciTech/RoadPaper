@@ -306,64 +306,68 @@ paramTable$weightMethod = "simple cost"
 paramTableDem = paramTable
 paramTableDem$weightFunction = deparse1(slopePenaltyFn,collapse="\n")
 paramTableDem$weightFunction = gsub("limitWeight = NA","limitWeight = 65000",paramTableDem$weightFunction,fixed=T)
+paramTableDem$weightMethod = "grade penalty"
+
+paramTableDem<- subset(paramTableDem,sampleType!="centroid")
 
 # re-run projections for just the small area with different parameters
 mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
                       weightRaster = tsaCost,
                       cutblocks = cutblocks,
                       existingRoads = exRoads,
-                      fileLocation = here(data_path_drvd, "..", "for_fig"),
+                      fileLocation = here(data_path_drvd,"..", "for_fig"),
                       roadsInWeight = F)
 
 ilcpProj <- projectAll(tsbs = tsb,
-                      paramTable = paramTable %>% 
-                        filter(sampleType == "regular") %>% 
-                        mutate(method = "ilcp"),
-                      weightRaster = tsaCost,
-                      cutblocks = cutblocks,
-                      existingRoads = exRoads,
-                      fileLocation = here(data_path_drvd, "..", "for_fig"),
-                      roadsInWeight = F)
+                       paramTable = paramTable %>%
+                         filter(sampleType == "regular") %>%
+                         mutate(method = "ilcp"),
+                       weightRaster = tsaCost,
+                       cutblocks = cutblocks,
+                       existingRoads = exRoads,
+                       fileLocation = here(data_path_drvd,"..", "for_fig"),
+                       roadsInWeight = F)
 
 # re-run projections for just the small area with different parameters
 mstProjDem <- projectAll(tsbs = tsb, paramTable = paramTableDem,
-                      weightRaster = dem,
-                      cutblocks = cutblocks,
-                      existingRoads = exRoads,
-                      fileLocation = here(data_path_drvd, "..", "for_fig"),
-                      roadsInWeight = F)
+                         weightRaster = dem,
+                         cutblocks = cutblocks,
+                         existingRoads = exRoads,
+                         fileLocation = here(data_path_drvd,"..", "for_fig"),
+                         roadsInWeight = F)
 
 ilcpProjDem <- projectAll(tsbs = tsb,
-                      paramTable = paramTableDem %>% 
-                        filter(sampleType == "regular") %>% 
-                        mutate(method = "ilcp"),
-                      weightRaster = dem,
-                      cutblocks = cutblocks,
-                      existingRoads = exRoads,
-                      fileLocation = here(data_path_drvd, "..", "for_fig"),
-                      roadsInWeight = F)
+                          paramTable = paramTableDem %>%
+                            filter(sampleType == "regular") %>%
+                            mutate(method = "ilcp"),
+                          weightRaster = dem,
+                          cutblocks = cutblocks,
+                          existingRoads = exRoads,
+                          fileLocation = here(data_path_drvd,"..", "for_fig"),
+                          roadsInWeight = F)
 
-allProj <- bind_rows(mstProj, ilcpProj, mstProjDem, ilcpDem, .id = "method") %>%
-  arrange(desc(sampleType), sampleDens)
+
+allProj <- bind_rows(mstProj, ilcpProj, mstProjDem, ilcpProjDem) %>%
+  arrange(weightMethod,desc(sampleType), sampleDens)
 
 # add Hardy QGIS results for the same area
 
 allProj <- bind_rows(
   allProj,
   tibble(sampleType = "", sampleDens = 0, method = "Hardy QGIS",
-             output = list(here(data_path_drvd, "..", "for_fig", 
-                                "HardyQGISTest.gpkg")))) %>% 
-  mutate(mapTitle =  paste(ifelse(method == 1, "MST",
-                                  ifelse(method == 2, "ILCP", method)),
-                           weightMethod,
+         output = list(here(data_path_drvd,"..", "for_fig",
+                            "HardyQGISTest.gpkg")))) %>%
+  mutate(mapTitle =  paste(weightMethod,
+                           ifelse(method == "mst", "MST",
+                                  ifelse(method == "ilcp", "ILCP", method)),
                            sampleType,
-                           ifelse(sampleDens == 1e-06 & 
-                                    sampleType != "centroid", "low density", 
-                                  ifelse(sampleDens == 1e-05, 
+                           ifelse(sampleDens == 1e-06 &
+                                    sampleType != "centroid", "low density",
+                                  ifelse(sampleDens == 1e-05,
                                          "high density", ""))))
 
 # add extra row for legend
-allProj <- bind_rows(allProj, 
+allProj <- bind_rows(allProj,
                      slice(allProj, 1))
 
 allMaps <- purrr::map(
@@ -380,17 +384,17 @@ allMaps <- purrr::map(
               main.title.size = 0.75))
 
 allMaps[[nrow(allProj)]] <- allMaps[[nrow(allProj)]]+
-  tm_add_legend(type = "line", 
+  tm_add_legend(type = "line",
                 labels = c("Existing roads", "Projected roads", "Observed roads"),
                 col = c("black", "#ca0020", "#0571b0"),lty=c("solid","solid","solid"))+
-    tm_add_legend(type = "fill", 
+  tm_add_legend(type = "fill",
                 labels = "Cutblocks",
                 col = "#92c5de", border.col ="#92c5de")+
   tm_layout(legend.only = TRUE, legend.position = c("center", "center"))
 
 tmap_save(tmap_arrange(allMaps, ncol = 3),
           here("analysis/figures/projection_methods_figure.png"),
-          dpi = 300, height = 5, width = fig_widths["two"])
+          dpi = 300, height = 8, width = fig_widths["two"])
 ```
 
 ```{r proj-meth-fig, fig.cap="Comparison of minimum spanning tree (MST), iterative least cost paths (ILCP), and the Hardy QGIS plugin road network projection algorithms. Landing locations were selected as the centroid of the cutblock, or a random or regularly spaced sample of points inside each cutblock (Table 2). Target cutblocks are outlined in grey, existing roads are black, projected roads are yellow, observed roads are red. Cost (1 ha resolution) is indicated by grey shading. The large four sided cutblock in the top right was added to more clearly show algorithm behaviour within cutblocks."}

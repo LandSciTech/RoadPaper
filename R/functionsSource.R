@@ -96,12 +96,22 @@ projectAll <- function(tsbs,paramTable, weightRaster,
 
     end <- Sys.time()
 
-    paramTable$output[[i]] <- file.path(fileLocation, paste0(cRow$sampleType, "_",
-                                     cRow$sampleDens, "_", cRow$method, ".gpkg"))
+    if(is.element("weightMethod",names(paramTable))){
+      paramTable$output[[i]] <- file.path(fileLocation, paste0(cRow$weightMethod, "_",cRow$sampleType, "_",
+                                                               cRow$sampleDens, "_", cRow$method, ".gpkg"))
+    }else{
+      paramTable$output[[i]] <- file.path(fileLocation, paste0(cRow$sampleType, "_",
+                                                               cRow$sampleDens, "_", cRow$method, ".gpkg"))
+    }
     paramTable$runTime[[i]] <- as.numeric(end - start)
 
     # save the projected roads to a file
     sf::write_sf(projections, paramTable$output[[i]])
+
+    if(is.element("weightMethod",names(paramTable))){
+
+      terra::writeRaster(weightRaster, gsub(".gpkg","weight.tif",paramTable$output[[i]],fixed=T),overwrite=T)
+    }
 
     rm(projections)
     gc(verbose = TRUE)
