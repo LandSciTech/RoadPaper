@@ -154,19 +154,27 @@ devtools::load_all(here())
 
 #set paths
 data_path_raw <- "analysis/data/raw_data/"
-data_path_drvd <- "analysis/data/derived_data/TSA27"
+data_path_drvd <- "analysis/data/derived_data/TSA27_real_cuts"
 
 pal_nm <- "Redon"
 
 fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 ```
 
-```{r study-area, fig.cap="Road construction costs according to a simple model informed by slope and major barriers (Table 1) in the Revelstoke timber supply area in British Colombia, Canada.", cache=TRUE}
+<!---BLOCK_MULTICOL_START--->
+
+```{r prepStudyArea, cache=TRUE}
+
 tsaBoundary <- read_sf(here(data_path_raw, "tsa27_boundaries.gpkg"))
 #cost surface raster layer
-tsaCost <- terra::rast(here(data_path_drvd, "input_cost.tif"))
+tsaCost <- terra::rast(here(data_path_drvd, "old cost/input_cost.tif"))
+dem <- terra::rast(here(data_path_drvd, "dem/input_cost.tif"))
+
+#tsaCost[tsaCost==65000]=NA
+dem[dem==-65000]=NA
 
 tsaCost <- terra::mask(tsaCost, terra::vect(tsaBoundary))
+dem <- terra::mask(dem, terra::vect(tsaBoundary))
 
 canada <- geodata::gadm("CAN", level = 1, path = here(data_path_raw))
 
@@ -191,16 +199,43 @@ tsa <- tm_shape(tsaCost, name = "Cost")+
   tm_layout(legend.position = c("left", "bottom"),
             legend.bg.color = "white")
   
-
 vp <- grid::viewport(x=0.965, y=0.945, width = 0.35, height=0.2,
                just=c("right", "top"))
 
 tmap_save(tsa, filename = here("analysis/figures/Figure1_StudyArea.png"),
   dpi = 600, insets_tm = canada_overlay, insets_vp = vp,
-  height = 6, width = fig_widths["single"], units = "in")
+  height = 6*0.9, width = fig_widths["single"]*0.9, units = "in")
+
+tsaDEM <- tm_shape(dem, name = "Elevation")+
+  tm_raster(style = "cont", title = "Elevation",palette="Greys")+
+  tm_shape(st_union(tsaBoundary))+
+  tm_borders(col = "black")+
+  tm_compass(position = c(0.3, 0.11), size = 1)+
+  tm_scale_bar(position = c("center", "bottom"), text.size = 1)+
+  tm_layout(legend.position = c("left", "bottom"),
+            legend.bg.color = "white")
+
+tmap_save(tsaDEM, filename = here("analysis/figures/Figure1_StudyAreaDEM.png"),
+  dpi = 600, insets_vp = vp,
+  height = 6*0.9, width = fig_widths["single"]*0.9, units = "in")
+
+```
+
+```{r study-area1, fig.cap="Road construction costs according to a simple model informed by slope and major barriers (Table 1) in the Revelstoke timber supply area in British Colombia, Canada."}
 
 knitr::include_graphics(here("analysis/figures/Figure1_StudyArea.png"))
 
+```
+```{r study-area2}
+
+knitr::include_graphics(here("analysis/figures/Figure1_StudyAreaDEM.png"))
+```
+<!---BLOCK_MULTICOL_STOP{widths: [3.6,3.6]}--->
+
+```{r study-area, fig.cap="Road construction costs according to a simple model informed by slope and major barriers (Table 1) in the Revelstoke timber supply area in British Colombia, Canada."}
+
+png::writePNG(array(0, dim = c(1,1,4)), here("analysis/figures/empty.png"))
+knitr::include_graphics(here("analysis/figures/empty.png"))
 ```
 
 Road network data was obtained by combining the digital road atlas [@data_bc_digital_2021] and forest tenure road [@british_columbia_ministry_of_forests_lands_natural_resource_operations_and_rural_development__flnrord_forest_2021] data sets for British Columbia. To avoid situations where the same road was included in both data sets with slightly different coordinates, we removed all roads from the digital road atlas that were within 50 m of forest tenure roads. The existing road network, used as the starting point for projections, was created by filtering out forest tenure roads with an award date greater than 1990. We assumed everything in the digital road atlas was built before 1990. Cutblock information was obtained from the Harvest Areas of BC (Consolidated Cutblocks) dataset [@government_of_british_columbia_harvested_2021], compiled from provincial Forest Cover, the RESULTS Reporting system, Forest Tenure applications, and satellite imagery using change detection processes. The data does not exclude non-harvested 'reserved' areas, and satellite image change detection may not always represent the entire cutblock area [@government_of_british_columbia_harvested_2021]. Forest harvest cutblocks with harvest years greater than 1990 were filtered and used as targets for the projections.
@@ -421,8 +456,8 @@ Outside cutblocks, all method variants underproject road density and road presen
 
 ```{r get-data}
 # load csv
-meanTable <- read.csv(here(data_path_drvd, "mean_table.csv"))
-matchData <- read.csv(here(data_path_drvd, "agree_table.csv"))
+meanTable <- read.csv(here(data_path_drvd,"../TSA27", "mean_table.csv"))
+matchData <- read.csv(here(data_path_drvd,"../TSA27", "agree_table.csv"))
 meanTableRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts",
                                    "mean_table.csv"))
 
