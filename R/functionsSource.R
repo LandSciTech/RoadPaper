@@ -297,8 +297,8 @@ calcAgree <- function(obs_rast, proj_rast, prex_rast, return_res = FALSE){
 #' @param boundary polygon boundary to mask rasters
 
 
-agreeMetricsAll <- function(paramTable, prex_rast, prex_vect, boundary, cutblocks, nonAggregatedweightRaster){
-  obs_tbl <- paramTable %>% filter(sampleType == "observed") %>%
+agreeMetricsAll <- function(paramTable2, prex_rast, prex_vect, boundary, cutblocks, nonAggregatedweightRaster){
+  obs_tbl <- paramTable2 %>% filter(sampleType == "observed") %>%
     dplyr::select(roadDisturbance, roadPresence, forestryDisturbance) %>%
     tidyr::pivot_longer(everything(), names_to = "metric", values_to = "obs_rast") %>%
     mutate(obs_rast = obs_rast %>%
@@ -320,7 +320,7 @@ agreeMetricsAll <- function(paramTable, prex_rast, prex_vect, boundary, cutblock
     mutate(prex_rast = prex_rast %>%
              map(~terra::subst(.x, from = 1, to = 10)) )
 
-  paramTable %>% filter(sampleType != "observed") %>%
+  paramTable2 %>% filter(sampleType != "observed") %>%
     dplyr::select(sampleType, sampleDens, method, roadDisturbance, roadPresence, forestryDisturbance) %>%
     tidyr::pivot_longer(-c(contains("Sample"), method), names_to = "metric", values_to = "rast") %>%
     left_join(obs_tbl, by = "metric") %>%
@@ -337,7 +337,7 @@ prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
                        outPth, aggFact, replaceNA = NULL,
                        saveInputs = FALSE){
   if(!dir.exists(outPth)){
-    dir.create(outPth)
+    dir.create(outPth, recursive = TRUE)
   }
   ######### load in data for projections ########################################
 
@@ -406,7 +406,7 @@ prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
 
 # run all projections and summarise results for one tsa
 run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
-                            outPth, klementProj, aggFact, method = "mst",
+                            outPth, klementProj = NULL, aggFact, method = "mst",
                             saveInputs = FALSE, load_file = NULL, replaceNA = NULL){
 
   inputs <- prepInputs(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
@@ -480,7 +480,7 @@ run_projections <- function(paramTable,cutblocksPth, roadsPth, tsaBoundaryPth, c
 
   # load metrics from saved files
   if(!is.null(load_file)){
-    if(load_file == "metrics"){
+    if(load_file == "metrics"|load_file == "results"){
       allMetrics <- allResults %>%
         bind_rows(data.frame(sampleType = c("observed", "cutOnly")))
 
