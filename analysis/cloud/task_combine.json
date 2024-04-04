@@ -1,0 +1,59 @@
+{
+  "id": "roads-benchmark-<row>",
+  "commandLine": "bash -c 'nohup Rscript 'make_to_use.R' <row>'",
+	"outputFiles": [
+	  {
+    "destination": {
+      "container": {
+        "containerUrl": "<SASURL>",
+        "path": "logs_<row>"
+        }
+      },
+    "filePattern": "../*.txt",
+    "uploadOptions": {
+      "uploadCondition": "taskcompletion"
+      }
+    },
+	  {
+		"destination": {
+			"container": {
+				"containerUrl": "<SASURL>",
+				"path": "$AZ_BATCH_TASK_ID"
+			}
+		},
+		"filePattern": "**/*.csv",
+		"uploadOptions": {
+			"uploadCondition": "taskcompletion"
+		  }
+	  },
+	  	  {
+		"destination": {
+			"container": {
+				"containerUrl": "<SASURL>",
+				"path": "$AZ_BATCH_TASK_ID"
+			}
+		},
+		"filePattern": "**/*.tif",
+		"uploadOptions": {
+			"uploadCondition": "taskcompletion"
+		  }
+	  },
+	],
+
+	"resourceFiles": [{
+		"autoStorageContainerName": "sendicott"
+	}
+
+	],
+
+	"containerSettings": {
+    "imageName": "rocker/r2u:jammy",
+    "containerRunOptions": "--rm"
+	},
+    "userIdentity": {
+        "autoUser": {
+            "scope": "pool",
+            "elevationLevel": "admin"
+        }
+    }
+}

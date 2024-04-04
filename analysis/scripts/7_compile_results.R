@@ -69,7 +69,7 @@ run_projections(param_tbl %>% filter(agg == 100) %>%
                 roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
                 tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
                 costPth = paste0(data_path_drvd, "TSA27/dem_revelstokeCoarse.tif"),
-                outPth = paste0(data_path_drvd, "TSA27_real_cuts/dem/"),
+                outPth = paste0(data_path_drvd, "TSA27_real_cuts/dem_1000/"),
 
                 #Klement QGIS projection results shapefile
                 klementProj = paste0(data_path_drvd, "TSA27_real_cuts/", "klementProjection.shp"),
@@ -77,4 +77,46 @@ run_projections(param_tbl %>% filter(agg == 100) %>%
                 aggFact = 10, #factor of aggregation of cost surface. 1 = no aggregation.
                 load_file = "results",
                 saveInputs = FALSE,
+                replaceNA = -65000)
+
+run_projections(param_tbl %>% filter(agg == 10, cutblocks_real == "revelstoke_real") %>%
+                  rowwise() %>%
+                  mutate(across(everything(), as.character)) %>%
+                  mutate(output = file.path(data_path_drvd, "bench_results",
+                                            paste0("result_",
+                                                   paste0(c_across(everything()), collapse = "_"),
+                                                   ".rds"))),
+                cutblocksPth = paste0(data_path_drvd, "cutblocks_revelstoke_real.gpkg"),
+                roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
+                tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
+                costPth = paste0(data_path_drvd, "TSA27/dem_revelstokeCoarse.tif"),
+                outPth = paste0(data_path_drvd, "TSA27_real_cuts/dem/"),
+
+                #Klement QGIS projection results shapefile
+                klementProj = paste0(data_path_drvd, "TSA27_real_cuts/", "klementProjection.shp"),
+
+                aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
+                load_file = "results",
+                saveInputs = TRUE,
+                replaceNA = -65000)
+
+run_projections(param_tbl %>% filter(agg == 10, cutblocks_real == "revelstoke") %>%
+                  rowwise() %>%
+                  mutate(across(everything(), as.character)) %>%
+                  mutate(output = file.path(data_path_drvd, "bench_results",
+                                            paste0("result_",
+                                                   paste0(c_across(everything()), collapse = "_"),
+                                                   ".rds"))),
+                cutblocksPth = paste0(data_path_drvd, "cutblocks_revelstoke.gpkg"),
+                roadsPth = paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"),
+                tsaBoundaryPth = paste0(data_path_raw, "tsa27_boundaries.gpkg"),
+                costPth = paste0(data_path_drvd, "TSA27/dem_revelstokeCoarse.tif"),
+                outPth = paste0(data_path_drvd, "TSA27/dem/"),
+
+                #Klement QGIS projection results shapefile
+                klementProj = paste0(data_path_drvd, "TSA27/", "klementProjection.shp"),
+
+                aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
+                load_file = "results",
+                saveInputs = TRUE,
                 replaceNA = -65000)

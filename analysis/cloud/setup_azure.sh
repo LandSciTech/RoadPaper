@@ -39,6 +39,17 @@ done
 
 sed 's,<pat>,'$ghpat',g' analysis/cloud/make.R > analysis/cloud/make_to_use.R
 
+# files for combine
+sed 's,<subnetId>,'${subnetid//&/\\&}',g' analysis/cloud/pool_combine.json\
+| sed 's,<id>,'${poolName}',g'> analysis/cloud/pool_to_use.json
+
+for rowi in real notreal real1000
+do
+  sed 's,<SASURL>,'${sasurl//&/\\&}',g' analysis/cloud/task_combine.json\
+  | sed 's,<row>,'$rowi',g' > analysis/cloud/task_jsons/task_combine_$rowi.json
+done
+
+sed 's,<pat>,'$ghpat',g' analysis/cloud/make_combine.R > analysis/cloud/make_to_use.R
 
 #### Move files to container ##############
 # First check container is empty. All files in container will be copied to nodes
@@ -56,25 +67,42 @@ az storage copy -d $sasurl -s analysis/data/derived_data/TSA27/dem_revelstoke_10
 az storage copy -d $sasurl -s analysis/scripts/6_benchmark_methods.R
 az storage copy -d $sasurl -s R/functionsSource.R
 
+# files for combine task
+az storage copy -d $sasurl -s analysis/data/derived_data/TSA27/dem_revelstokeCoarse.tif
+
+az storage copy -d $sasurl -s analysis/scripts/7_compile_results_cloud_notreal.R
+az storage copy -d $sasurl -s analysis/scripts/7_compile_results_cloud_real.R
+az storage copy -d $sasurl -s analysis/scripts/7_compile_results_cloud_real1000.R
+
+az storage copy -d $sasurl -s analysis/data/derived_data/TSA27_real_cuts/klementProjection.shp
+az storage copy -d $sasurl -s analysis/data/derived_data/TSA27_real_cuts/klementProjection.shx
+az storage copy -d $sasurl -s analysis/data/derived_data/TSA27_real_cuts/klementProjection.dbf
+az storage copy -d $sasurl -s analysis/data/derived_data/TSA27_real_cuts/klementProjection.prj
 #### Create pool, job, tasks ##########################
 az batch pool create --json-file analysis/cloud/pool_to_use.json
 az batch job create --pool-id $poolName --id $jobName
 
-# 1 2 3 4 5 6
-for rowi in 7 8 9 10 11 13 14 15 16 17 19 20 21 22
+
+for rowi in {1..24}
 do
   az batch task create --json-file analysis/cloud/task_jsons/task_roads_$rowi.json --job-id $jobName
 done
 
+# tasks for combine
+for rowi in real1000 real notreal
+do
+  az batch task create --json-file analysis/cloud/task_jsons/task_combine_$rowi.json --job-id $jobName
+done
+
 # az batch task delete --task-id connectivity-combine --job-id $jobName --yes
 #
-# for rowi in 7 8 9 10 11 13 14 15 16 17 19 20 21 22
+# for rowi in real1000 real notreal
 # do
-#   az batch task reactivate --job-id $jobName --task-id roads-benchmark-$rowi
+#   az batch task delete --job-id $jobName --task-id roads-benchmark-$rowi --yes
 # done
 
 # set target dedicated nodes
-az batch pool resize --pool-id $poolName --target-dedicated-nodes 14
+az batch pool resize --pool-id $poolName --target-dedicated-nodes 2
 
 # prompt auto scaleing of pool by changing time interval
 # enabling this as soon as the tasks are created seems to make it think there are no tasks
@@ -95,6 +123,9 @@ az batch pool list  \
 --query "[].{id:id, curNodes: currentDedicatedNodes,tarNodes: targetDedicatedNodes, allocState:allocationState}" \
 --output yaml
 
+# check node state
+az batch node list --pool-id $poolName --query "{nodes: [].[id, state][]}" --output json
+
 #### Monitor tasks ############################
 
 # details for a single task filtered by query
@@ -111,6 +142,10 @@ az batch task file download --task-id roads-benchmark-1 --job-id $jobName --file
 # See here for making fancy queries https://jmespath.org/tutorial.html
 az batch task list --job-id $jobName --query "{tasks: [].[id, state][]}" --output json
 
+# list running tasks only
+az batch task list --job-id $jobName --query "{tasks: [].[id, state][]}" --output json --filter "state eq 'runni
+ng'"
+
 # Summary of task counts by state
 az batch job task-counts show --job-id $jobName
 
@@ -126,10 +161,13 @@ az storage copy -s https://ecdcwls.blob.core.windows.net/sendicott/*?$sastoken \
 az storage remove -c sendicott --include-pattern "*.rds" --account-name ecdcwls --sas-token $sastoken --recursive
 
 # NOTE removes ***everything*** from the storage container
-az storage remove -c sendicott --include-pattern "*.rds" --account-name ecdcwls --sas-token $sastoken --recursive
+az storage remove -c sendicott --exclude-pattern "*.gpkg" --account-name ecdcwls --sas-token $sastoken --recursive
 
 #### Delete pool and job ##########################
 az batch job delete --job-id $jobName
 az batch pool delete --pool-id $poolName
 
-
+# remove temporary cloud files
+rm analysis/cloud/make_to_use.R
+rm analysis/cloud/pool_to_use.json
+rm analysis/cloud/task_jsons --recursive
