@@ -25,8 +25,6 @@ library(tmap)
 # load functions used in script
 devtools::load_all()
 
-
-
 # set rasterOptions to allow higher memory usage
 #prevOpts <- terraOptions(memfrac = 0.9)
 
