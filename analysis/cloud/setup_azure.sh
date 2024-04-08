@@ -143,8 +143,7 @@ az batch task file download --task-id roads-benchmark-1 --job-id $jobName --file
 az batch task list --job-id $jobName --query "{tasks: [].[id, state][]}" --output json
 
 # list running tasks only
-az batch task list --job-id $jobName --query "{tasks: [].[id, state][]}" --output json --filter "state eq 'runni
-ng'"
+az batch task list --job-id $jobName --query "{tasks: [].[id, state][]}" --output json --filter "state eq 'running'"
 
 # Summary of task counts by state
 az batch job task-counts show --job-id $jobName
@@ -156,6 +155,9 @@ az storage blob list -c sendicott --account-name ecdcwls --sas-token $sastoken \
 #### Download results and remove from storage ################################
 az storage copy -s https://ecdcwls.blob.core.windows.net/sendicott/*?$sastoken \
 -d "analysis/data/derived_data/bench_results" --include-pattern "*.rds"
+
+az storage copy -s https://ecdcwls.blob.core.windows.net/sendicott/\$AZ_BATCH_TASK_ID/TSA27_real_cuts?$sastoken \
+-d "analysis/data/derived_data/cloud_combine_results" --recursive
 
 # Remove just files matching pattern
 az storage remove -c sendicott --include-pattern "*.rds" --account-name ecdcwls --sas-token $sastoken --recursive
