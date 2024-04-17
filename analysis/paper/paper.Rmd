@@ -463,12 +463,12 @@ Outside cutblocks, all method variants underproject road density and road presen
 
 ```{r get-data}
 # load csv
-meanTable <- read.csv(here(data_path_drvd,"../TSA27", "mean_table.csv"))
-matchData <- read.csv(here(data_path_drvd,"../TSA27", "agree_table.csv"))
-meanTableRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts",
+meanTable <- read.csv(here(data_path_drvd,"../TSA27/dem", "mean_table.csv"))
+matchData <- read.csv(here(data_path_drvd,"../TSA27/dem", "agree_table.csv"))
+meanTableRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts/dem",
                                    "mean_table.csv"))
 
-matchDataRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts",
+matchDataRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts/dem",
                                    "agree_table.csv"))
 
 ```

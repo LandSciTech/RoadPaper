@@ -69,6 +69,7 @@ paramTable$weightFunction = deparse1(simpleCostFn,collapse="\n")
 paramTable$weightMethod = "Simple cost"
 
 paramTableDem = paramTable
+
 paramTableDem$weightFunction = deparse1(slopePenaltyFn,collapse="\n")
 paramTableDem$weightFunction = gsub("limitWeight = NA","limitWeight = 65000",paramTableDem$weightFunction,fixed=T)
 paramTableDem$weightMethod = "Grade penalty"
