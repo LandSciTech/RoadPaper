@@ -20,7 +20,7 @@ library(dplyr)
 library(tmap)
 
 data_path_raw <- "analysis/data/raw_data/"
-data_path_drvd <- "analysis/data/derived_data/TSA27"
+data_path_drvd <- "analysis/data/derived_data/TSA27_real_cuts/dem"
 
 dist_obs <- rast(here::here(file.path(data_path_drvd, "distanceToRoadobserved_NA_NA.tif")))
 
@@ -34,9 +34,9 @@ tsaBoundary <- read_sf(here(data_path_raw, "tsa27_boundaries.gpkg")) %>% st_unio
 
 dist_dif <- mask(dist_dif, vect(tsaBoundary))
 
-e_rds <- st_read(here::here(file.path(data_path_drvd, "input_roads.gpkg")))
-p_rds <- st_read(here::here(file.path(data_path_drvd, "regular_1e-05_mst.gpkg")))
-o_rds <- st_read(here::here(file.path(data_path_drvd, "../combined_revelstoke_roads.gpkg")))
+e_rds <- st_read(here::here(file.path(data_path_drvd, "../input_roads.gpkg")))
+p_rds <- readRDS(here::here("analysis/data/derived_data/bench_results/result_mst_regular_1e-05_10_revelstoke_real.rds"))
+o_rds <- st_read(here::here(file.path(data_path_drvd, "../../combined_revelstoke_roads.gpkg")))
 
 rds <- lst(e_rds, p_rds, o_rds) %>% 
   purrr::map(st_intersection, tsaBoundary)
@@ -63,6 +63,13 @@ tmap_save(mp,
           here("analysis/figures/spatial_projections.png"),
           dpi = 300, height = 7, width = fig_widths["one"])
 
+
+# p_rds_ilcp <- readRDS(here::here("analysis/data/derived_data/bench_results/result_ilcp_regular_1e-05_10_revelstoke_real.rds"))
+# 
+# write_sf(p_rds_ilcp, here::here("analysis/data/derived_data/bench_results/ilcp_regular_1e-05_10_revelstoke_real.gpkg"))
+#  p_rds_mst <- readRDS(here::here("analysis/data/derived_data/bench_results/result_mst_regular_1e-05_10_revelstoke_real.rds"))
+# 
+# write_sf(p_rds_mst, here::here("analysis/data/derived_data/bench_results/mst_regular_1e-05_10_revelstoke_real.gpkg"))
 ```
 
 Then arrange the images in powerpoint, modifying the contrast slightly to make the colours show on the satellite imagery. Save to png for inclusion in Rmd and pdf for final product. 

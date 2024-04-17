@@ -167,7 +167,7 @@ fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 
 tsaBoundary <- read_sf(here(data_path_raw, "tsa27_boundaries.gpkg"))
 #cost surface raster layer
-tsaCost <- terra::rast(here(data_path_drvd, "old cost/input_cost.tif"))
+tsaCost <- terra::rast(here(data_path_drvd, "input_cost.tif"))
 dem <- terra::rast(here(data_path_drvd, "dem/input_cost.tif"))
 
 #tsaCost[tsaCost==65000]=NA
