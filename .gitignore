@@ -9,11 +9,20 @@ analysis/data/derived_data/*
 !analysis/data/derived_data/TSA27_real_cuts
 
 analysis/data/derived_data/TSA27/*
+!analysis/data/derived_data/TSA27/dem
 !analysis/data/derived_data/TSA27/*.csv
+analysis/data/derived_data/TSA27/dem/*
+!analysis/data/derived_data/TSA27/dem/*.csv
 analysis/data/derived_data/TSA27_1000/*
 !analysis/data/derived_data/TSA27_1000/*.csv
 analysis/data/derived_data/TSA27_real_cuts/*
+!analysis/data/derived_data/TSA27_real_cuts/dem
+!analysis/data/derived_data/TSA27_real_cuts/dem_1000
 !analysis/data/derived_data/TSA27_real_cuts/*.csv
+analysis/data/derived_data/TSA27_real_cuts/dem/*
+!analysis/data/derived_data/TSA27_real_cuts/dem/*.csv
+analysis/data/derived_data/TSA27_real_cuts/dem_1000/*
+!analysis/data/derived_data/TSA27_real_cuts/dem_1000/*.csv
 analysis/data/derived_data/for_fig/*
 !analysis/data/derived_data/for_fig/HardyQGISTest.gpkg
 

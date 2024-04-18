@@ -104,7 +104,7 @@ done
 # done
 
 # set target dedicated nodes
-az batch pool resize --pool-id $poolName --target-dedicated-nodes 20
+az batch pool resize --pool-id $poolName --target-dedicated-nodes 3
 
 # prompt auto scaleing of pool by changing time interval
 # enabling this as soon as the tasks are created seems to make it think there are no tasks
@@ -131,14 +131,14 @@ az batch node list --pool-id $poolName --query "{nodes: [].[id, state][]}" --out
 #### Monitor tasks ############################
 
 # details for a single task filtered by query
-az batch task show --job-id $jobName --task-id roads-benchmark-1 \
+az batch task show --job-id $jobName --task-id roads-benchmark-14 \
 --query "{state: state, executionInfo: executionInfo}" --output yaml
 
 # az batch task delete --job-id $jobName --task-id roads-benchmark-1 --yes
 # az batch task reactivate --job-id $jobName --task-id roads-benchmark-1
 
 # download output file for a task
-az batch task file download --task-id roads-benchmark-1 --job-id $jobName --file-path "stdout.txt" --destination "analysis/cloud/stdout.txt"
+az batch task file download --task-id roads-benchmark-14 --job-id $jobName --file-path "stdout.txt" --destination "analysis/cloud/stdout.txt"
 
 # List of all tasks and their state
 # See here for making fancy queries https://jmespath.org/tutorial.html
