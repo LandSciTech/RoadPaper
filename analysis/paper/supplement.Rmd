@@ -51,12 +51,12 @@ fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 # All cutblocks results
 
 ```{r aspat-perf-fig-all, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants with a 1 ha resolution cost raster. Metrics were summarised within cutblocks, outside cutblocks, and overall. Values greater than 0 indicate overprojection of the metric and negative values indicate an underprojection. Cutblocks included all cutblocks present in the harvest dataset including falsly detected cutblocks with no observed roads accessing them."}
-meanTable <- read.csv(here(data_path_drvd, "mean_table.csv"))
+meanTable <- read.csv(here(data_path_drvd, "dem", "mean_table.csv"))
 doAspatPlot(meanTable)
 ```
 
 ```{r spat-perf-fig-all, fig.height=4.5, fig.width=fig_widths["two"], fig.cap="Comparison of performance metrics for each projection method variant using the 1 ha resolution cost raster. F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted roads that are observed roads and sensitivity is the proportion of observed roads that were correctly predicted. Values closer to one indicate better performance. Cutblocks included all cutblocks present in the harvest dataset including falsly detected cutblocks with no observed roads accessing them."}
-matchData <- read.csv(here(data_path_drvd, "agree_table.csv"))
+matchData <- read.csv(here(data_path_drvd, "dem", "agree_table.csv"))
 perf_tbl2 <- doSpatPerf(matchData)
 doSpatPlot(perf_tbl2)
 
@@ -65,18 +65,21 @@ doSpatPlot(perf_tbl2)
 # Coarse resolution results
 
 ```{r get-data2}
-data_path_drvd <- "analysis/data/derived_data/TSA27_1000"
+data_path_drvd <- "analysis/data/derived_data/TSA27_real_cuts/"
 
 # load csv
-meanTable2 <- read.csv(here(data_path_drvd, "mean_table.csv")) %>% 
+meanTable2 <- read.csv(here(data_path_drvd, "dem_1000", "mean_table.csv")) %>% 
   mutate(resolution = "1000")
 
-matchData2 <- read.csv(here(data_path_drvd, "agree_table.csv")) %>% 
+matchData2 <- read.csv(here(data_path_drvd, "dem_1000", "agree_table.csv")) %>% 
   mutate(resolution = "1000")
 
+# compare to real cuts
+meanTable <- read.csv(here(data_path_drvd, "dem", "mean_table.csv"))
 meanTable <- meanTable %>% mutate(resolution = "100") %>% bind_rows(meanTable2) %>% 
   filter((method != "ilcp"| is.na(method)) & (sampleType != "cutOnly" | is.na(sampleType)))
 
+matchData <- read.csv(here(data_path_drvd, "dem", "agree_table.csv"))
 matchData <- matchData %>% mutate(resolution = "100") %>% bind_rows(matchData2) %>% 
   filter(method != "ilcp", sampleType != "cutOnly")
 

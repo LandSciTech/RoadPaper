@@ -4,7 +4,9 @@
 
 az login
 az batch account login -g EcDc-WLS-rg -n ecdcwlsbatch
-az batch pool list
+az batch pool list  \
+--query "[].{id:id, curNodes: currentDedicatedNodes,tarNodes: targetDedicatedNodes, allocState:allocationState}" \
+--output yaml
 
 #### Set ids and names ##############
 subnetid=$(az network vnet subnet list --resource-group EcDc-WLS-rg --vnet-name EcDc-WLS-vnet \
@@ -102,7 +104,7 @@ done
 # done
 
 # set target dedicated nodes
-az batch pool resize --pool-id $poolName --target-dedicated-nodes 3
+az batch pool resize --pool-id $poolName --target-dedicated-nodes 20
 
 # prompt auto scaleing of pool by changing time interval
 # enabling this as soon as the tasks are created seems to make it think there are no tasks
@@ -159,10 +161,10 @@ az storage copy -s https://ecdcwls.blob.core.windows.net/sendicott/*?$sastoken \
 az storage copy -s https://ecdcwls.blob.core.windows.net/sendicott/\$AZ_BATCH_TASK_ID?$sastoken \
 -d "analysis/data/derived_data/cloud_combine_results" --recursive
 
-az storage remove -c sendicott -n taskId --account-name ecdcwls --sas-token $sastoken --recursive
+az storage remove -c sendicott -n \$AZ_BATCH_TASK_ID --account-name ecdcwls --sas-token $sastoken --recursive
 
 # Remove just files matching pattern
-az storage remove -c sendicott --include-pattern "*.txt" --account-name ecdcwls --sas-token $sastoken --recursive
+az storage remove -c sendicott --include-pattern "*.rds" --account-name ecdcwls --sas-token $sastoken --recursive
 
 # NOTE removes ***everything*** from the storage container
 az storage remove -c sendicott --exclude-pattern "*.gpkg" --account-name ecdcwls --sas-token $sastoken --recursive

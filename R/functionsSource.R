@@ -657,7 +657,7 @@ doSpatPerf <- function(tab){
 
   # performance table
   perf_tbl <- matchData_sum %>%
-    pivot_wider(c(metric, sampleDens), names_from = agreement,
+    pivot_wider(id_cols = c(metric, sampleDens), names_from = agreement,
                 values_from = count, values_fill = 0) %>%
     mutate(sensitivity = `Agree roaded`/(`Agree roaded` + `False negative`),
            precision = `Agree roaded`/(`Agree roaded` + `False positive`),
