@@ -476,18 +476,8 @@ matchDataRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts/dem",
 ```{r aspat-perf-fig, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants within cutblocks, outside cutblocks, and overall (1 ha cost raster). Values greater than zero indicate overprojection and negative values indicate underprojection. Cutblocks not accessible via the observed road network were excluded from analysis. Performance varies among metrics (columns), projection method variants (colours), and within and outside cutblocks."}
 # organize data for ggplot
 doAspatPlot(meanTableRealCuts)
-
-# save runTimes for later comparison
-ilcp_time <- meanTableRealCuts %>% 
-  filter(method == "ilcp", areaMean == "overall") %>% 
-  pull(runTime) %>% round(2)
-
-mst_time <- meanTableRealCuts %>%
-  filter(method == "mst", areaMean == "overall",
-         sampleType == "regular", sampleDens == "high sample density") %>% 
-  pull(runTime) %>% round(2) %>% `*`(60)
-
 ```
+
 
 ```{r proj-map-fig, fig.height=9, fig.width=fig_widths["two"], fig.cap="Comparison of the minimum spanning tree projection with regular high density sampling to the observed road network. The main map shows observed distance to the nearest road minus the projected distance. Insets highlight areas of interest with satellite imagery (Google 2022) for context: (a) Projected and observed road networks follow valleys but projected roads cross valley bottoms more frequently; (b) some open areas are misidentified as cutblocks; (c) projected methods do no mimic observed switchbacks."}
 
@@ -504,9 +494,45 @@ doSpatPlot(perf_tbl)
 
 ```
 
-As expected, none of the projection methods yield accurate spatial projections of road presence (i.e. the exact locations of roads) (F-Measure: `r perf_tbl_rng["Road presence"]`). Neither do any of the methods provide better information about the exact location of the forestry disturbance footprint than the locations of cutblocks only (F-Measure: `r perf_tbl_rng["Forestry disturbance\nfootprint"]`). All methods provide comparably good projections of the road disturbance footprint (F-Measure: `r perf_tbl_rng["Road disturbance\nfootprint"]`), though higher sampling densities yield fewer false negatives and more false positives (Figure \@ref(fig:spat-perf-fig)). The ILCP projection method had comparable performance to the MST projection method with the same sampling strategy. The ILCP method was faster to compute however, with a run time of `r ilcp_time` minutes compared to `r mst_time` minutes for the MST method.
+As expected, none of the projection methods yield accurate spatial projections of road presence (i.e. the exact locations of roads) (F-Measure: `r perf_tbl_rng["Road presence"]`). Neither do any of the methods provide better information about the exact location of the forestry disturbance footprint than the locations of cutblocks only (F-Measure: `r perf_tbl_rng["Forestry disturbance\nfootprint"]`). All methods provide comparably good projections of the road disturbance footprint (F-Measure: `r perf_tbl_rng["Road disturbance\nfootprint"]`), though higher sampling densities yield fewer false negatives and more false positives (Figure \@ref(fig:spat-perf-fig)). The ILCP projection method had comparable performance to the MST projection method with the same sampling strategy. The ILCP method was faster to compute however, with a run time of `r ilcp_time` hours compared to `r mst_time` hours for the MST method.
 
-<!-- TO DO: Sarah figure out why `r ilcp_time` and `r mst_time` are coming out as NA, and how to fix that.-->
+```{r speed-fig, fig.height=5, fig.width=fig_widths["one"], fig.cap=""}
+# Get run times from bench marking results
+# compile results after running on cloud
+bench_res <- list.files(here::here("analysis/data/derived_data/bench_results"),
+                        pattern = "bench_.*.rds",
+                        full.names = TRUE) %>%
+  purrr::map(readRDS) %>%
+  bind_rows() %>%
+  tidyr::separate(id, into = c("method", "sampleType", "sampleDens", "agg", "cutblocks_real"),
+                  sep = "_",
+                  extra = "merge", convert = TRUE)
+
+bench_res %>% filter(cutblocks_real == "revelstoke_real", sampleDens == 1e-05,
+                     sampleType == "regular") %>% 
+  pivot_longer(c(Elapsed_Time_sec, Peak_RAM_Used_MiB), names_to = "variable", 
+               values_to = "values") %>% 
+  ggplot(aes(y = values, x = toupper(method), fill = as.factor(resolution)))+
+  geom_col(position = position_dodge())+
+  scale_fill_discrete(type = met.brewer(pal_nm, 3))+
+  facet_wrap(~variable, nrow = 2, scales = "free", 
+             labeller = labeller(variable = c(Elapsed_Time_sec = "Time (s)", 
+                                              Peak_RAM_Used_MiB = "Peak RAM used (MiB)"))) +
+  labs(y = NULL, x = "Projection method", fill = "Resolution")
+
+ilcp_time <- bench_res %>% 
+  filter(method == "ilcp", cutblocks_real == "revelstoke_real",
+         resolution == 100) %>% 
+  pull(Elapsed_Time_sec) %>% units::set_units("sec") %>%
+  units::set_units("hours") %>% round(2) %>% units::drop_units()
+
+mst_time <- bench_res %>% 
+  filter(method == "mst", cutblocks_real == "revelstoke_real",
+         resolution == 100, sampleDens == 1e-05, sampleType == "regular") %>% 
+  pull(Elapsed_Time_sec) %>% units::set_units("sec") %>%
+  units::set_units("hours") %>% round(2) %>% units::drop_units()
+
+```
 
 # Discussion
 
