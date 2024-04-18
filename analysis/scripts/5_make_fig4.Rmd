@@ -1,6 +1,19 @@
 Done in QGIS and PowerPoint to keep it simple
 
-In QGIS open input_cutblocks and input_roads for TSA 27 as well as combined_revelstoke_roads.  Get Google satellite imagery from XYZ tile service. 
+```{r}
+library(terra)
+library(sf)
+library(dplyr)
+library(tmap)
+
+# run to save projected roads for use in QGIS
+p_rds_mst <- readRDS(here::here("analysis/data/derived_data/bench_results/result_mst_regular_1e-05_10_revelstoke.rds"))
+
+write_sf(p_rds_mst, here::here("analysis/data/derived_data/bench_results/mst_regular_1e-05_10_revelstoke.gpkg"))
+```
+
+
+In QGIS open input_cutblocks and input_roads for TSA 27 as well as combined_revelstoke_roads and projected roads for all cutblocks.  Get Google satellite imagery from XYZ tile service. 
 
 Assign colors to as follows
 Existing roads: black
@@ -14,13 +27,8 @@ setting the dpi to 300 and saving as png.
 To make the raster map we need to manipulate some of the rasters.
 
 ```{r}
-library(terra)
-library(sf)
-library(dplyr)
-library(tmap)
-
 data_path_raw <- "analysis/data/raw_data/"
-data_path_drvd <- "analysis/data/derived_data/TSA27_real_cuts/dem"
+data_path_drvd <- "analysis/data/derived_data/TSA27/dem"
 
 dist_obs <- rast(here::here(file.path(data_path_drvd, "distanceToRoadobserved_NA_NA.tif")))
 
@@ -35,7 +43,7 @@ tsaBoundary <- read_sf(here(data_path_raw, "tsa27_boundaries.gpkg")) %>% st_unio
 dist_dif <- mask(dist_dif, vect(tsaBoundary))
 
 e_rds <- st_read(here::here(file.path(data_path_drvd, "../input_roads.gpkg")))
-p_rds <- readRDS(here::here("analysis/data/derived_data/bench_results/result_mst_regular_1e-05_10_revelstoke_real.rds"))
+p_rds <- readRDS(here::here("analysis/data/derived_data/bench_results/result_mst_regular_1e-05_10_revelstoke.rds"))
 o_rds <- st_read(here::here(file.path(data_path_drvd, "../../combined_revelstoke_roads.gpkg")))
 
 rds <- lst(e_rds, p_rds, o_rds) %>% 
