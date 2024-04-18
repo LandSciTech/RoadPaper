@@ -7,7 +7,10 @@ analysis/data/derived_data/*
 !analysis/data/derived_data/TSA27_1000
 !analysis/data/derived_data/for_fig
 !analysis/data/derived_data/TSA27_real_cuts
+!analysis/data/derived_data/bench_results
 
+analysis/data/derived_data/bench_results/*
+!analysis/data/derived_data/bench_results/bench*.rds
 analysis/data/derived_data/TSA27/*
 !analysis/data/derived_data/TSA27/dem
 !analysis/data/derived_data/TSA27/*.csv
