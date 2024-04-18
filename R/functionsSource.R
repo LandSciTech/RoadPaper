@@ -379,6 +379,7 @@ prepInputs <- function(cutblocksPth, roadsPth, tsaBoundaryPth, costPth,
 
   # burn roads into cost raster
   roadsExist_rast <- terra::rasterize(terra::vect(roadsExist), terra::rast(tsaCost),
+                                      touches = TRUE,
                                       background = 0) == 0
 
   tsaCost_st <- tsaCost * roadsExist_rast
