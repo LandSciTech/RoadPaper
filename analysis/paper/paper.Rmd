@@ -138,7 +138,9 @@ We chose the Revelstoke timber supply area (TSA 27) in British Columbia, Canada 
 •        Maybe add a table of descriptive statistics presenting information about roads in the Revelstoke TSA and the other TSAs you mention? By Caribou Range? – road density, road length, cutblock area, cutblock density, etc
 -->
 ```
+
 ```{r setup2}
+library(sf)
 library(ggplot2)
 library(dplyr)
 library(stringr)
@@ -148,8 +150,8 @@ library(ggpubr)
 library(MetBrewer)
 library(here)
 library(tmap)
-library(sf)
 
+#devtools::install_deps(here()) #try this if the next line is giving trouble.
 devtools::load_all(here())
 
 #set paths
@@ -167,7 +169,7 @@ fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 
 tsaBoundary <- read_sf(here(data_path_raw, "tsa27_boundaries.gpkg"))
 #cost surface raster layer
-tsaCost <- terra::rast(here(data_path_drvd, "input_cost.tif"))
+tsaCost <- terra::rast(here(data_path_drvd, "old cost/input_cost.tif"))
 dem <- terra::rast(here(data_path_drvd, "dem/input_cost.tif"))
 
 #tsaCost[tsaCost==65000]=NA
@@ -453,13 +455,11 @@ Aspatial performance of the projections was assessed by comparing projected and 
 
 # Results
 
-## Aspatial performance
+According to all aspatial performance measures, the grade penalty method for setting edge weights yields better results than our simple cost methods (compare Figure \@ref(fig:aspat-perf-fig) and supplemental figure with old results). We therefore recommend using the grade penalty method, and focus on further examining variation in performance among grade penalty method variants (Figure \@ref(fig:aspat-perf-fig)). The MST regular high density method yields the best projections of road density within cutblocks, and all MST variants yield comparably good projections outside cutblocks, so overall the MST regular high density variant most accurately projects road density. All MST variants yield better projections of the forestry disturbance footprint than the Hardy or ILCP methods, and the Hardy and MST regular high density methods yield comparably accurate projects of road presence and distance to road.
 
-For each projection method variant the aspatial performance varied across the five road network metrics and also varied depending on whether we consider scores within cutblocks, outside cutblocks, or overall (Figure \@ref(fig:aspat-perf-fig)). Within all mapped cutblocks (Figure \@ref(fig:aspat-perf-fig-all)), the Hardy method most accurately projected road density, and least accurately projected distance to road. Low density method variants most severely underprojected road density within cutblocks, and most accurately projected distance to road within cutblocks (Figure \@ref(fig:aspat-perf-fig-all)). These apparently contradictory results are explained by areas in our input data that have been misidentified as cutblocks with no associated observed roads (e.g. Figure \@ref(fig:proj-map-fig)b). Omitting cutblocks without observed roads from the analysis (Figure \@ref(fig:aspat-perf-fig)) clarifies that within real cutblocks the Hardy method most accurately projected road density and distance to road. However, note that our observed landscape is densely roaded in part because switchbacks are required in steep terrain , and the Hardy method projects a distinctly different pattern of road tortuosity within cutblocks (Figure \@ref(fig:proj-meth-fig)). None of the methods considered here can project switchbacks (Figure \@ref(fig:proj-meth-fig)).
+Maps (Figures \@ref(fig:proj-meth-fig) and \@ref(fig:proj-map-fig)) help clarify exactly how the projection methods differ from one another, and from real roads. Even in cases where the Hardy method and the grade penalty MST and ILCP methods project similar mean road densities within cutblocks, the Hardy method projects a distinctly different pattern of road tortuosity within cutblocks (Figure \@ref(fig:proj-meth-fig)). The grade penalty method improves realism by making roads follow elevation contours, but all these methods create dead ends, intersections, and abrupt turns that are avoided in the engineering of real roads in steep terrain (Figures \@ref(fig:proj-meth-fig) and \@ref(fig:proj-map-fig)c). Our projected roads also cross valley bottoms far more often than observed roads which often run parallel to one another on each side of rivers (Figure \@ref(fig:proj-map-fig)a), but this discrepancy could likely be remedied by better accounting for the costs of crossing streams, rivers and other wet areas in valley bottoms. Finally, it is important to note that some discrepancies between observed and projected road networks may be caused by errors in the observed data, such as cutblocks that do not exist (e.g. \@ref(fig:proj-map-fig)b). We omitted false cutblocks with no associated access roads from our analysis; failure to do this would distort results (Supplement B). 
 
-Another fundamental limitation of these methods is that they generate straight road segments within pixels. As raster resolution increases, the discrepancy within pixels between real roads and straight projected segments increases, which explains why projections of road density are less accurate when the cost raster resolution is coarse (Figure A-\@ref(fig:figA1)). In contrast, projections of the proportion of cells that contain roads is more accurate on a coarse raster (Figure A-\@ref(fig:figA1)).
-
-Outside cutblocks, all method variants underproject road density and road presence, and there is little variation in performance among them (Figure \@ref(fig:aspat-perf-fig)). Comparison of observed and projected road networks clarifies that projected roads cross valley bottoms far more often than observed roads which often run parallel to one another on each side of rivers (Figure \@ref(fig:proj-map-fig)a). Accounting for the costs of crossing streams, rivers and other wet areas in valley bottoms would likely reduce this discrepancy. Switchbacks on steep slopes (Figure \@ref(fig:proj-map-fig)c) are also a source of discrepancy outside of cutblocks. Overall, projections of distance to road, the forestry disturbance footprint, and the road disturbance footprint are more accurate than projections of road density and road presence (Figure \@ref(fig:aspat-perf-fig)), suggesting that these measures are easier to project. Performance differences among low and high density method variants are larger than differences among projection algorithms, and all road network projection method variants represent an improvement over the "cutblocks only" scenario where cutblocks were the only disturbance considered.
+Although some perform better than others, all these methods underproject road density, road presence and forestry disturbance footprint (Figure \@ref(fig:aspat-perf-fig)). In other words, these road network projection methods project fewer roads than we observe. Projections of distance to road, the forestry disturbance footprint, and the road disturbance footprint are more accurate than projections of road density and road presence (Figure \@ref(fig:aspat-perf-fig)), suggesting that these measures are easier to project. One reason for underprojection of road density is that all these methods generate straight road segments within pixels. As raster resolution increases, the discrepancy within pixels between real roads and straight projected segments increases, which explains why projections of road density are less accurate when the cost raster resolution is coarse (Figure C.1). In contrast, projections of the proportion of cells that contain roads is more accurate on a coarse raster (Figure C.1).
 
 ```{r get-data}
 # load csv
@@ -478,14 +478,13 @@ matchDataRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts/dem",
 doAspatPlot(meanTableRealCuts)
 ```
 
-
-```{r proj-map-fig, fig.height=9, fig.width=fig_widths["two"], fig.cap="Comparison of the minimum spanning tree projection with regular high density sampling to the observed road network. The main map shows observed distance to the nearest road minus the projected distance. Insets highlight areas of interest with satellite imagery (Google 2022) for context: (a) Projected and observed road networks follow valleys but projected roads cross valley bottoms more frequently; (b) some open areas are misidentified as cutblocks; (c) projected methods do no mimic observed switchbacks."}
+```{r proj-map-fig, fig.height=9, fig.width=fig_widths["two"], fig.cap="Comparison of the minimum spanning tree projection with regular high density sampling to the observed road network. The main map shows observed distance to the nearest road minus the projected distance. Insets highlight areas of interest with satellite imagery (Google 2022) for context: (a) Projected and observed road networks follow valleys but projected roads cross valley bottoms more frequently; (b) some open areas are misidentified as cutblocks; (c) projected roads follow contours but do not avoid turns and dead ends like observed switchbacks."}
 
 knitr::include_graphics(here("analysis/figures/Figure4_map_update.png"))
 
 ```
 
-```{r spat-perf-fig, fig.height=4.5, fig.width=fig_widths["two"], fig.cap="Aspatial variation of in performance among projection method variants (1 ha cost raster). F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted pixels that were observed and sensitivity is the proportion of observed pixels that were correctly predicted. Values closer to one indicate better performance. Cutblocks not accessible via the observed road network were excluded from analysis."}
+```{r spat-perf-fig, fig.height=4.5, fig.width=fig_widths["two"], fig.cap="Variation in spatial performance among projection method variants (1 ha cost raster). F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted pixels that were observed and sensitivity is the proportion of observed pixels that were correctly predicted. Values closer to one indicate better performance. Cutblocks not accessible via the observed road network were excluded from analysis."}
 perf_tbl <- doSpatPerf(matchDataRealCuts)
 perf_tbl_rng <- perf_tbl %>% group_by(metric) %>% 
   summarise(rng_F = range(F_measure, na.rm = TRUE) %>% round(3) %>% paste0(collapse = " - "), .groups = "drop") %>% pull(rng_F, name = metric)
@@ -493,6 +492,7 @@ perf_tbl_rng <- perf_tbl %>% group_by(metric) %>%
 doSpatPlot(perf_tbl)
 
 ```
+
 
 ```{r speed-fig, fig.height=5, fig.width=fig_widths["single"], fig.cap=""}
 # Get run times from bench marking results
@@ -532,8 +532,9 @@ mst_time <- bench_res %>%
 
 ```
 
-As expected, none of the projection methods yield accurate spatial projections of road presence (i.e. the exact locations of roads) (F-Measure: `r perf_tbl_rng["Road presence"]`). Neither do any of the methods provide better information about the exact location of the forestry disturbance footprint than the locations of cutblocks only (F-Measure: `r perf_tbl_rng["Forestry disturbance\nfootprint"]`). All methods provide comparably good projections of the road disturbance footprint (F-Measure: `r perf_tbl_rng["Road disturbance\nfootprint"]`), though higher sampling densities yield fewer false negatives and more false positives (Figure \@ref(fig:spat-perf-fig)). The ILCP projection method had comparable performance to the MST projection method with the same sampling strategy. The ILCP method was faster to compute however, with a run time of `r ilcp_time` hours compared to `r mst_time` hours for the MST method.
+Although these methods project fewer roads than we observe, they represent a substantial improvement over the "cutblocks only" scenario, in which no new roads are added (Figure \@ref(fig:aspat-perf-fig)). That said, these methods are not designed to project the exact locations of new roads, so they (unsurprisingly) do not yield accurate spatial projections of road presence (i.e. the exact locations of roads) (F-Measure: `r perf_tbl_rng["Road presence"]`). Neither do any of the methods provide better information about the exact location of the forestry disturbance footprint than the locations of cutblocks only (F-Measure: `r perf_tbl_rng["Forestry disturbance\nfootprint"]`). All methods provide comparably good projections of the road disturbance footprint (F-Measure: `r perf_tbl_rng["Road disturbance\nfootprint"]`), though higher sampling densities yield fewer false negatives and more false positives (Figure \@ref(fig:spat-perf-fig)). 
 
+Although the MST method performed better than alternatives according to several metrics (Figure \@ref(fig:aspat-perf-fig)), it also requires more memory and more time to compute on large landscapes (Supplement D). All of these methods require construction of a large graph and therefore have substantial memory requirements; graph size depends on the number of pixels in the cost surface where road construction is possible (i.e. not NA), so options such as increasing raster resolution or constraining the portion of the landscape where roads are plausible can help reduce memory requirements. Memory requirements and computation time can also be reduced by setting a smaller number of landing targets (e.g. only target the centroid of each cutblock). Hardy comparison....
 
 # Discussion
 
