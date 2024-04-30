@@ -48,6 +48,47 @@ fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 
 ```
 
+# Simple cost results
+
+For each projection method variant the aspatial performance varied across the five road network metrics and also varied depending on whether we consider scores within cutblocks, outside cutblocks, or overall (Figure \@ref(fig:aspat-perf-fig-simp)). Within all mapped cutblocks (Figure \@ref(fig:aspat-perf-fig-all)), the Hardy method most accurately projected road density, and least accurately projected distance to road. Low density method variants most severely underprojected road density within cutblocks, and most accurately projected distance to road within cutblocks (Figure \@ref(fig:aspat-perf-fig-all)). These apparently contradictory results are explained by areas in our input data that have been misidentified as cutblocks with no associated observed roads (e.g. Figure \@ref(fig:proj-map-fig)b). Omitting cutblocks without observed roads from the analysis (Figure \@ref(fig:aspat-perf-fig-simp)) clarifies that within real cutblocks the Hardy method most accurately projected road density and distance to road. However, note that our observed landscape is densely roaded in part because switchbacks are required in steep terrain , and the Hardy method projects a distinctly different pattern of road tortuosity within cutblocks (Figure \@ref(fig:proj-meth-fig)). None of the methods considered here can project switchbacks (Figure \@ref(fig:proj-meth-fig)).
+
+Another fundamental limitation of these methods is that they generate straight road segments within pixels. As raster resolution increases, the discrepancy within pixels between real roads and straight projected segments increases, which explains why projections of road density are less accurate when the cost raster resolution is coarse (Figure A-\@ref(fig:figA1)). In contrast, projections of the proportion of cells that contain roads is more accurate on a coarse raster (Figure A-\@ref(fig:figA1)).
+
+Outside cutblocks, all method variants underproject road density and road presence, and there is little variation in performance among them (Figure \@ref(fig:aspat-perf-fig-simp)). Comparison of observed and projected road networks clarifies that projected roads cross valley bottoms far more often than observed roads which often run parallel to one another on each side of rivers (Figure \@ref(fig:proj-map-fig)a). Accounting for the costs of crossing streams, rivers and other wet areas in valley bottoms would likely reduce this discrepancy. Switchbacks on steep slopes (Figure \@ref(fig:proj-map-fig)c) are also a source of discrepancy outside of cutblocks. Overall, projections of distance to road, the forestry disturbance footprint, and the road disturbance footprint are more accurate than projections of road density and road presence (Figure \@ref(fig:aspat-perf-fig-simp)), suggesting that these measures are easier to project. Performance differences among low and high density method variants are larger than differences among projection algorithms, and all road network projection method variants represent an improvement over the "cutblocks only" scenario where cutblocks were the only disturbance considered.
+
+```{r get-data}
+# load csv
+meanTable <- read.csv(here(data_path_drvd,"../TSA27", "mean_table.csv"))
+matchData <- read.csv(here(data_path_drvd,"../TSA27", "agree_table.csv"))
+meanTableRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts",
+                                   "mean_table.csv"))
+
+matchDataRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts",
+                                   "agree_table.csv"))
+
+```
+
+```{r aspat-perf-fig-simp, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants within cutblocks, outside cutblocks, and overall (1 ha cost raster). Values greater than zero indicate overprojection and negative values indicate underprojection. Cutblocks not accessible via the observed road network were excluded from analysis. Performance varies among metrics (columns), projection method variants (colours), and within and outside cutblocks."}
+# organize data for ggplot
+doAspatPlot(meanTableRealCuts)
+```
+
+<!-- I have not remade Figure 4 with the old results but we could pull it out of GitHub if we want it.-->
+
+```{r spat-perf-fig-simp, fig.height=4.5, fig.width=fig_widths["two"], fig.cap="Aspatial variation of in performance among projection method variants (1 ha cost raster). F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted pixels that were observed and sensitivity is the proportion of observed pixels that were correctly predicted. Values closer to one indicate better performance. Cutblocks not accessible via the observed road network were excluded from analysis."}
+perf_tbl <- doSpatPerf(matchDataRealCuts)
+perf_tbl_rng <- perf_tbl %>% group_by(metric) %>% 
+  summarise(rng_F = range(F_measure, na.rm = TRUE) %>% round(3) %>% paste0(collapse = " - "), .groups = "drop") %>% pull(rng_F, name = metric)
+
+doSpatPlot(perf_tbl)
+
+```
+
+As expected, none of the projection methods yield accurate spatial projections of road presence (i.e. the exact locations of roads) (F-Measure: `r perf_tbl_rng["Road presence"]`). Neither do any of the methods provide better information about the exact location of the forestry disturbance footprint than the locations of cutblocks only (F-Measure: `r perf_tbl_rng["Forestry disturbance\nfootprint"]`). All methods provide comparably good projections of the road disturbance footprint (F-Measure: `r perf_tbl_rng["Road disturbance\nfootprint"]`), though higher sampling densities yield fewer false negatives and more false positives (Figure \@ref(fig:spat-perf-fig-simp)).
+
+
+
+
 # All cutblocks results
 
 ```{r aspat-perf-fig-all, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants with a 1 ha resolution cost raster. Metrics were summarised within cutblocks, outside cutblocks, and overall. Values greater than 0 indicate overprojection of the metric and negative values indicate an underprojection. Cutblocks included all cutblocks present in the harvest dataset including falsly detected cutblocks with no observed roads accessing them."}
@@ -215,6 +256,68 @@ perf_tbl %>%
   labs(y = "Performance", x = NULL, fill = "Resolution")
 
 ```
+
+# Benchmarking road projection methods
+
+```{r speed-fig, fig.width=fig_widths["two"], fig.cap=""}
+# Get run times from bench marking results
+# compile results after running on cloud
+bench_res <- list.files(here::here("analysis/data/derived_data/bench_results"),
+                        pattern = "bench_.*.rds",
+                        full.names = TRUE) %>%
+  purrr::map(readRDS) %>%
+  bind_rows() %>%
+  tidyr::separate(id, into = c("method", "sampleType", "sampleDens", "agg", "cutblocks_real"),
+                  sep = "_",
+                  extra = "merge", convert = TRUE)
+
+# Hardy timing added below
+# To run Hardy alg: 2mins 10s
+# Plus to Union with existing roads 2 mins 34s
+
+# HArdy with 10m resolution 14097.66 seconds
+
+bench_res %>%
+  add_row(cutblocks_real = "revelstoke_real", sampleType = "regular", sampleDens = 1.5e-05, 
+          method = "Hardy QGIS", Elapsed_Time_sec = 2*60+34, n_verticies = 1815825) %>% 
+  filter(cutblocks_real == "revelstoke_real", sampleType %in% c("regular", "centroid"), 
+         sampleDens > 1e-06 | sampleType == "centroid") %>% 
+  mutate(Peak_RAM_Used_MiB = Peak_RAM_Used_MiB * 0.001048576, 
+         sampleDens = ifelse(sampleType == "centroid", 0.1, sampleDens * 1000^2)) %>% 
+  pivot_longer(c(Elapsed_Time_sec, Peak_RAM_Used_MiB), names_to = "variable", 
+               values_to = "values") %>% 
+  ggplot(aes(y = values, col = interaction(method, sampleDens), x = n_verticies,
+             group = interaction(method, sampleDens), 
+             shape = interaction(method, sampleDens)))+
+  geom_line(linewidth = 1.05)+
+  geom_point(size = 2)+
+  scale_colour_manual(labels = c("ILCP centroid", "MST centroid",
+                                 "ILCP high density", "MST high density", "Hardy QGIS"),
+                      values = c("#ab84a5","#732f30", "#df8d71", "#1e5a46", "#af4f2f"))+
+  scale_shape_discrete(solid = FALSE, 
+                       labels = c("ILCP centroid", "MST centroid", 
+                                  "ILCP high density", "MST high density", "Hardy QGIS"))+
+  scale_y_log10()+
+  scale_x_log10()+
+  facet_wrap(~variable, nrow = 2, scales = "free", 
+             labeller = labeller(variable = c(Elapsed_Time_sec = "Time (s)", 
+                                              Peak_RAM_Used_MiB = "Peak RAM used (GB)"))) +
+  labs(y = NULL, x = "# Nodes", col = "Method", shape = "Method")+
+  theme_bw()
+
+ilcp_time <- bench_res %>% 
+  filter(method == "ilcp", cutblocks_real == "revelstoke_real",
+         resolution == 100) %>% 
+  pull(Elapsed_Time_sec) %>% units::set_units("sec") %>%
+  units::set_units("hours") %>% round(2) %>% units::drop_units()
+
+mst_time <- bench_res %>% 
+  filter(method == "mst", cutblocks_real == "revelstoke_real",
+         resolution == 100, sampleDens == 1e-05, sampleType == "regular") %>% 
+  pull(Elapsed_Time_sec) %>% units::set_units("sec") %>%
+  units::set_units("hours") %>% round(2) %>% units::drop_units()
+```
+
 
 # Fort Nelson map
 

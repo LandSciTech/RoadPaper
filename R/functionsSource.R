@@ -560,6 +560,7 @@ doAspatPlot <- function(tab){
     mutate(sampleType = ifelse(sampleType == sampleDens, NA_character_,
                                sampleType),
            sampleDens = paste(method, sampleType, sampleDens) %>%
+             str_replace("dlcp", "ilcp") %>%
              factor(levels = c("mst NA centroid",
                                "NA NA observed",
                                "mst random low sample density",
@@ -627,6 +628,7 @@ doSpatPerf <- function(tab){
              str_replace("1e-05", "high density") %>%
              str_replace("centroid low density", "centroid") %>%
              str_replace("klementQGIS NA", "klementQGIS") %>%
+             str_replace("dlcp", "ilcp") %>%
              factor(levels = c("mst centroid",
                                "mst random low density",
                                "mst regular low density",
