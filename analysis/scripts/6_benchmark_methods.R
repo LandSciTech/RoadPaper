@@ -54,7 +54,14 @@ paramTable3 <- bind_rows(paramTable2,
   bind_rows(param_tbl) %>%
   distinct()
 
-param_tbl <- paramTable3
+
+sampleDens <- low
+sampleType <- c("centroid")
+paramTable4 <- tibble(method = "ilcp", sampleType, sampleDens, agg = c(10, 50, 100),
+                     cutblocks_real = "revelstoke_real") %>%
+  distinct()
+
+param_tbl <- paramTable3 %>% bind_rows(paramTable4)
 
 cRow <- param_tbl[row_ind,]
 row_id <- cRow %>% unlist() %>% paste0(collapse = "_")
