@@ -10,7 +10,7 @@ editor_options:
   chunk_output_type: inline
 ---
 
-# (APPENDIX) Supplementary Material for Implementation and assessment of tools for integrating forest roads into projections of the cumulative effects of disturbance on wildlife {-}
+# (APPENDIX) Supplementary Material for Implementation and assessment of tools for integrating forest roads into projections of the cumulative effects of disturbance on wildlife {.unnumbered}
 
 ```{r setup, echo = FALSE}
 knitr::opts_chunk$set(
@@ -48,14 +48,44 @@ fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 
 ```
 
+# Grade penalty function
+
+The grade penalty method for calculating edge weights is a simplified version of the approach taken by @anderson2004a that does not distinguish between adverse and favourable grades. In addition, we use a modified Digital Elevation Model (DEM) as the input to the edge weight calculation to allow barriers other than slope to be included. The DEM is modified such that barriers where roads cannot be built are assigned NA values, barriers with high cost (e.g. stream crossings) can be represented with negative values, and existing roads are assigned a value of 0. All other values in the DEM are assumed to be elevation and the difference between the two elevations is used to determine the grade. Default construction cost values are taken from the BC Interior Appraisal Manual such that the base cost of building a road is \$16 178 with an additional cost of \$504 for every 1% grade and a limit of 20% grade. Edges with greater than 20% grade are assigned either NA or an arbitrarily high value. A value of 65 000 is used in our projections to avoid errors when a landing cannot be accessed without crossing an NA cell. If any of the cells to be connected by an edge has a negative value the edge weight is set to the larger value after taking the absolute value.
+
+```{r echo=TRUE}
+
+slopePenaltyFn <- function(x1, x2, resolution = 1, baseCost = 16178, limit = 20,
+                           penalty = 504, limitWeight = NA){
+  # If one of the nodes is a road or barrier ignore grade penalty
+  cond <- pmin(x1, x2) >= 0
+  cond[is.na(cond)] <- F
+  
+  # percent slope, if both nodes have elevation values.
+  grade <- 100 * abs(x1 - x2) * cond / resolution 
+  
+  slp <- baseCost + grade * penalty * (pmin(x1, x2) > 0)
+  slp[grade > limit] <- limitWeight
+  
+  # if both 0 this is an existing road link. Otherwise it is a barrier.
+  slp[!cond] <- abs(pmin(x1, x2))[!cond] 
+  
+  return(slp)
+}
+
+```
+
 # Simple cost results
 
-For each projection method variant the aspatial performance varied across the five road network metrics and also varied depending on whether we consider scores within cutblocks, outside cutblocks, or overall (Figure \@ref(fig:aspat-perf-fig-simp)). Within all mapped cutblocks (Figure \@ref(fig:aspat-perf-fig-all)), the Hardy method most accurately projected road density, and least accurately projected distance to road. Low density method variants most severely underprojected road density within cutblocks, and most accurately projected distance to road within cutblocks (Figure \@ref(fig:aspat-perf-fig-all)). These apparently contradictory results are explained by areas in our input data that have been misidentified as cutblocks with no associated observed roads (e.g. Figure \@ref(fig:proj-map-fig)b). Omitting cutblocks without observed roads from the analysis (Figure \@ref(fig:aspat-perf-fig-simp)) clarifies that within real cutblocks the Hardy method most accurately projected road density and distance to road. However, note that our observed landscape is densely roaded in part because switchbacks are required in steep terrain , and the Hardy method projects a distinctly different pattern of road tortuosity within cutblocks (Figure \@ref(fig:proj-meth-fig)). None of the methods considered here can project switchbacks (Figure \@ref(fig:proj-meth-fig)).
+The simple cost method for setting edge weights generally performed worse than the grade penalty method. For each projection method variant the aspatial performance varied across the five road network metrics and also varied depending on whether we consider scores within cutblocks, outside cutblocks, or overall (Figure \@ref(fig:aspat-perf-fig-simp)). Within all mapped cutblocks (Figure \@ref(fig:aspat-perf-fig-all)), the Hardy method most accurately projected road density, and least accurately projected distance to road. Low density method variants most severely underprojected road density within cutblocks, and most accurately projected distance to road within cutblocks (Figure \@ref(fig:aspat-perf-fig-all)). These apparently contradictory results are explained by areas in our input data that have been misidentified as cutblocks with no associated observed roads (e.g. Figure \@ref(fig:proj-map-fig)b). Omitting cutblocks without observed roads from the analysis (Figure \@ref(fig:aspat-perf-fig-simp)) clarifies that within real cutblocks the Hardy method most accurately projected road density and distance to road. However, note that our observed landscape is densely roaded in part because switchbacks are required in steep terrain , and the Hardy method projects a distinctly different pattern of road tortuosity within cutblocks (Figure \@ref(fig:proj-meth-fig)). None of the simple cost methods considered here can project switchbacks (Figure \@ref(fig:proj-meth-fig)).
+
+```{=html}
+<!-- To remove? This is all covered in the main text and I don't think differs much here.
 
 Another fundamental limitation of these methods is that they generate straight road segments within pixels. As raster resolution increases, the discrepancy within pixels between real roads and straight projected segments increases, which explains why projections of road density are less accurate when the cost raster resolution is coarse (Figure A-\@ref(fig:figA1)). In contrast, projections of the proportion of cells that contain roads is more accurate on a coarse raster (Figure A-\@ref(fig:figA1)).
 
 Outside cutblocks, all method variants underproject road density and road presence, and there is little variation in performance among them (Figure \@ref(fig:aspat-perf-fig-simp)). Comparison of observed and projected road networks clarifies that projected roads cross valley bottoms far more often than observed roads which often run parallel to one another on each side of rivers (Figure \@ref(fig:proj-map-fig)a). Accounting for the costs of crossing streams, rivers and other wet areas in valley bottoms would likely reduce this discrepancy. Switchbacks on steep slopes (Figure \@ref(fig:proj-map-fig)c) are also a source of discrepancy outside of cutblocks. Overall, projections of distance to road, the forestry disturbance footprint, and the road disturbance footprint are more accurate than projections of road density and road presence (Figure \@ref(fig:aspat-perf-fig-simp)), suggesting that these measures are easier to project. Performance differences among low and high density method variants are larger than differences among projection algorithms, and all road network projection method variants represent an improvement over the "cutblocks only" scenario where cutblocks were the only disturbance considered.
-
+-->
+```
 ```{r get-data}
 # load csv
 meanTable <- read.csv(here(data_path_drvd,"../TSA27", "mean_table.csv"))
@@ -85,9 +115,6 @@ doSpatPlot(perf_tbl)
 ```
 
 As expected, none of the projection methods yield accurate spatial projections of road presence (i.e. the exact locations of roads) (F-Measure: `r perf_tbl_rng["Road presence"]`). Neither do any of the methods provide better information about the exact location of the forestry disturbance footprint than the locations of cutblocks only (F-Measure: `r perf_tbl_rng["Forestry disturbance\nfootprint"]`). All methods provide comparably good projections of the road disturbance footprint (F-Measure: `r perf_tbl_rng["Road disturbance\nfootprint"]`), though higher sampling densities yield fewer false negatives and more false positives (Figure \@ref(fig:spat-perf-fig-simp)).
-
-
-
 
 # All cutblocks results
 
@@ -259,7 +286,9 @@ perf_tbl %>%
 
 # Benchmarking road projection methods
 
-```{r speed-fig, fig.width=fig_widths["two"], fig.cap=""}
+We compared the speed and peak RAM usage of the MST and ILCP methods with landings regularly sampled at 10 per km^2^ (high density) or using only the cutblock centroids as landings on weight rasters of three different resolutions 1000 m, 500 m and 100 m, which corresponded to 18 297, 72 633 and 1 815 825 nodes in the cost graph, respectively. Each cell in the raster becomes a node in the graph used to determine the shortest path which increases the time and memory requirements of the projection. Benchmarking was done using Azure Standard A4 v2 nodes which have 4 cores and 8 GB of RAM available, which was chosen to match a typical laptop. Each projection was run on a separate node and the `peakRAM` package was used to measure the total time to run the projection and the maximum memory used at any point in the analysis [@quinn2024]. In addition, we timed the execution of the Hardy QGIS plugin with the 100 m resolution weights raster.
+
+```{r speed-fig, fig.width=fig_widths["two"], fig.cap="Speed and peak memory usage of the ILCP and MST road projection methods with landings regularly sampled at 10 per km^2^ (high density) or using cutblock centroids as landings with weight rasters of three different resolutions: 1000 m, 500 m and 100 m, which for our study area is 18 297, 72 633 and 1 815 825 nodes in the cost graph, respectively. In addition, the time to run the Hardy QGIS plugin with the 100 m raster is also shown. Both number of nodes and time are displayed on log transformed axes."}
 # Get run times from bench marking results
 # compile results after running on cloud
 bench_res <- list.files(here::here("analysis/data/derived_data/bench_results"),
@@ -271,15 +300,30 @@ bench_res <- list.files(here::here("analysis/data/derived_data/bench_results"),
                   sep = "_",
                   extra = "merge", convert = TRUE)
 
-# Hardy timing added below
+# Hardy timing added below for 100m
 # To run Hardy alg: 2mins 10s
 # Plus to Union with existing roads 2 mins 34s
+# Hardy with 10m resolution 14097.66 seconds
+hardy_time <- 2*60+34
 
-# HArdy with 10m resolution 14097.66 seconds
+ilcp_time <- bench_res %>% 
+  filter(method == "ilcp", cutblocks_real == "revelstoke_real",
+         resolution == 100) %>% 
+  pull(Elapsed_Time_sec) %>% units::set_units("sec") %>%
+  units::set_units("hours") %>% round(2) %>% units::drop_units()
 
+mst_time <- bench_res %>% 
+  filter(method == "mst", cutblocks_real == "revelstoke_real",
+         resolution == 100, sampleDens == 1e-05, sampleType == "regular") %>% 
+  pull(Elapsed_Time_sec) %>% units::set_units("sec") %>%
+  units::set_units("hours") %>% round(2) %>% units::drop_units()
+
+
+
+minor_breaks <- rep(1:4*2, 21)*(10^rep(-10:10, each=9))
 bench_res %>%
   add_row(cutblocks_real = "revelstoke_real", sampleType = "regular", sampleDens = 1.5e-05, 
-          method = "Hardy QGIS", Elapsed_Time_sec = 2*60+34, n_verticies = 1815825) %>% 
+          method = "Hardy QGIS", Elapsed_Time_sec = hardy_time, n_verticies = 1815825) %>% 
   filter(cutblocks_real == "revelstoke_real", sampleType %in% c("regular", "centroid"), 
          sampleDens > 1e-06 | sampleType == "centroid") %>% 
   mutate(Peak_RAM_Used_MiB = Peak_RAM_Used_MiB * 0.001048576, 
@@ -297,27 +341,16 @@ bench_res %>%
   scale_shape_discrete(solid = FALSE, 
                        labels = c("ILCP centroid", "MST centroid", 
                                   "ILCP high density", "MST high density", "Hardy QGIS"))+
-  scale_y_log10()+
-  scale_x_log10()+
+  scale_y_log10(minor_breaks = minor_breaks)+
+  scale_x_log10(minor_breaks = minor_breaks, limits = c(1e04, NA))+
   facet_wrap(~variable, nrow = 2, scales = "free", 
              labeller = labeller(variable = c(Elapsed_Time_sec = "Time (s)", 
                                               Peak_RAM_Used_MiB = "Peak RAM used (GB)"))) +
   labs(y = NULL, x = "# Nodes", col = "Method", shape = "Method")+
   theme_bw()
-
-ilcp_time <- bench_res %>% 
-  filter(method == "ilcp", cutblocks_real == "revelstoke_real",
-         resolution == 100) %>% 
-  pull(Elapsed_Time_sec) %>% units::set_units("sec") %>%
-  units::set_units("hours") %>% round(2) %>% units::drop_units()
-
-mst_time <- bench_res %>% 
-  filter(method == "mst", cutblocks_real == "revelstoke_real",
-         resolution == 100, sampleDens == 1e-05, sampleType == "regular") %>% 
-  pull(Elapsed_Time_sec) %>% units::set_units("sec") %>%
-  units::set_units("hours") %>% round(2) %>% units::drop_units()
 ```
 
+Our benchmarking showed a log-linear relationship between the number of nodes in the graph and the total execution time and memory requirements with the MST method, while the ILCP method had a shallower slope that increased slightly with larger numbers of nodes (Figure \@ref(fig:speed-fig)). Other than for the smallest graph the ILCP method was always faster than the MST method and projections were always faster when the centroid was used rather than high density landings (Figure \@ref(fig:speed-fig)). The Hardy method was significantly faster than any of the R package methods.
 
 # Fort Nelson map
 
@@ -338,6 +371,15 @@ tm_shape(ftN_roads_obs_NE, is.master = TRUE)+
 
 \newpage
 
+# References
+
+<!-- The following line ensures the references appear here for the MS Word or HTML output files, rather than right at the end of the document (this will not work for PDF files):  -->
+
+::: {#refs}
+:::
+
+\newpage
+
 # Colophon
 
 This report was generated on `r Sys.time()` using the following computational environment and dependencies:
@@ -351,5 +393,5 @@ The current Git commit details are:
 
 ```{r}
 # what commit is this file at? 
-#if ("git2r" %in% installed.packages() & git2r::in_repository(path = ".")) git2r::repository(here::here())  
+if ("git2r" %in% installed.packages() & git2r::in_repository(path = ".")) git2r::repository(here::here())
 ```
