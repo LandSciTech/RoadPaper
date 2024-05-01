@@ -352,6 +352,28 @@ bench_res %>%
 
 Our benchmarking showed a log-linear relationship between the number of nodes in the graph and the total execution time and memory requirements with the MST method, while the ILCP method had a shallower slope that increased slightly with larger numbers of nodes (Figure \@ref(fig:speed-fig)). Other than for the smallest graph the ILCP method was always faster than the MST method and projections were always faster when the centroid was used rather than high density landings (Figure \@ref(fig:speed-fig)). The Hardy method was significantly faster than any of the R package methods.
 
+# Profiling
+
+Profiling with the `Rprof` function can reveal which parts of a function take the longest. On a test run with 1 million cells in the weight raster and 10 landings we profiled the performance of the ILCP and MST methods. Constructing the graph took ~ 4 s for both methods. For the ILCP method, the iteratively determining the shortest path is the only other step that takes more that a second to run. Each iteration is relatively fast but must be repeated for each landing. For the MST method, the longest running step is the building of the second graph which is used to determine the MST. Determining the shortest path to connect the parts of the MST also takes about 2 seconds.    
+
+```{r profiling-ilcp, fig.cap="Profiling results for the ILCP method showing functions that take > 1 s to run on a cost raster with 1 million cells and 10 landings. Functions higher in the call stack are called by functions lower down.", fig.height=2}
+if(!file.exists(here::here("analysis/data/derived_data/ilcp_Rprof.out"))){
+  source(here::here("analysis/scripts/test_profile.R"), keep.source = TRUE)
+}
+
+profstat(here::here("analysis/data/derived_data/ilcp_Rprof.out"))
+
+# interactive version
+# profvis::profvis(prof_input = here::here("analysis/data/derived_data/ilcp_Rprof.out"))
+```
+
+
+```{r profiling-mst, fig.cap="Profiling results for the MST method showing functions that take > 1 s to run on a cost raster with 1 million cells. Functions higher in the call stack are called by functions lower down.", fig.height=5}
+profstat(here::here("analysis/data/derived_data/mst_Rprof.out"))
+```
+
+
+
 # Fort Nelson map
 
 ```{r ftNelson, cache=TRUE, fig.height=6, fig.width=fig_widths["two"], fig.cap="Existing roads in Fort Nelson. Cost based road projection methods are not expected to be useful in areas where roads are built for purposes other than accessing a target location at minimal cost. For example, in the Northeast corner of the Fort Nelson Timber Supply Area seismic lines show a different pattern than foresty roads."}

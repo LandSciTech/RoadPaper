@@ -684,3 +684,37 @@ doSpatPlot <- function(tab){
     theme_classic()+
     labs(y = "Performance", x = NULL)
 }
+
+# static version of profvis results filtered of only long running parts
+profstat <- function(file_nm, min_depth = 6, max_depth = 11, min_time = 1){
+  pr <- profvis::parse_rprof(file_nm)
+
+  pr[["prof"]] %>% filter(between(depth, min_depth, max_depth)) %>%
+    select(-c(filenum, filename, linenum, memalloc, meminc)) %>%
+    pivot_wider(names_from = depth, values_from = label, values_fill = "blank") %>%
+    mutate(across(c(everything(), -time), ~ifelse(lag(.x) != .x, 1, 0) %>%
+                    coalesce(0), .names = "{.col}_fun_id" )
+    ) %>%
+    pivot_longer(-time, names_to = c("depth"), values_to = c("value"),
+                 values_transform = as.character, values_drop_na = TRUE) %>%
+    separate(depth, into = c("depth", "fun_id"), sep = "_", extra = "merge",
+             fill = "right") %>%
+    mutate(fun_id = replace_na(fun_id, "label")) %>%
+    pivot_wider(names_from = fun_id, values_from = value) %>%
+    filter(!is.na(label)) %>%
+    group_by(depth) %>%
+    mutate(fun_id2 = cumsum(fun_id) + 1,
+           depth = as.numeric(depth)) %>%
+    group_by(depth, label, fun_id2) %>%
+    # convert from intervals to seconds
+    summarise(st_time = min(time)*pr$interval/1000,
+              end_time = (max(time)*pr$interval/1000) -0.01, .groups = "drop") %>%
+    mutate(tot_time = end_time - st_time) %>%
+    filter(tot_time >= min_time, label != "blank") %>%
+    ggplot(aes(y = depth, label = label))+
+    geom_linerange(aes(xmin = st_time, xmax = end_time))+
+    geom_text(aes(y = depth+0.2, x = st_time), hjust = 0)+
+    scale_x_continuous(expand = expansion(mult = c(0, 0.15)))+
+    labs(y = "Call stack", x = "Time (s)")+
+    theme_classic()
+}
