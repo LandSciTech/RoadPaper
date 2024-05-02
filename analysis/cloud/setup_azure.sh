@@ -1,5 +1,12 @@
 #!/bin/bash
 #############################################
+
+# Script use to configure resources on Azure Batch and run scripts
+
+# This script should be run interactively, it includes commands needed to run
+# benchmarking and compiling of results but not all commands should be run in all cases.
+
+
 #####Login etc##################
 
 az login

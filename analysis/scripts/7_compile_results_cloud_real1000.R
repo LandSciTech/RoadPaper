@@ -1,3 +1,6 @@
+# Calculate summary metrics from results of benchmarking runs for real cutblocks at 1000m resolution
+# run on cloud using cloud/setup_azure.sh interactively
+
 library(dplyr)
 library(sf)
 library(roads)

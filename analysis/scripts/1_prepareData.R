@@ -32,7 +32,7 @@ if(down_meth == "osf"){
     osf_download(path = data_path)
 
   # extract it to the data folder of the current project
-  unzip("data/raw_data.zip", exdir = data_path)
+  unzip("data/raw_data.zip", exdir = data_path_raw)
 
   # load tsa boundaries to use to get road data
   tsa_27 <- read_sf(here(data_path_raw, "tsa27_boundaries.gpkg"))
@@ -61,6 +61,7 @@ if(down_meth == "bcdata"){
   # * TSA boundaries
   # * digital road atlas and forest tenure road FLNRORD datasets.
   # * Harvest Areas of BC (Consolidated Cutblocks)
+  # * Digital Elevation Model for BC
 
   # Do we have or can we get data and code for building the cost raster?
 
@@ -77,7 +78,8 @@ if(down_meth == "bcdata"){
   rec_ids <- c(TSAs = "8daa29da-d7f4-401c-83ae-d962e3a28980",
                DRA = "bb060417-b6e6-4548-b837-f9060d94743e",
                for_rds = "243c94a1-f275-41dc-bc37-91d8a2b26e10",
-               cutblocks = "b1b647a6-f271-42e0-9cd0-89ec24bce9f7")
+               cutblocks = "b1b647a6-f271-42e0-9cd0-89ec24bce9f7",
+               DEM = "7b4fef7e-7cae-4379-97b8-62b03e9ac83d")
 
   # use a buffered version of the tsa boundary to include some nearby roads
   tsa_27_buf <- st_buffer(tsa_27, 2000)
@@ -103,25 +105,9 @@ if(down_meth == "bcdata"){
 
   write_sf(cutblocks, here(data_path_raw, "cutblocks_revelstoke.gpkg"))
 
-  # store metadata for the downloaded raw data
-
-  get_rec_df <- function(id) {
-    rec <- bcdc_get_record(id)
-    rec[c("title", "id", "record_last_modified", "license_title", "license_url")] %>%
-      as.data.frame()
-  }
-
-  meta_data <- map_dfr(rec_ids, get_rec_df) %>%
-    mutate(record_url = paste0("https://catalogue.data.gov.bc.ca/dataset/", id),
-           download_date = format(Sys.time(), "%Y-%m-%d"))
-
-  write.csv(meta_data, here(data_path_raw, "raw_data_readme.csv"))
-
   # DEM
   bcdc_search("digital elevation model")
   dem <- bcdc_get_record("7b4fef7e-7cae-4379-97b8-62b03e9ac83d")
-  dem_dat <- bcdc_get_data("829937c4-6551-45a9-9f4b-4a1688a4190e")
-
 
   # This is the map with the tile names:
   # https://www2.gov.bc.ca/assets/gov/data/geographic/topography/250kgrid.pdf
@@ -166,8 +152,21 @@ if(down_meth == "bcdata"){
   # project to WGS84
   rev_dem2 <- terra::project(rev_dem, "epsg:3005")
   terra::writeRaster(rev_dem2,
-                     filename = file.path(data_path_drvd, "TSA27/dem_revelstoke.tif"))
+                     filename = file.path(data_path_raw, "dem_revelstoke.tif"))
 
+  # store metadata for the downloaded raw data
+
+  get_rec_df <- function(id) {
+    rec <- bcdc_get_record(id)
+    rec[c("title", "id", "record_last_modified", "license_title", "license_url")] %>%
+      as.data.frame()
+  }
+
+  meta_data <- map_dfr(rec_ids, get_rec_df) %>%
+    mutate(record_url = paste0("https://catalogue.data.gov.bc.ca/dataset/", id),
+           download_date = format(Sys.time(), "%Y-%m-%d"))
+
+  write.csv(meta_data, here(data_path_raw, "raw_data_readme2.csv"))
 
 }
 
@@ -235,17 +234,29 @@ osf_ls_files(osf_proj) %>% filter(name == "cost_surface_bc_ha.tif") %>%
   osf_download(path = "data/raw_data")
 
 # Use NAs from cost surface to get water in DEM
-dem <- rast(paste0(data_path_drvd, "TSA27/dem_revelstoke.tif"))
-costOld <- rast(paste0(data_path_raw, "cost_surface_bc_ha.tif"))
-cCost <- crop(costOld, dem)
+dem <- terra::rast(paste0(data_path_raw, "dem_revelstoke.tif"))
+costOld <- terra::rast(paste0(data_path_raw, "cost_surface_bc_ha.tif"))
+cCost <- terra::crop(costOld, dem)
 # get average elevation in each cost cell
-cDem <- resample(dem, cCost, method = "average")
+cDem <- terra::resample(dem, cCost, method = "average")
 cDem[is.na(cCost)] <- NA
 terra::writeRaster(cDem,
                    filename = file.path(data_path_drvd,
                                         "TSA27/dem_revelstokeCoarse.tif"),
                    overwrite = T)
 
+# Real cutblocks only ----------------------------------------------------
+# For Revelstoke at fine resolution with cutblocks not accessed by existing
+# roads removed
+cutblocks <- st_read(paste0(data_path_raw, "cutblocks_revelstoke.gpkg"))
+roads <- st_read(paste0(data_path_drvd, "combined_revelstoke_roads.gpkg"))
+
+cutblocksReal <- st_filter(cutblocks, roads)
+
+# cutblocks removed
+# qtm(cutblocks, fill = "red", borders = "red")+qtm(cutblocksReal)
+
+write_sf(cutblocksReal, paste0(data_path_drvd, "cutblocks_revelstoke_real.gpkg"))
 
 # Repeat for Fort Nelson --------------------------------------------------
 if(down_meth == "bcdata"){

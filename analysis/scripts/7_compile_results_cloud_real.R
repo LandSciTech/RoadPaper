@@ -1,3 +1,6 @@
+# Calculate summary metrics from results of benchmarking runs for real cutblocks
+# run on cloud using cloud/setup_azure.sh interactively
+
 library(dplyr)
 library(sf)
 library(roads)
@@ -12,15 +15,7 @@ source("functionsSource.R")
 data_path_raw <- ""
 data_path_drvd <- ""
 
-
-# compile results after running on cloud
-bench_res <- list.files(".", pattern = "bench_.*.rds",
-                        full.names = TRUE) %>%
-  purrr::map(readRDS) %>%
-  bind_rows() %>%
-  tidyr::separate(id, into = c("method", "sampleType", "sampleDens", "agg", "cutblocks_real"),
-                  sep = "_",
-                  extra = "merge", convert = TRUE)
+# compile results on cloud
 
 #densities to test
 low <- 0.000001
@@ -52,12 +47,7 @@ paramTable3 <- bind_rows(paramTable2,
 
 param_tbl <- paramTable3
 
-param_tbl %>% left_join(bench_res, by = c("method", "sampleType", "sampleDens",
-                                          "agg", "cutblocks_real")) %>%
-  tibble::rowid_to_column() %>%
-  filter(is.na(resolution)) %>%
-  pull(rowid)
-
+# no longer actually running the projections here. This skips to the metrics part
 run_projections(param_tbl %>% filter(agg == 10, cutblocks_real == "revelstoke_real") %>%
                   rowwise() %>%
                   mutate(across(everything(), as.character)) %>%
@@ -74,7 +64,7 @@ run_projections(param_tbl %>% filter(agg == 10, cutblocks_real == "revelstoke_re
                 klementProj = paste0(data_path_drvd, "klementProjection.shp"),
 
                 aggFact = 1, #factor of aggregation of cost surface. 1 = no aggregation.
-                load_file = "results",
+                load_file = "results", # skip projection, do calculate metrics
                 saveInputs = TRUE,
                 replaceNA = -65000)
 

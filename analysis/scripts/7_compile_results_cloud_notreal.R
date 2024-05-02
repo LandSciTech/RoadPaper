@@ -1,3 +1,5 @@
+# Calculate summary metrics from results of benchmarking runs for all cutblocks
+# run on cloud using cloud/setup_azure.sh interactively
 library(dplyr)
 library(sf)
 library(roads)
@@ -12,15 +14,7 @@ source("functionsSource.R")
 data_path_raw <- ""
 data_path_drvd <- ""
 
-
-# compile results after running on cloud
-bench_res <- list.files(".", pattern = "bench_.*.rds",
-                        full.names = TRUE) %>%
-  purrr::map(readRDS) %>%
-  bind_rows() %>%
-  tidyr::separate(id, into = c("method", "sampleType", "sampleDens", "agg", "cutblocks_real"),
-                  sep = "_",
-                  extra = "merge", convert = TRUE)
+# compile results on cloud
 
 #densities to test
 low <- 0.000001
@@ -51,12 +45,6 @@ paramTable3 <- bind_rows(paramTable2,
   distinct()
 
 param_tbl <- paramTable3
-
-param_tbl %>% left_join(bench_res, by = c("method", "sampleType", "sampleDens",
-                                          "agg", "cutblocks_real")) %>%
-  tibble::rowid_to_column() %>%
-  filter(is.na(resolution)) %>%
-  pull(rowid)
 
 run_projections(param_tbl %>% filter(agg == 10, cutblocks_real == "revelstoke") %>%
                   rowwise() %>%

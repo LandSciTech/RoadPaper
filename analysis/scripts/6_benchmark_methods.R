@@ -1,10 +1,8 @@
 # Compare speeds and memory usage for different methods
 
-# Plan: run on cloud on separate nodes
+# run on cloud on separate nodes using cloud/setup_azure.sh interactively
 # First crop cost layer and dissaggregate so that we can then compare more levels of aggregation
-# in Previous runs ~ 1 hour was max for non aggregated raster
-# only compare one density level
-# Also record memory usage. Using separate nodes will ensure to memory overlap between runs
+# Also record memory usage. Using separate nodes will ensure no memory overlap between runs
 
 
 ###### Source scripts ######
@@ -84,7 +82,7 @@ landings <- getLandingsFromTarget(inputs$cutblocks,
                                      landingDens = cRow$sampleDens,
                                      sampleType = cRow$sampleType)
 
-# record memory, time, graph size and total cost
+# record memory, time, and graph size
 prof <- peakRAM::peakRAM(
   #Running projections
   output <- projectRoads(landings,

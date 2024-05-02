@@ -1,7 +1,7 @@
-#' Road Paper cloud benchmarking
+#' Road Paper cloud compiling results
 #'
 #' @description
-#' Benchmarking the roads paper algorithms on the cloud
+#' Compiling results after benchmarking and calculating metrics
 #'
 #' @author Sarah Endicott \email{sarah.endicott@canada.ca}
 #'
