@@ -56,17 +56,18 @@ The grade penalty method for calculating edge weights is a simplified version of
 
 slopePenaltyFn <- function(x1, x2, resolution = 1, baseCost = 16178, limit = 20,
                            penalty = 504, limitWeight = NA){
-  # If one of the nodes is a road or barrier ignore grade penalty
+  # Don't calculate grade penalty cost if one of the nodes is a barrier.
   cond <- pmin(x1, x2) >= 0
   cond[is.na(cond)] <- F
   
-  # percent slope, if both nodes have elevation values.
+  # Apply grade penalty if both nodes have elevation values. 
+  # If one node is a road use base cost.
   grade <- 100 * abs(x1 - x2) * cond / resolution 
   
   slp <- baseCost + grade * penalty * (pmin(x1, x2) > 0)
   slp[grade > limit] <- limitWeight
   
-  # if both 0 this is an existing road link. Otherwise it is a barrier.
+  # If both 0 this is an existing road link. Otherwise it is a barrier.
   slp[!cond] <- abs(pmin(x1, x2))[!cond] 
   
   return(slp)
@@ -357,11 +358,11 @@ Our benchmarking showed a log-linear relationship between the number of nodes in
 Profiling with the `Rprof` function can reveal which parts of a function take the longest. On a test run with 1 million cells in the weight raster and 10 landings we profiled the performance of the ILCP and MST methods. Constructing the graph took ~ 4 s for both methods. For the ILCP method, the iteratively determining the shortest path is the only other step that takes more that a second to run. Each iteration is relatively fast but must be repeated for each landing. For the MST method, the longest running step is the building of the second graph which is used to determine the MST. Determining the shortest path to connect the parts of the MST also takes about 2 seconds.    
 
 ```{r profiling-ilcp, fig.cap="Profiling results for the ILCP method showing functions that take > 1 s to run on a cost raster with 1 million cells and 10 landings. Functions higher in the call stack are called by functions lower down.", fig.height=2}
-if(!file.exists(here::here("analysis/data/derived_data/ilcp_Rprof.out"))){
+if(!file.exists(here::here("analysis/data/derived_data/ilcp_100_Rprof.out"))){
   source(here::here("analysis/scripts/test_profile.R"), keep.source = TRUE)
 }
 
-profstat(here::here("analysis/data/derived_data/ilcp_Rprof.out"))
+profstat(here::here("analysis/data/derived_data/ilcp_100_Rprof.out"))
 
 # interactive version
 # profvis::profvis(prof_input = here::here("analysis/data/derived_data/ilcp_Rprof.out"))
@@ -369,7 +370,7 @@ profstat(here::here("analysis/data/derived_data/ilcp_Rprof.out"))
 
 
 ```{r profiling-mst, fig.cap="Profiling results for the MST method showing functions that take > 1 s to run on a cost raster with 1 million cells. Functions higher in the call stack are called by functions lower down.", fig.height=5}
-profstat(here::here("analysis/data/derived_data/mst_Rprof.out"))
+profstat(here::here("analysis/data/derived_data/mst_100_Rprof.out"))
 ```
 
 

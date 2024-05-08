@@ -9,13 +9,13 @@ library(igraph)
 library(ggplot2)
 
 #speed/memory benchmarking
-data_path_raw <- "~/gitprojects/RoadPaper/analysis/data/raw_data/"
-out_path <- "~/gitprojects/RoadPaper/analysis/figures/"
+data_path_raw <- "analysis/data/raw_data/"
+out_path <- "analysis/figures/"
 
 size <- 1000
 lnds <- 10
 
-landscape <- rast(paste0(data_path_raw, "cost_surface_bc_ha.tif"))
+landscape <- rast(here::here(paste0(data_path_raw, "cost_surface_bc_ha.tif")))
 
 base_point <- c((1881188-159588)/2, (1748188-173788)/2)
 
