@@ -50,7 +50,7 @@ fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 
 # Grade penalty function
 
-The grade penalty method for calculating edge weights is a simplified version of the approach taken by @anderson2004a that does not distinguish between adverse and favourable grades. In addition, we use a modified Digital Elevation Model (DEM) as the input to the edge weight calculation to allow barriers other than slope to be included. The DEM is modified such that barriers where roads cannot be built are assigned NA values, barriers with high cost (e.g. stream crossings) can be represented with negative values, and existing roads are assigned a value of 0. All other values in the DEM are assumed to be elevation and the difference between the two elevations is used to determine the grade. Default construction cost values are taken from the BC Interior Appraisal Manual such that the base cost of building a road is \$16 178 with an additional cost of \$504 for every 1% grade and a limit of 20% grade. Edges with greater than 20% grade are assigned either NA or an arbitrarily high value. A value of 65 000 is used in our projections to avoid errors when a landing cannot be accessed without crossing an NA cell. If any of the cells to be connected by an edge has a negative value the edge weight is set to the larger value after taking the absolute value.
+The grade penalty method for calculating edge weights is a simplified version of the approach taken by @anderson2004a that does not distinguish between adverse and favourable grades. We use a modified Digital Elevation Model (DEM) as the input to the edge weight calculation that allows barriers other than slope to be included without incurring additional computation and memory costs. Pixels where roads cannot be built are assigned a value of NA, and negative values indicate costs associated with other features (e.g. stream crossings). Existing roads are assigned a value of 0. All other values in the weight raster are assumed to be elevation and grade is calculated from differences between adjacent locations. Default construction cost values are taken from the BC Interior Appraisal Manual: the base cost of building a road is \$16 178 with an additional cost of \$504 for every 1% grade and a limit of 20% grade. Edges with greater than 20% grade are assigned either NA or an arbitrarily high value. A value of 65 000 is used in our projections to avoid errors when a landing cannot be accessed without crossing an NA cell. Note that grade penalties are not applied adjacent to existing roads, nor do they apply when connecting to a node with a negative value. In the latter case, the edge weight is set to the highest absolute cost.
 
 ```{r echo=TRUE}
 
@@ -77,10 +77,12 @@ slopePenaltyFn <- function(x1, x2, resolution = 1, baseCost = 16178, limit = 20,
 
 # Simple cost results
 
-The simple cost method for setting edge weights generally performed worse than the grade penalty method. For each projection method variant the aspatial performance varied across the five road network metrics and also varied depending on whether we consider scores within cutblocks, outside cutblocks, or overall (Figure \@ref(fig:aspat-perf-fig-simp)). Within all mapped cutblocks (Figure \@ref(fig:aspat-perf-fig-all)), the Hardy method most accurately projected road density, and least accurately projected distance to road. Low density method variants most severely underprojected road density within cutblocks, and most accurately projected distance to road within cutblocks (Figure \@ref(fig:aspat-perf-fig-all)). These apparently contradictory results are explained by areas in our input data that have been misidentified as cutblocks with no associated observed roads (e.g. Figure \@ref(fig:proj-map-fig)b). Omitting cutblocks without observed roads from the analysis (Figure \@ref(fig:aspat-perf-fig-simp)) clarifies that within real cutblocks the Hardy method most accurately projected road density and distance to road. However, note that our observed landscape is densely roaded in part because switchbacks are required in steep terrain , and the Hardy method projects a distinctly different pattern of road tortuosity within cutblocks (Figure \@ref(fig:proj-meth-fig)). None of the simple cost methods considered here can project switchbacks (Figure \@ref(fig:proj-meth-fig)).
+The simple cost method for setting edge weights generally performed worse than the grade penalty and Hardy methods (compare Figures 3 and \@ref(fig:aspat-perf-fig-simp)). 
 
 ```{=html}
 <!-- To remove? This is all covered in the main text and I don't think differs much here.
+For each projection method variant the aspatial performance varied across the five road network metrics and also varied depending on whether we consider scores within cutblocks, outside cutblocks, or overall (Figure \@ref(fig:aspat-perf-fig-simp)). Within all mapped cutblocks (Figure \@ref(fig:aspat-perf-fig-all)), the Hardy method most accurately projected road density, and least accurately projected distance to road. Low density method variants most severely underprojected road density within cutblocks, and most accurately projected distance to road within cutblocks (Figure \@ref(fig:aspat-perf-fig-all)). These apparently contradictory results are explained by areas in our input data that have been misidentified as cutblocks with no associated observed roads (e.g. Figure \@ref(fig:proj-map-fig)b). Omitting cutblocks without observed roads from the analysis (Figure \@ref(fig:aspat-perf-fig-simp)) clarifies that within real cutblocks the Hardy method most accurately projected road density and distance to road. However, note that our observed landscape is densely roaded in part because switchbacks are required in steep terrain , and the Hardy method projects a distinctly different pattern of road tortuosity within cutblocks (Figure \@ref(fig:proj-meth-fig)). None of the simple cost methods considered here can project switchbacks (Figure \@ref(fig:proj-meth-fig)).
+
 
 Another fundamental limitation of these methods is that they generate straight road segments within pixels. As raster resolution increases, the discrepancy within pixels between real roads and straight projected segments increases, which explains why projections of road density are less accurate when the cost raster resolution is coarse (Figure A-\@ref(fig:figA1)). In contrast, projections of the proportion of cells that contain roads is more accurate on a coarse raster (Figure A-\@ref(fig:figA1)).
 
@@ -99,14 +101,14 @@ matchDataRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts",
 
 ```
 
-```{r aspat-perf-fig-simp, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants within cutblocks, outside cutblocks, and overall (1 ha cost raster). Values greater than zero indicate overprojection and negative values indicate underprojection. Cutblocks not accessible via the observed road network were excluded from analysis. Performance varies among metrics (columns), projection method variants (colours), and within and outside cutblocks."}
+```{r aspat-perf-fig-simp, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different simple cost projection method variants within cutblocks, outside cutblocks, and overall (1 ha cost raster). Values greater than zero indicate overprojection and negative values indicate underprojection. Cutblocks not accessible via the observed road network were excluded from analysis. Performance varies among metrics (columns), projection method variants (colours), and within and outside cutblocks."}
 # organize data for ggplot
 doAspatPlot(meanTableRealCuts)
 ```
 
 <!-- I have not remade Figure 4 with the old results but we could pull it out of GitHub if we want it.-->
 
-```{r spat-perf-fig-simp, fig.height=4.5, fig.width=fig_widths["two"], fig.cap="Aspatial variation of in performance among projection method variants (1 ha cost raster). F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted pixels that were observed and sensitivity is the proportion of observed pixels that were correctly predicted. Values closer to one indicate better performance. Cutblocks not accessible via the observed road network were excluded from analysis."}
+```{r spat-perf-fig-simp, fig.height=4.5, fig.width=fig_widths["two"], fig.cap="Spatial variation of in performance among simple cost projection method variants (1 ha cost raster). F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted pixels that were observed and sensitivity is the proportion of observed pixels that were correctly predicted. Values closer to one indicate better performance. Cutblocks not accessible via the observed road network were excluded from analysis."}
 perf_tbl <- doSpatPerf(matchDataRealCuts)
 perf_tbl_rng <- perf_tbl %>% group_by(metric) %>% 
   summarise(rng_F = range(F_measure, na.rm = TRUE) %>% round(3) %>% paste0(collapse = " - "), .groups = "drop") %>% pull(rng_F, name = metric)
@@ -115,16 +117,14 @@ doSpatPlot(perf_tbl)
 
 ```
 
-As expected, none of the projection methods yield accurate spatial projections of road presence (i.e. the exact locations of roads) (F-Measure: `r perf_tbl_rng["Road presence"]`). Neither do any of the methods provide better information about the exact location of the forestry disturbance footprint than the locations of cutblocks only (F-Measure: `r perf_tbl_rng["Forestry disturbance\nfootprint"]`). All methods provide comparably good projections of the road disturbance footprint (F-Measure: `r perf_tbl_rng["Road disturbance\nfootprint"]`), though higher sampling densities yield fewer false negatives and more false positives (Figure \@ref(fig:spat-perf-fig-simp)).
-
 # All cutblocks results
 
-```{r aspat-perf-fig-all, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants with a 1 ha resolution cost raster. Metrics were summarised within cutblocks, outside cutblocks, and overall. Values greater than 0 indicate overprojection of the metric and negative values indicate an underprojection. Cutblocks included all cutblocks present in the harvest dataset including falsly detected cutblocks with no observed roads accessing them."}
+```{r aspat-perf-fig-all, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants with a 1 ha resolution weight raster in analysis that includes false cutblocks with no observed access roads. Metrics were summarised within cutblocks, outside cutblocks, and overall. Values greater than 0 indicate overprojection of the metric and negative values indicate an underprojection. "}
 meanTable <- read.csv(here(data_path_drvd, "dem", "mean_table.csv"))
 doAspatPlot(meanTable)
 ```
 
-```{r spat-perf-fig-all, fig.height=4.5, fig.width=fig_widths["two"], fig.cap="Comparison of performance metrics for each projection method variant using the 1 ha resolution cost raster. F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted roads that are observed roads and sensitivity is the proportion of observed roads that were correctly predicted. Values closer to one indicate better performance. Cutblocks included all cutblocks present in the harvest dataset including falsly detected cutblocks with no observed roads accessing them."}
+```{r spat-perf-fig-all, fig.height=4.5, fig.width=fig_widths["two"], fig.cap="Comparison of performance metrics for each projection method variant using the 1 ha resolution weight raster, including false cutblocks with no observed access roads. F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted roads that are observed roads and sensitivity is the proportion of observed roads that were correctly predicted. Values closer to one indicate better performance."}
 matchData <- read.csv(here(data_path_drvd, "dem", "agree_table.csv"))
 perf_tbl2 <- doSpatPerf(matchData)
 doSpatPlot(perf_tbl2)
@@ -154,7 +154,7 @@ matchData <- matchData %>% mutate(resolution = "100") %>% bind_rows(matchData2) 
 
 ```
 
-```{r figA1, fig.height=6, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods for the fine resolutiom (1 ha) and coarse resolution (100 ha) cost rasters. Metrics were summarised within cutblocks, outside cutblocks, and overall. Values greater than 0 indicate the projection overestimated the metric and negative values indicate an underestimation."}
+```{r figA1, fig.height=6, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods for the fine resolutiom (1 ha) and coarse resolution (100 ha) weight rasters. Metrics were summarised within cutblocks, outside cutblocks, and overall. Values greater than 0 indicate the projection overestimated the metric and negative values indicate an underestimation."}
 # organize data for ggplot
 meanTable_long <- meanTable %>% dplyr::select(-runTime, -order) %>% 
   pivot_longer(-c(sampleType, sampleDens, areaMean, resolution, method),
@@ -219,7 +219,7 @@ prop_dif %>%
 
 ```
 
-```{r figA2, fig.height=4.5, fig.width=fig_widths["two"], fig.cap="Comparison of performance metrics for each projection method variant for the fine resolutiom (1 ha) and coarse resolution (100 ha) cost rasters. F measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted roads that are observed roads and sensitivity is the proportion of observed roads that were correctly predicted."}
+```{r figA2, fig.height=4.5, fig.width=fig_widths["two"], fig.cap="Comparison of performance metrics for each projection method variant for the fine resolutiom (1 ha) and coarse resolution (100 ha) weight rasters. F measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted roads that are observed roads and sensitivity is the proportion of observed roads that were correctly predicted."}
 
 matchData_sum <- matchData %>% ungroup() %>%
   mutate(agreement = factor(agreement,
@@ -287,9 +287,11 @@ perf_tbl %>%
 
 # Benchmarking road projection methods
 
-We compared the speed and peak RAM usage of the MST and ILCP methods with landings regularly sampled at 10 per km^2^ (high density) or using only the cutblock centroids as landings on weight rasters of three different resolutions 1000 m, 500 m and 100 m, which corresponded to 18 297, 72 633 and 1 815 825 nodes in the cost graph, respectively. Each cell in the raster becomes a node in the graph used to determine the shortest path which increases the time and memory requirements of the projection. Benchmarking was done using Azure Standard A4 v2 nodes which have 4 cores and 8 GB of RAM available, which was chosen to match a typical laptop. Each projection was run on a separate node and the `peakRAM` package was used to measure the total time to run the projection and the maximum memory used at any point in the analysis [@quinn2024]. In addition, we timed the execution of the Hardy QGIS plugin with the 100 m resolution weights raster.
+We compared the speed and peak RAM usage of the MST and ILCP methods with landings regularly sampled at 10 per km^2^ (high density) or using only the cutblock centroids as landings on weight rasters of three different resolutions (1000 m, 500 m and 100 m), giving 18 297, 72 633 and 1 815 825 nodes in the cost graph, respectively. Each cell in the raster becomes a node in the graph used to determine the shortest path which increases the time and memory requirements of the projection. Benchmarking was done using Azure Standard A4 v2 nodes which have 4 cores and 8 GB of RAM, chosen to match a typical laptop. Each projection was run on a separate node and the `peakRAM` package was used to measure the total time to run the projection and the maximum memory used at any point in the analysis [@quinn_peakRAM_2024]. We also timed the execution of the Hardy QGIS plugin with the 100 m resolution weights raster.
 
-```{r speed-fig, fig.width=fig_widths["two"], fig.cap="Speed and peak memory usage of the ILCP and MST road projection methods with landings regularly sampled at 10 per km^2^ (high density) or using cutblock centroids as landings with weight rasters of three different resolutions: 1000 m, 500 m and 100 m, which for our study area is 18 297, 72 633 and 1 815 825 nodes in the cost graph, respectively. In addition, the time to run the Hardy QGIS plugin with the 100 m raster is also shown. Both number of nodes and time are displayed on log transformed axes."}
+Execution time and memory requirements increase with the number of nodes in the graph, and the slope of that increase is highest for the MST method (Figure \@ref(fig:speed-fig)). Except on the very small landscape the ILCP method is faster than the MST method. Reducing the number of landings by targeting centroids also reduces execution time (Figure \@ref(fig:speed-fig)). The Hardy method is significantly faster than any of the R package methods.
+
+```{r speed-fig, fig.width=fig_widths["two"], fig.cap="Speed and peak memory usage of the ILCP and MST road projection methods with landings regularly sampled at 10 per km^2^ (high density) or using cutblock centroids as landings, with weight rasters of three different resolutions (1000 m, 500 m and 100 m) giving 18 297, 72 633 and 1 815 825 nodes in the cost graph, respectively. The time to run the Hardy QGIS plugin with the 100 m raster is also shown. Both number of nodes and time are displayed on log transformed axes."}
 # Get run times from bench marking results
 # compile results after running on cloud
 bench_res <- list.files(here::here("analysis/data/derived_data/bench_results"),
@@ -351,11 +353,9 @@ bench_res %>%
   theme_bw()
 ```
 
-Our benchmarking showed a log-linear relationship between the number of nodes in the graph and the total execution time and memory requirements with the MST method, while the ILCP method had a shallower slope that increased slightly with larger numbers of nodes (Figure \@ref(fig:speed-fig)). Other than for the smallest graph the ILCP method was always faster than the MST method and projections were always faster when the centroid was used rather than high density landings (Figure \@ref(fig:speed-fig)). The Hardy method was significantly faster than any of the R package methods.
-
 # Profiling
 
-Profiling with the `Rprof` function can reveal which parts of a function take the longest. On a test run with 1 million cells in the weight raster and 10 landings we profiled the performance of the ILCP and MST methods. Constructing the graph took ~ 4 s for both methods. For the ILCP method, the iteratively determining the shortest path is the only other step that takes more that a second to run. Each iteration is relatively fast but must be repeated for each landing. For the MST method, the longest running step is the building of the second graph which is used to determine the MST. Determining the shortest path to connect the parts of the MST also takes about 2 seconds.    
+Profiling with the `Rprof` function shows which parts of a function take the longest. On a test run with 1 million cells in the weight raster and 10 landings we profiled the performance of the ILCP and MST methods. Both methods begin by constructing a full graph, which took ~ 4 s. For the ILCP method, iteratively determining the shortest paths is the only other step that takes more that a second to run, and this run time will increase with the number of landings. For the MST method, calculating cost distances among landings and from each landing to the nearest point on the existing road distance takes the most time. Determining the locations of the paths in the minimum spanning tree also takes about 2 seconds.    
 
 ```{r profiling-ilcp, fig.cap="Profiling results for the ILCP method showing functions that take > 1 s to run on a cost raster with 1 million cells and 10 landings. Functions higher in the call stack are called by functions lower down.", fig.height=2}
 if(!file.exists(here::here("analysis/data/derived_data/ilcp_100_Rprof.out"))){
