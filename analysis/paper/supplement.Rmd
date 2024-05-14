@@ -373,7 +373,9 @@ profstat(here::here("analysis/data/derived_data/ilcp_100_Rprof.out"))
 profstat(here::here("analysis/data/derived_data/mst_100_Rprof.out"))
 ```
 
-
+```{r profiling-ilcp_gdistance, fig.cap="Profiling results for the ILCP method using the gdistance package internally showing functions that take > 1 s to run on a cost raster with 1 million cells. Functions higher in the call stack are called by functions lower down.", fig.height=5}
+profstat(here::here("analysis/data/derived_data/ilcp_gdistance_100_Rprof.out"))
+```
 
 # Fort Nelson map
 
