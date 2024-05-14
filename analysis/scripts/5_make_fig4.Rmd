@@ -80,4 +80,4 @@ tmap_save(mp,
 # write_sf(p_rds_mst, here::here("analysis/data/derived_data/bench_results/mst_regular_1e-05_10_revelstoke_real.gpkg"))
 ```
 
-Then arrange the images in powerpoint, modifying the contrast slightly to make the colours show on the satellite imagery. Save to png for inclusion in Rmd and pdf for final product. 
+Then arrange the images in powerpoint, modifying the contrast slightly to make the colours show on the satellite imagery. Save to tif by highlighting all elements > right click > save as picture > choose tiff 
