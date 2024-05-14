@@ -155,11 +155,11 @@ library(dplyr)
 library(stringr)
 library(tidyr)
 library(purrr)
-library(ggpubr)
 library(MetBrewer)
 library(here)
 library(tmap)
 library(cowplot)
+library(ggspatial)
 
 #devtools::install_deps(here()) #try this if the next line is giving trouble.
 devtools::load_all(here())
@@ -172,8 +172,6 @@ pal_nm <- "Redon"
 
 fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 ```
-
-<!---BLOCK_MULTICOL_START--->
 
 ```{r prepStudyArea, cache=TRUE}
 
@@ -196,90 +194,51 @@ canada <- canada %>%
   st_transform(st_crs(tsaBoundary)) %>% 
   st_simplify(dTolerance = 10000)
 
-canada_overlay <- tm_shape(canada, projection = "+proj=lcc +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs")+
-  tm_borders(col="black")+
-  tm_shape(st_buffer(tsaBoundary, 10000))+
-  tm_polygons(border.col = met.brewer(pal_nm, 1), col = met.brewer(pal_nm, 1))+
-  tm_layout(frame=TRUE)
+# using ggspatial because tmap doesn't work with both multiplots and insets
+tsaBound <- st_union(tsaBoundary)
 
-tsa <- tm_shape(tsaCost, name = "Cost")+
-  tm_raster(style = "cont", title = "Cost",palette="Greys")+
-  tm_shape(st_union(tsaBoundary))+
-  tm_borders(col = "black")+
-  tm_compass(position = c(0.3, 0.11), size = 1)+
-  tm_scale_bar(position = c("center", "bottom"), text.size = 1)+
-  tm_layout(legend.position = c("left", "bottom"),
-            legend.bg.color = "white")
-  
-vp <- grid::viewport(x=0.965, y=0.945, width = 0.35, height=0.2,
-               just=c("right", "top"))
+dem_map <- ggplot() + 
+  layer_spatial(dem) +
+  geom_sf(data = tsaBound, fill = NA) +
+  annotation_scale(width_hint = 0.4) +
+  scale_fill_continuous(low = "white", high = "black",
+                        na.value = NA)+
+  theme_void()+
+  theme(plot.background = element_rect(colour = NA, fill = "white"))+
+  labs(fill = "Elevation")
 
-tmap_save(tsa, filename = here("analysis/figures/Figure1_StudyArea.png"),
-  dpi = 600, insets_tm = canada_overlay, insets_vp = vp,
-  height = 6*0.9, width = fig_widths["single"]*0.9, units = "in")
+cost_map <- ggplot() + 
+  layer_spatial(tsaCost) +
+  geom_sf(data = tsaBound, fill = NA) +
+  annotation_north_arrow(style = north_arrow_orienteering(fill = c("black", "black")), height = unit(1, "cm"), width = unit(0.75, "cm")) +
+  scale_fill_continuous(low = "white", high = "black",
+                        na.value = NA)+
+  theme_void()+
+  theme(plot.background = element_rect(colour = NA, fill = "white"))+
+  labs(fill = "Cost")
 
-tsaDEM <- tm_shape(dem, name = "Elevation")+
-  tm_raster(style = "cont", title = "Elevation",palette="Greys")+
-  tm_shape(st_union(tsaBoundary))+
-  tm_borders(col = "black")+
-  # tm_compass(position = c(0.3, 0.11), size = 1)+
-  # tm_scale_bar(position = c("center", "bottom"), text.size = 1)+
-  tm_layout(legend.position = c("left", "bottom"),
-            legend.bg.color = "white")
+can_map <- ggplot() + 
+  geom_sf(data = canada %>% st_transform(crs = "+proj=lcc +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"), fill = NA) +
+  geom_sf(data = st_buffer(tsaBound, 10000) %>% st_transform(crs = "+proj=lcc +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"), 
+          fill = met.brewer(pal_nm, 1)) +
+  theme_void()+
+  theme(panel.border = element_rect(colour = "black", fill = NA))
 
-vp2 <- grid::viewport(x=0.965, y=0.945, width = 0.35, height=0.2,
-                      just=c("right", "top"))
-
-both_maps <- tmap_arrange(tsa, tsaDEM, outer.margins = 0)
-
-tsa_grob <- tmap_grob(tsa)
-tsaDEM_grob <- tmap_grob(tsaDEM)
-canada_overlay_grob <- tmap_grob(canada_overlay)
-
-out_map <- plot_grid(tsa_grob, tsaDEM_grob)+
-    draw_grob(canada_overlay_grob, x=0.965, y=0.945,
+out_map <- plot_grid(cost_map, dem_map)+
+  draw_plot(can_map, x=1.09, y=0.945,
             width = 0.35, height=0.2,
             hjust= 1, vjust = 1)
 
-tmap_save(both_maps, filename = here("analysis/figures/Figure1_StudyArea_both.tiff"),
-  dpi = 600, insets_tm = canada_overlay, insets_vp = vp2,
-  height = 6*0.9, width = fig_widths["two"], units = "in")
-
-tmap_save(tsaDEM, filename = here("analysis/figures/Figure1_StudyAreaDEM.png"),
-  dpi = 600, insets_vp = vp,
-  height = 6*0.9, width = fig_widths["single"]*0.9, units = "in")
-
-
-# try with ggspatial
-
-library(ggspatial)
-library(ggplot2)
-
-ggplot() + 
-  layer_spatial(dem) +
-  geom_sf(data = st_union(tsaBoundary), fill = NA) +
-  annotation_scale() +
-  scale_fill_continuous(na.value = NA)+
-  theme_void()
+save_plot(here("analysis/figures/Figure1_StudyArea_both.tiff"), 
+          out_map,
+          dpi = knitr::opts_chunk$get("dpi"),
+          base_width = fig_widths["two"], 
+          base_height = 6*0.9)
 ```
-
-```{r study-area1, fig.cap= "see next fig"}
-
-knitr::include_graphics(here("analysis/figures/Figure1_StudyArea.png"))
-
-```
-
-```{r study-area2}
-
-knitr::include_graphics(here("analysis/figures/Figure1_StudyAreaDEM.png"))
-```
-
-<!---BLOCK_MULTICOL_STOP{widths: [3.6,3.6]}--->
 
 ```{r study-area, fig.cap="Road construction cost surface and an elevation surface used to calculate grade penalties. Costs are calculated using a simple model informed by slope and major barriers (Table 1, Supplement A) in the Revelstoke timber supply area in British Colombia, Canada. In both layers, pixels containing existing roads are assigned a value of 0."}
 
-png::writePNG(array(0, dim = c(1,1,4)), here("analysis/figures/empty.png"))
-knitr::include_graphics(here("analysis/figures/empty.png"))
+knitr::include_graphics(here("analysis/figures/Figure1_StudyArea_both.tiff"))
 ```
 
 Road network data was obtained by combining the digital road atlas [@data_bc_digital_2021] and forest tenure road [@british_columbia_ministry_of_forests_lands_natural_resource_operations_and_rural_development__flnrord_forest_2021] data sets for British Columbia. To avoid situations where the same road was included in both data sets with slightly different coordinates, we removed all roads from the digital road atlas that were within 50 m of forest tenure roads. The existing road network, used as the starting point for projections, was created by filtering out forest tenure roads with an award date greater than 1990. We assumed everything in the digital road atlas was built before 1990. Cutblock information was obtained from the Harvest Areas of BC (Consolidated Cutblocks) dataset [@government_of_british_columbia_harvested_2021], compiled from provincial Forest Cover, the RESULTS Reporting system, Forest Tenure applications, and satellite imagery using change detection processes. Forest harvest cutblocks with harvest years greater than 1990 were filtered and used as targets for the projections. We further filtered cutblocks that contain observed roads from those that do not to reduce errors associated with open areas that have been misidentified as cutblocks.
@@ -318,7 +277,7 @@ TO DO: should this paragraph about speed and memory go in the results or discuss
 ```
 Note that the evolution of a road network over time can be modeled by iteratively applying any of the methods, but in this manuscript we focus on comparing outcomes of a single application of each of the methods to a network of forest roads developed since 1990.
 
-To help make these road network projection methods more easily and widely useable, we implemented the ILCP and MST methods in the open source R package `roads` [@endicott_roads_2023]. The `roads` package is dependent on several other R packages including: `igraph` for calculating least cost paths and minimum spanning trees [@csardi_igraph_2006; @csardi_igraph_2024]; `terra` for manipulating spatial raster data [@hijmans_terra_2023]; and `sf` for manipulating spatial vector data [@pebesma_simple_2018; @pebesma_sf_2022]. The package is available on CRAN (The Comprehensive R Archive Network) and the source code, tutorials and documentation are available on GitHub [@endicott_roads_2023].
+To help make these road network projection methods more easily and widely useable, we implemented the ILCP and MST methods in the open source R package `roads` [@endicott_roads_2023]. The `roads` package is dependent on several other R packages including: `igraph` for calculating least cost paths and minimum spanning trees [@csardi_igraph_2006; @csárdi_igraph_2024]; `terra` for manipulating spatial raster data [@hijmans_terra_2023]; and `sf` for manipulating spatial vector data [@pebesma_simple_2018; @pebesma_sf_2022]. The package is available on CRAN (The Comprehensive R Archive Network) and the source code, tutorials and documentation are available on GitHub [@endicott_roads_2023].
 
 ## Comparison of Method Variants
 
@@ -514,12 +473,12 @@ allMaps[[nrow(allProj)]] <- allMaps[[nrow(allProj)]]+
   tm_layout(legend.only = TRUE, legend.position = c("center", "center"))
 
 tmap_save(tmap_arrange(allMaps, ncol = 3),
-          here("analysis/figures/projection_methods_figure.png"),
+          here("analysis/figures/projection_methods_figure.tiff"),
           dpi = 300, height = 8, width = fig_widths["two"])
 ```
 
 ```{r proj-meth-fig, fig.cap="Comparison of road projection method variants (Table 2). The large four sided cutblock in the top right was added to more clearly show algorithm behaviour within cutblocks.The grade penalty method for setting edge weights (top row) encourages roads to follow slope contours, and yields fewer obviously unrealistic 90 degree turns in steep terrain than our simple cost method (middle row). Selecting a single landing at the centroid of each cutblock (bottom left) creates too few roads within cutblocks. In this 1 ha resolution example the Hardy QGIS plugin (bottom middle) creates more curved roads than our simple cost method (middle row), and does not follow slope contours like the grade penalty method (top row). Landing density is high for all except the centroid and Hardy variants."}
-knitr::include_graphics(here("analysis/figures/projection_methods_figure.png"))
+knitr::include_graphics(here("analysis/figures/projection_methods_figure.tiff"))
 ```
 
 ```{r proj-map-fig, fig.height=9, fig.width=fig_widths["two"], fig.cap="Comparison of the minimum spanning tree projection with regular high density sampling to the observed road network. The main map shows observed distance to the nearest road minus the projected distance. Insets highlight areas of interest with satellite imagery (Google 2022) for context: (a) Projected and observed road networks follow valleys but projected roads cross valley bottoms more frequently; (b) some open areas are misidentified as cutblocks; (c) projected roads follow contours but do not avoid turns and dead ends like observed switchbacks."}
