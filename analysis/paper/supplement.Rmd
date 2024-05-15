@@ -54,7 +54,7 @@ The grade penalty method for calculating edge weights is a simplified version of
 
 ```{r echo=TRUE}
 
-slopePenaltyFn <- function(x1, x2, resolution = 1, baseCost = 16178, limit = 20,
+gradePenaltyFn <- function(x1, x2, resolution = 1, baseCost = 16178, limit = 20,
                            penalty = 504, limitWeight = NA){
   # Don't calculate grade penalty cost if one of the nodes is a barrier.
   cond <- pmin(x1, x2) >= 0

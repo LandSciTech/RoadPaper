@@ -49,7 +49,7 @@ dem <- rast(here(data_path_drvd,  "testing_dem.tif"))
 roads <- read_sf(here(data_path_drvd,  "testing_obs_roads.gpkg"))
 
 see = data.frame(demDif = seq(-0.3,0.3,length.out=1000))
-see$cost = slopePenaltyFn(1,1+see$demDif,resolution=100)
+see$cost = gradePenaltyFn(1,1+see$demDif,resolution=100)
 plot(see$cost~see$demDif)
 
 # densities
@@ -70,7 +70,7 @@ paramTable$weightMethod = "Simple cost"
 
 paramTableDem = paramTable
 
-paramTableDem$weightFunction = deparse1(slopePenaltyFn,collapse="\n")
+paramTableDem$weightFunction = deparse1(gradePenaltyFn,collapse="\n")
 paramTableDem$weightFunction = gsub("limitWeight = NA","limitWeight = 65000",paramTableDem$weightFunction,fixed=T)
 paramTableDem$weightMethod = "Grade penalty"
 
@@ -197,7 +197,7 @@ if(0){
 
   paramTable<-paramTable[nrow(paramTable)-1,]
 
-  paramTable$weightFunction = deparse1(slopePenaltyFn,collapse="\n")
+  paramTable$weightFunction = deparse1(gradePenaltyFn,collapse="\n")
 
   # this means that slopes that are steeper than limit will be 65000 not NA
   paramTable$weightFunction = gsub("limitWeight = NA","limitWeight = 65000",paramTable$weightFunction,fixed=T)

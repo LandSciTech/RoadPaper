@@ -89,7 +89,7 @@ prof <- peakRAM::peakRAM(
                          weightRaster = inputs$tsaCost_st,
                          roads = inputs$roadsExist,
                          roadMethod = cRow$method,
-                         weightFunction = slopePenaltyFn,
+                         weightFunction = gradePenaltyFn,
                          limitWeight = 65000)
 )
 
