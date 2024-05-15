@@ -38,14 +38,15 @@ make_test_set <- function(size, landscape, base_point, nlnds){
 
 dat <- make_test_set(size, landscape, base_point, lnds)
 
-projectRoads(dat$landings, dat$cost, dat$roads, roadsInCost = FALSE)
-
-
 
 Rprof(here::here("analysis/data/derived_data/ilcp_100_Rprof.out"), interval = 0.01)
-projectRoads(dat$landings, dat$cost, dat$roads, roadsInCost = FALSE, roadMethod = "ilcp")
+projectRoads(dat$landings, dat$cost, dat$roads, roadsInWeight = FALSE, roadMethod = "ilcp")
 Rprof(NULL)
 
 Rprof(here::here("analysis/data/derived_data/mst_100_Rprof.out"), interval = 0.01)
-projectRoads(dat$landings, dat$cost, dat$roads, roadsInCost = FALSE, roadMethod = "mst")
+projectRoads(dat$landings, dat$cost, dat$roads, roadsInWeight = FALSE, roadMethod = "mst")
+Rprof(NULL)
+
+Rprof(here::here("analysis/data/derived_data/ilcp_gdistance_100_Rprof.out"), interval = 0.01)
+projectRoads(dat$landings, dat$cost, dat$roads, roadsInWeight = FALSE, roadMethod = "ilcp", method = "gdistance")
 Rprof(NULL)

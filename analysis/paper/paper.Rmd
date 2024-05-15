@@ -84,6 +84,8 @@ knitr::opts_chunk$set(
   dev.args=list(compression="lzw"),
   dpi = 300
 )
+# Setting to avoid re-running projections
+rerun <- FALSE
 ```
 
 \newpage
@@ -332,7 +334,7 @@ matchDataRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts/dem",
 
 ```
 
-```{r aspat-perf-fig, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants within cutblocks, outside cutblocks, and overall (1 ha weight raster). Values greater than zero indicate overprojection and negative values indicate underprojection. Cutblocks not accessible via the observed road network were excluded from analysis. Performance varies among metrics (columns), projection method variants (colours), and within and outside cutblocks."}
+```{r aspat-perf-fig, fig.height=4, fig.width=fig_widths["two"], out.width=paste0(fig_widths["two"], "in"), out.height="4in", fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants within cutblocks, outside cutblocks, and overall (1 ha weight raster). Values greater than zero indicate overprojection and negative values indicate underprojection. Cutblocks not accessible via the observed road network were excluded from analysis. Performance varies among metrics (columns), projection method variants (colours), and within and outside cutblocks."}
 # organize data for ggplot
 doAspatPlot(meanTableRealCuts)
 ```
@@ -385,7 +387,8 @@ paramTableDem$weightMethod = "grade penalty"
 
 paramTableDem<- subset(paramTableDem,sampleType!="centroid")
 
-# re-run projections for just the small area with different parameters
+if(rerun){
+  # re-run projections for just the small area with different parameters
 set.seed(4)
 mstProj <- projectAll(tsbs = tsb, paramTable = paramTable,
                       weightRaster = tsaCost,
@@ -445,6 +448,12 @@ allProj <- bind_rows(
 allProj <- bind_rows(allProj,
                      slice(allProj, 1))
 
+saveRDS(allProj, here("analysis/data/derived_data/test_prog_fig3.rds"))
+
+} else {
+  allProj <- readRDS(here("analysis/data/derived_data/test_prog_fig3.rds"))
+}
+
 
 allMaps <- purrr::map(
   1:nrow(allProj),
@@ -476,12 +485,13 @@ allMaps[[nrow(allProj)]] <- allMaps[[nrow(allProj)]]+
 
 tmap_save(tmap_arrange(allMaps, ncol = 3),
           here("analysis/figures/projection_methods_figure.tiff"),
-          dpi = 300, compression="lzw", 
+          dpi = knitr::opts_chunk$get("dpi"), compression="lzw", 
           height = 8, width = fig_widths["two"])
 ```
 
-```{r proj-meth-fig, fig.height=8, fig.width=fig_widths["two"], fig.cap="Comparison of road projection method variants (Table 2). The large four sided cutblock in the top right was added to more clearly show algorithm behaviour within cutblocks.The grade penalty method for setting edge weights (top row) encourages roads to follow slope contours, and yields fewer obviously unrealistic 90 degree turns in steep terrain than our simple cost method (middle row). Selecting a single landing at the centroid of each cutblock (bottom left) creates too few roads within cutblocks. In this 1 ha resolution example the Hardy QGIS plugin (bottom middle) creates more curved roads than our simple cost method (middle row), and does not follow slope contours like the grade penalty method (top row). Landing density is high for all except the centroid and Hardy variants."}
-knitr::include_graphics(here("analysis/figures/projection_methods_figure.tiff"))
+```{r proj-meth-fig, out.width=paste0(fig_widths["two"], "in"), out.height="8in", fig.cap="Comparison of road projection method variants (Table 2). The large four sided cutblock in the top right was added to more clearly show algorithm behaviour within cutblocks.The grade penalty method for setting edge weights (top row) encourages roads to follow slope contours, and yields fewer obviously unrealistic 90 degree turns in steep terrain than our simple cost method (middle row). Selecting a single landing at the centroid of each cutblock (bottom left) creates too few roads within cutblocks. In this 1 ha resolution example the Hardy QGIS plugin (bottom middle) creates more curved roads than our simple cost method (middle row), and does not follow slope contours like the grade penalty method (top row). Landing density is high for all except the centroid and Hardy variants."}
+knitr::include_graphics(here("analysis/figures/projection_methods_figure.tiff"),
+                        dpi = knitr::opts_chunk$get("dpi"))
 ```
 
 ```{r proj-map-fig, fig.height=9, fig.width=fig_widths["two"], fig.cap="Comparison of the minimum spanning tree projection with regular high density sampling to the observed road network. The main map shows observed distance to the nearest road minus the projected distance. Insets highlight areas of interest with satellite imagery (Google 2022) for context: (a) Projected and observed road networks follow valleys but projected roads cross valley bottoms more frequently; (b) some open areas are misidentified as cutblocks; (c) projected roads follow contours but do not avoid turns and dead ends like observed switchbacks."}
@@ -490,7 +500,7 @@ knitr::include_graphics(here("analysis/figures/Figure4_map_update.tif"))
 
 ```
 
-```{r spat-perf-fig, fig.height=4.5, fig.width=fig_widths["two"], fig.cap="Variation in spatial performance among projection method variants (1 ha weight raster). F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted pixels that were observed and sensitivity is the proportion of observed pixels that were correctly predicted. Values closer to one indicate better performance. Cutblocks not accessible via the observed road network were excluded from analysis."}
+```{r spat-perf-fig, fig.height=4.5, fig.width=fig_widths["two"], out.width=paste0(fig_widths["two"], "in"), out.height="4.5in", fig.cap="Variation in spatial performance among projection method variants (1 ha weight raster). F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted pixels that were observed and sensitivity is the proportion of observed pixels that were correctly predicted. Values closer to one indicate better performance. Cutblocks not accessible via the observed road network were excluded from analysis."}
 perf_tbl <- doSpatPerf(matchDataRealCuts)
 perf_tbl_rng <- perf_tbl %>% group_by(metric) %>% 
   summarise(rng_F = range(F_measure, na.rm = TRUE) %>% round(3) %>% paste0(collapse = " - "), .groups = "drop") %>% pull(rng_F, name = metric)
@@ -499,7 +509,7 @@ doSpatPlot(perf_tbl)
 
 ```
 
-```{r speed-fig, fig.height=5, fig.width=fig_widths["single"], fig.cap=""}
+```{r speed-fig}
 # Get run times from bench marking results
 # compile results after running on cloud
 bench_res <- list.files(here::here("analysis/data/derived_data/bench_results"),
@@ -530,7 +540,7 @@ mst_time <- bench_res %>%
 
 Although these methods project fewer roads than we observe, they represent a substantial improvement over the "cutblocks only" scenario, in which no new roads are added (Figure \@ref(fig:aspat-perf-fig)). That said, these methods are not designed to project the exact locations of new roads, so they (unsurprisingly) do not yield accurate spatial projections of road presence (i.e. the exact locations of roads) (F-Measure: `r perf_tbl_rng["Road presence"]`). Neither do any of the methods provide better information about the exact location of the forestry disturbance footprint than the locations of cutblocks only (F-Measure: `r perf_tbl_rng["Forestry disturbance\nfootprint"]`). All methods provide comparably good projections of the road disturbance footprint (F-Measure: `r perf_tbl_rng["Road disturbance\nfootprint"]`), though higher sampling densities yield fewer false negatives and more false positives (Figure \@ref(fig:spat-perf-fig)).
 
-Although the MST method performed better than alternatives according to several metrics (Figure \@ref(fig:aspat-perf-fig)), it also requires more memory and time to compute on large landscapes (Supplement E). All of these methods require construction of a large graph with a node for each pixel in the weight raster where road construction is possible (i.e. not NA), and memory requirements increase with the number of nodes in the graph (Supplement E). Compute time also increases with the number of landing targets (Supplement E). Lochhead et al's [-@lochhead_demo_2018; -@lochhead_linking_2022] method of graph construction is more computationally efficient than the adjacency matrix approach used in the R package `gdistance` [@van_etten_r_2017] (Supplement F), in part because it avoids the additional cost of constructing a transition matrix, and in part because it ignores variation in the size of raster cells that is accounted for in the 'gdistance' _geoCorrection_ function. The Hardy QGIS plugin is an order of magnitude faster than the MST and ILCP methods implemented in R (Supplement E).
+Although the MST method performed better than alternatives according to several metrics (Figure \@ref(fig:aspat-perf-fig)), it also requires more memory and time to compute on large landscapes (Supplement E). All of these methods require construction of a large graph with a node for each pixel in the weight raster where road construction is possible (i.e. not NA), and memory requirements increase with the number of nodes in the graph (Supplement E). Compute time also increases with the number of landing targets (Supplement E). Lochhead et al's [-@lochhead_demo_2018; -@lochhead_linking_2022] method of graph construction is more computationally efficient than the adjacency matrix approach used in the R package `gdistance` [@van_etten_r_2017] (Supplement F), in part because it avoids the additional cost of constructing a transition matrix, and in part because it ignores variation in the size of raster cells that is accounted for in the `gdistance` _geoCorrection_ function. The Hardy QGIS plugin is an order of magnitude faster than the MST and ILCP methods implemented in R (Supplement E).
 
 # Discussion
 
@@ -575,7 +585,7 @@ Funding for this work was provided by Environment and Climate Change Canada.
 
 # Data availability
 
-Data generated or analyzed during this study are available in the Open Science Framework repository, <https://osf.io/8vmqh/?view_only=d168967961914f22af89e44c19aec019>. The roads package can be installed from CRAN and the code and a user guide are available on GitHub at <https://github.com/LandSciTech/roads>.
+Data generated or analyzed during this study are available in the Open Science Framework repository, <https://osf.io/8vmqh/?view_only=d168967961914f22af89e44c19aec019>. The code to reproduce the analysis and figures in this paper is available on GitHub at <https://github.com/LandSciTech/RoadPaper>. The `roads` package can be installed from CRAN and the code and a user guide are available on GitHub at <https://github.com/LandSciTech/roads>.
 
 <!-- The following line inserts a page break  -->
 
