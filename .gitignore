@@ -8,6 +8,7 @@ analysis/data/derived_data/*
 !analysis/data/derived_data/for_fig
 !analysis/data/derived_data/TSA27_real_cuts
 !analysis/data/derived_data/bench_results
+!analysis/data/derived_data/*.out
 
 analysis/data/derived_data/bench_results/*
 !analysis/data/derived_data/bench_results/bench*.rds
