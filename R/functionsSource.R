@@ -601,6 +601,9 @@ doAspatPlot <- function(tab){
            areaMean = factor(areaMean, labels = c("Cutblocks", "Outside\ncutblocks",
                                                   "Overall")))
 
+  pal <- met.brewer(pal_nm, 8) %>% .[c(8, 1:7)]
+  names(pal) <- levels(prop_dif$sampleDens) %>% setdiff("Observed")
+
   prop_dif %>%
     ggplot(aes(x = sampleDens, prop_dif, fill = sampleDens))+
     geom_hline(aes(yintercept = 0), color = "grey")+
@@ -608,7 +611,7 @@ doAspatPlot <- function(tab){
                                         width = 0.75))+
     facet_grid(areaMean~ metric, scales = "free")+
     theme_classic()+
-    scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:7)],
+    scale_fill_manual(values = pal,
                       name = "Sampling\nMethod", guide = "none")+
     theme(text = element_text(size = 10), axis.title.x = element_blank(),
           axis.title.y = element_blank(),
@@ -668,6 +671,10 @@ doSpatPerf <- function(tab){
 }
 
 doSpatPlot <- function(tab){
+
+  pal <- met.brewer(pal_nm, 8) %>% .[c(8, 1:7)]
+  names(pal) <- levels(tab$sampleDens) %>% setdiff("Observed")
+
   tab %>%
     pivot_longer(c(sensitivity, precision, F_measure), names_to = "perf_meas",
                  values_to = "value") %>%
@@ -676,7 +683,7 @@ doSpatPlot <- function(tab){
            value = value  +0.01) %>%   # adding so 0 shows in figure
     ggplot(aes(sampleDens, value, fill = sampleDens))+
     geom_col()+
-    scale_fill_manual(values = met.brewer(pal_nm, 8) %>% .[c(8, 1:7)],
+    scale_fill_manual(values = pal,
                       name = "Sampling\nMethod", guide = "none")+
     facet_grid(metric ~ perf_meas)+
     coord_flip()+
