@@ -321,7 +321,13 @@ mst_time <- bench_res %>%
   pull(Elapsed_Time_sec) %>% units::set_units("sec") %>%
   units::set_units("hours") %>% round(2) %>% units::drop_units()
 
-
+# Formula for extrapolating RAM needed for road projection
+# bench_res %>% 
+#   filter(method == "mst", sampleType == "regular", sampleDens == 1e-05,
+#          cutblocks_real== "revelstoke_real") %>% 
+#   arrange(desc(resolution)) %>% 
+#   {lm(log10(Peak_RAM_Used_MiB)~log10(n_verticies), data = .)}
+# 10^(-1.6+0.769*log10(21791850))
 
 minor_breaks <- rep(1:4*2, 21)*(10^rep(-10:10, each=9))
 bench_res %>%
@@ -355,26 +361,32 @@ bench_res %>%
 
 # Profiling
 
-Profiling with the `Rprof` function shows which parts of a function take the longest. On a test run with 1 million cells in the weight raster and 10 landings we profiled the performance of the ILCP and MST methods. Both methods begin by constructing a full graph, which took 3-5 s. For the ILCP method, iteratively determining the shortest paths is the only other step that takes more than a second to run, and this run time will increase with the number of landings (Figure \@ref(fig:profiling-ilcp)). For the MST method, calculating cost distances among landings and from each landing to the nearest point on the existing road distance takes the most time, which also increases with the number of landings (Figure \@ref(fig:profiling-mst)). Determining the locations of the paths in the minimum spanning tree also takes about 6 seconds. We experimented with using graph construction methods in the package `gdistance` [@van_etten_r_2017], but Lochhead et al's [-@lochhead_demo_2018; -@lochhead_linking_2022] method is faster (compare Figures \@ref(fig:profiling-ilcp) and \@ref(fig:profiling-ilcp-gdistance)).     
+Profiling with the `Rprof` function shows which parts of a function take the longest. On a test run with 1 million cells in the weight raster and 10 landings we profiled the performance of the ILCP and MST methods. Both methods begin by constructing a full graph, which took 3-5 s. For the ILCP method, iteratively determining the shortest paths is the only other step that takes more than a second to run, and this run time will increase with the number of landings (Figure \@ref(fig:profiling)). For the MST method, calculating cost distances among landings and from each landing to the nearest point on the existing road takes the most time, which also increases with the number of landings (Figure \@ref(fig:profiling)). Determining the locations of the paths in the minimum spanning tree also takes about 6 seconds. We experimented with using graph construction methods in the package `gdistance` [@van_etten_r_2017], but Lochhead et al's [-@lochhead_demo_2018; -@lochhead_linking_2022] method is faster (Figure \@ref(fig:profiling)).     
 
-```{r profiling-ilcp, fig.cap="Profiling results for the ILCP method showing functions that take > 1 s to run on a cost raster with 1 million cells and 10 landings. Functions higher in the call stack are called by functions lower down.", fig.height=3}
-if(!file.exists(here::here("analysis/data/derived_data/ilcp_100_Rprof.out"))){
-  source(here::here("analysis/scripts/test_profile.R"), keep.source = TRUE)
-}
+```{r profiling, fig.cap="Profiling results for the ILCP, MST, and ILCP using the gdistance package methods, showing functions that take more than one second to run on a cost raster with 1 million cells and 10 landings. Functions higher in the call stack are called by functions lower down.", fig.height=6, fig.width=fig_widths["two"]}
 
-profstat(here::here("analysis/data/derived_data/ilcp_100_Rprof.out"))
+ilcp_100 <- profstat(here::here("analysis/data/derived_data/ilcp_100_Rprof.out"))
+mst_100 <- profstat(here::here("analysis/data/derived_data/mst_100_Rprof.out"))
+ilcp_gd_100 <- profstat(here::here("analysis/data/derived_data/ilcp_gdistance_100_Rprof.out"))
 
+bind_rows(ILCP = ilcp_100, MST = mst_100, `ILCP gdistance` = ilcp_gd_100, .id = "method") %>% 
+  mutate(label = case_when(label == ".External2" ~ "", 
+                           label == "lazy_eval" ~ "", 
+                           label == "gdistance::geoCorrection" & depth == 8 ~ "", 
+                           label == "graph.adjacency.sparse" ~ "", 
+                           TRUE ~ label)) %>% 
+  mutate(method = factor(method, levels = c("ILCP", "MST", "ILCP gdistance"))) %>% 
+  ggplot(aes(y = depth, label = label))+
+  geom_linerange(aes(xmin = st_time, xmax = end_time-0.1))+
+  geom_text(aes(y = depth+0.35, x = st_time), hjust = 0, 
+            size.unit = "pt", size = 10)+
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15)))+
+  labs(y = "Call stack", x = "Time (s)")+
+  theme_bw()+
+  theme(panel.grid = element_blank())+
+  facet_grid(method~.)
 # interactive version
 # profvis::profvis(prof_input = here::here("analysis/data/derived_data/ilcp_100_Rprof.out"))
-```
-
-
-```{r profiling-mst, fig.cap="Profiling results for the MST method showing functions that take > 1 s to run on a cost raster with 1 million cells. Functions higher in the call stack are called by functions lower down.", fig.height=5}
-profstat(here::here("analysis/data/derived_data/mst_100_Rprof.out"))
-```
-
-```{r profiling-ilcp-gdistance, fig.cap="Profiling results for the ILCP method using the gdistance package internally showing functions that take > 1 s to run on a cost raster with 1 million cells. Functions higher in the call stack are called by functions lower down.", fig.height=5}
-profstat(here::here("analysis/data/derived_data/ilcp_gdistance_100_Rprof.out"))
 ```
 
 # Fort Nelson map
