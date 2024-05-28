@@ -717,11 +717,6 @@ profstat <- function(file_nm, min_depth = 6, max_depth = 11, min_time = 1){
     summarise(st_time = min(time)*pr$interval/1000,
               end_time = (max(time)*pr$interval/1000) -0.01, .groups = "drop") %>%
     mutate(tot_time = end_time - st_time) %>%
-    filter(tot_time >= min_time, label != "blank") %>%
-    ggplot(aes(y = depth, label = label))+
-    geom_linerange(aes(xmin = st_time, xmax = end_time))+
-    geom_text(aes(y = depth+0.2, x = st_time), hjust = 0)+
-    scale_x_continuous(expand = expansion(mult = c(0, 0.15)))+
-    labs(y = "Call stack", x = "Time (s)")+
-    theme_classic()
+    filter(tot_time >= min_time, label != "blank")
+
 }
