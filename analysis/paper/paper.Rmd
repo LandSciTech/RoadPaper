@@ -376,7 +376,7 @@ paramTable <- tibble(sampleType, sampleDens,
                      forestryDisturbance = vector("list", length(sampleDens))) %>%
   distinct()
 
-simpleCostFn = function(x1,x2,...) (x1+x2)/2
+simpleCostFn = function(x1,x2,hdistance,...) hdistance*(x1+x2)/2
 paramTable$weightFunction = deparse1(simpleCostFn,collapse="\n")
 paramTable$weightMethod = "simple cost"
 

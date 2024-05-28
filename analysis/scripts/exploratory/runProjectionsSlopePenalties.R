@@ -49,7 +49,7 @@ dem <- rast(here(data_path_drvd,  "testing_dem.tif"))
 roads <- read_sf(here(data_path_drvd,  "testing_obs_roads.gpkg"))
 
 see = data.frame(demDif = seq(-0.3,0.3,length.out=1000))
-see$cost = gradePenaltyFn(1,1+see$demDif,resolution=100)
+see$cost = gradePenaltyFn(1,1+see$demDif,hdistance=100)
 plot(see$cost~see$demDif)
 
 # densities
@@ -64,7 +64,7 @@ paramTable <- tibble(sampleType, sampleDens,
                      output = vector("list", length(sampleDens))) %>%
   distinct()
 
-simpleCostFn = function(x1,x2,...) (x1+x2)/2
+simpleCostFn = function(x1,x2,hdistance,...) hdistance*(x1+x2)/2
 paramTable$weightFunction = deparse1(simpleCostFn,collapse="\n")
 paramTable$weightMethod = "Simple cost"
 
