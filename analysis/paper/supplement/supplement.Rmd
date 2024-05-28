@@ -48,31 +48,58 @@ fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 
 ```
 
-## Grade penalty function
+## Grade penalty and simple cost methods for setting edge weights
 
-The grade penalty method for calculating edge weights is a simplified version of the approach taken by Anderson and Nelson [-@anderson_projecting_2004] that does not distinguish between adverse and favourable grades. We use a modified Digital Elevation Model (DEM) as the input to the edge weight calculation that allows barriers other than slope to be included without incurring additional computation and memory costs. Pixels where roads cannot be built are assigned a value of NA, and negative values indicate costs associated with other features (e.g. stream crossings). Existing roads are assigned a value of 0. All other values in the weight raster are assumed to be elevation and grade is calculated from differences between adjacent locations. Default construction cost values are taken from the BC Interior Appraisal Manual: the base cost of building a road is \$16 178 with an additional cost of \$504 for every 1% grade and a limit of 20% grade. Edges with greater than 20% grade are assigned either NA or an arbitrarily high value. A value of 65 000 is used in our projections to avoid errors when a landing cannot be accessed without crossing an NA cell. Note that grade penalties are not applied adjacent to existing roads, nor do they apply when connecting to a node with a negative value. In the latter case, the edge weight is set to the highest absolute cost.
+The grade penalty method for calculating edge weights is a simplified version of the approach taken by Anderson and Nelson [-@anderson_projecting_2004] that does not distinguish between adverse and favourable grades. We use a modified Digital Elevation Model (DEM) as the input to the edge weight calculation that allows barriers other than slope to be included without incurring additional computation and memory costs. Pixels where roads cannot be built are assigned a value of NA, and negative values indicate costs associated with other features (e.g. stream crossings). Existing roads are assigned a value of 0. All other values in the weight raster are assumed to be elevation and grade is calculated from differences between adjacent locations. Default construction cost values are taken from the BC Interior Appraisal Manual: the base cost of building a road is \$16 178 with an additional cost of \$504 for every 1% grade and a limit of 20% grade. Edges with greater than 20% grade are assigned either NA or an arbitrarily high value. A value of 65 000 is used in our projections to avoid errors when a landing cannot be accessed without crossing an NA cell. Note that grade penalties are not applied adjacent to existing roads, nor do they apply when connecting to a node with a negative value. In the latter case, the edge weight is set to the highest absolute cost. Weights are adjusted for the horizontal distance between nodes to penalize longer diagonal road segments.
 
 ```{r echo=TRUE}
 
-gradePenaltyFn <- function(x1, x2, resolution = 1, baseCost = 16178, limit = 20,
+gradePenaltyFn <- function(x1, x2, hdistance, baseCost = 16178, limit = 20,
                            penalty = 504, limitWeight = NA){
+  #For grade calculation, x1, x2 and hdistance (i.e. horizontal distance between nodes) 
+  #must have the same units.
+  
   # Don't calculate grade penalty cost if one of the nodes is a barrier.
   cond <- pmin(x1, x2) >= 0
   cond[is.na(cond)] <- F
-  
-  # Apply grade penalty if both nodes have elevation values. 
+
+  # Apply grade penalty if both nodes have elevation values.
   # If one node is a road use base cost.
-  grade <- 100 * abs(x1 - x2) * cond / resolution 
-  
-  slp <- baseCost + grade * penalty * (pmin(x1, x2) > 0)
+  grade <- 100 * abs(x1 - x2) * cond / hdistance #This is % (dimensionless)
+
+  slp <- baseCost + grade * penalty * (pmin(x1, x2) > 0) #This is cost per km.
   slp[grade > limit] <- limitWeight
-  
+
   # If both 0 this is an existing road link. Otherwise it is a barrier.
-  slp[!cond] <- abs(pmin(x1, x2))[!cond] 
-  
+  slp[!cond] <- abs(pmin(x1, x2))[!cond]
+
+  # Multiply by hdistance to penalize diagonals.
+  # Note that multiplying all edge weights by a constant does not change algorithm behaviour,
+  # so we ignore the unit of hdistance here.
+  slp = slp*hdistance
+
   return(slp)
 }
 
+```
+
+In the simple cost method, we first calculate a slope raster $S$, then calculate an input cost raster $X$ that depends on slope $S$:
+\begin{equation}
+   X = 
+   \begin{cases}
+     0 \text{ if existing road} \\
+     65000 \text{ if lake}\\
+     16178+504S \text{ otherwise}
+   \end{cases}
+\end{equation}
+The weight of an edge between two nodes is the mean value of the input cost raster at each of those nodes, adjusted for the euclidean distance between the nodes: 
+```{r echo=TRUE}
+simpleCostFn <- function(x1,x2,hdistance){
+  # Multiply by hdistance to penalize diagonals.
+  # Note that multiplying all edge weights by a constant does not change algorithm behaviour,
+  # so we ignore the unit of hdistance here.
+  return(hdistance*(x1+x2)/2)
+}
 ```
 
 ## Simple cost results
