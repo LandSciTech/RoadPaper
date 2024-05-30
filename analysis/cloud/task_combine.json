@@ -18,7 +18,7 @@
 		"destination": {
 			"container": {
 				"containerUrl": "<SASURL>",
-				"path": "$AZ_BATCH_TASK_ID"
+				"path": "results_<row>"
 			}
 		},
 		"filePattern": "**/*.csv",
@@ -30,7 +30,7 @@
 		"destination": {
 			"container": {
 				"containerUrl": "<SASURL>",
-				"path": "$AZ_BATCH_TASK_ID"
+				"path": "results_<row>"
 			}
 		},
 		"filePattern": "**/*.tif",

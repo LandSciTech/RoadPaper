@@ -49,7 +49,7 @@ param_tbl <- paramTable3
 run_projections(param_tbl %>% filter(agg == 10, cutblocks_real == "revelstoke") %>%
                   rowwise() %>%
                   mutate(across(everything(), as.character)) %>%
-                  mutate(output = file.path(paste0("result_",
+                  mutate(output = file.path(paste0("bench_results/result_",
                                                    paste0(c_across(everything()), collapse = "_"),
                                                    ".rds"))),
                 cutblocksPth = paste0(data_path_drvd, "cutblocks_revelstoke.gpkg"),

@@ -567,6 +567,7 @@ Figure 2: Proportional difference of projected mean from observed mean road metr
 # organize data for ggplot
 doAspatPlot(meanTableRealCuts)
 ```
+
 \newpage
 
 Figure 3: Comparison of road projection method variants (Table 2). The large four sided cutblock in the top right was added to more clearly show algorithm behaviour within cutblocks.The grade penalty method for setting edge weights (top row) encourages roads to follow slope contours, and yields fewer obviously unrealistic 90 degree turns in steep terrain than our simple cost method (middle row). Selecting a single landing at the centroid of each cutblock (bottom left) creates too few roads within cutblocks. In this 1 ha resolution example the Hardy QGIS plugin (bottom middle) creates more curved roads than our simple cost method (middle row), and does not follow slope contours like the grade penalty method (top row). Landing density is high for all except the centroid and Hardy variants.
@@ -584,6 +585,7 @@ Figure 4: Comparison of the minimum spanning tree projection with regular high d
 knitr::include_graphics(here("analysis/figures/Figure4_map_update.tif"))
 
 ```
+
 \newpage
 
 Figure 5: Variation in spatial performance among projection method variants (1 ha weight raster). F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted pixels that were observed and sensitivity is the proportion of observed pixels that were correctly predicted. Values closer to one indicate better performance. Cutblocks not accessible via the observed road network were excluded from analysis. Projection method variants are defined in Table 2.
@@ -613,6 +615,7 @@ knitr::kable(df, caption = ".")
 ```
 
 \newpage
+
 Table 2: Road projection method variants. We examined sensitivity of minimum spanning tree (MST) and iterative least cost path (ILCP) algorithms to the method of setting edge weights (grade penalty or simple cost), the placement of landings within cutblocks (regular or random), the density of landings within cutblocks, and map resolution.
 ```{r method-tbl}
 tbl2 <- "Projection method|Sample type|Sample density (pts/km^2^)|Resolutions

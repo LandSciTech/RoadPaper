@@ -105,7 +105,7 @@ done
 
 # az batch task delete --task-id connectivity-combine --job-id $jobName --yes
 #
-# for rowi in {1..27}
+# for rowi in real1000 real notreal
 # do
 #   az batch task reactivate --job-id $jobName --task-id roads-benchmark-$rowi
 # done
@@ -165,7 +165,7 @@ az storage blob list -c sendicott --account-name ecdcwls --sas-token $sastoken \
 az storage copy -s https://ecdcwls.blob.core.windows.net/sendicott/*?$sastoken \
 -d "analysis/data/derived_data/bench_results" --include-pattern "*.rds"
 
-az storage copy -s https://ecdcwls.blob.core.windows.net/sendicott/\$AZ_BATCH_TASK_ID?$sastoken \
+az storage copy -s https://ecdcwls.blob.core.windows.net/sendicott/results_notreal?$sastoken \
 -d "analysis/data/derived_data/cloud_combine_results" --recursive
 
 az storage remove -c sendicott -n \$AZ_BATCH_TASK_ID --account-name ecdcwls --sas-token $sastoken --recursive
@@ -184,3 +184,6 @@ az batch pool delete --pool-id $poolName
 rm analysis/cloud/make_to_use.R
 rm analysis/cloud/pool_to_use.json
 rm analysis/cloud/task_jsons --recursive
+
+
+
