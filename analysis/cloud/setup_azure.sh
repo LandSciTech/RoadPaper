@@ -40,7 +40,7 @@ sed 's,<subnetId>,'${subnetid//&/\\&}',g' analysis/cloud/pool_roads.json\
 # make a different json for each task
 mkdir -p analysis/cloud/task_jsons
 
-for rowi in {25..27}
+for rowi in {1..27}
 do
   sed 's,<SASURL>,'${sasurl//&/\\&}',g' analysis/cloud/task_roads.json\
   | sed 's,<row>,'$rowi',g' > analysis/cloud/task_jsons/task_roads_$rowi.json
@@ -92,7 +92,7 @@ az batch pool create --json-file analysis/cloud/pool_to_use.json
 az batch job create --pool-id $poolName --id $jobName
 
 
-for rowi in {25..27}
+for rowi in {1..27}
 do
   az batch task create --json-file analysis/cloud/task_jsons/task_roads_$rowi.json --job-id $jobName
 done
@@ -105,9 +105,9 @@ done
 
 # az batch task delete --task-id connectivity-combine --job-id $jobName --yes
 #
-# for rowi in real1000 real notreal
+# for rowi in {1..27}
 # do
-#   az batch task delete --job-id $jobName --task-id roads-benchmark-$rowi --yes
+#   az batch task reactivate --job-id $jobName --task-id roads-benchmark-$rowi
 # done
 
 # set target dedicated nodes
@@ -171,7 +171,7 @@ az storage copy -s https://ecdcwls.blob.core.windows.net/sendicott/\$AZ_BATCH_TA
 az storage remove -c sendicott -n \$AZ_BATCH_TASK_ID --account-name ecdcwls --sas-token $sastoken --recursive
 
 # Remove just files matching pattern
-az storage remove -c sendicott --include-pattern "*.txt" --account-name ecdcwls --sas-token $sastoken --recursive
+az storage remove -c sendicott --include-pattern "*.rds" --account-name ecdcwls --sas-token $sastoken --recursive
 
 # NOTE removes ***everything*** from the storage container
 az storage remove -c sendicott --exclude-pattern "*.gpkg" --account-name ecdcwls --sas-token $sastoken --recursive
