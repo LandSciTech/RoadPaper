@@ -237,11 +237,11 @@ out_map <- plot_grid(cost_map, dem_map)+
             width = 0.35, height=0.2,
             hjust= 1, vjust = 1)
 
-save_plot(here("analysis/figures/Figure1_StudyArea_both.tiff"), 
+save_plot(here("analysis/figures/Figure1_StudyArea_both.tiff"),
           out_map,
           compression = "lzw",
           dpi = knitr::opts_chunk$get("dpi"),
-          base_width = fig_widths["two"], 
+          base_width = fig_widths["two"],
           base_height = 6*0.9)
 ```
 
@@ -285,12 +285,6 @@ Aspatial performance of the projections was assessed by comparing projected and 
 
 # Results
 
-According to all aspatial performance measures, the grade penalty method for setting edge weights yields better results than our simple cost methods (compare Figure \@ref(fig:aspat-perf-fig) and Figure B.1). We therefore recommend using the grade penalty method, and focus on further examining variation in performance among grade penalty method variants (Figure \@ref(fig:aspat-perf-fig)). The MST regular high density method yields the best projections of road density overall, while the MST random high density method had the best projections within cutblocks, and all MST variants yield comparably good projections outside cutblocks. All MST variants yield better projections of the forestry disturbance footprint than the Hardy or ILCP methods, and the Hardy and MST regular high density methods yield comparably accurate projections of road presence and distance to road.
-
-Maps (Figures \@ref(fig:proj-meth-fig) and \@ref(fig:proj-map-fig)) help clarify exactly how the projection methods differ from one another, and from observed roads. While, the Hardy et al.(2023) method and the grade penalty MST and ILCP methods project similar mean road densities within cutblocks, they create distinctly different road patterns within cutblocks. In particular, the grade penalty method incentivized roads to follow slope contours, while the Hardy method created more road curvatures (Figure \@ref(fig:proj-meth-fig)). Although the grade penalty method improved realism by following elevation contours, all these methods created dead ends, intersections, and abrupt turns that would be avoided in the engineering of operational roads in steep terrain (Figures \@ref(fig:proj-meth-fig) and \@ref(fig:proj-map-fig)c). All of the projected road methods also crossed valley bottoms far more often than observed roads which often run parallel to one another on each side of rivers (Figure \@ref(fig:proj-map-fig)a), but this discrepancy could likely be remedied by improved costs of crossing streams, rivers and other wet areas in valley bottoms. Finally, it is important to note that some discrepancies between observed and projected road networks were caused by errors in the observed data, such as cutblocks that were incorrectly classified (e.g. \@ref(fig:proj-map-fig)b). We omitted cutblocks with no associated access roads from our analysis, and note that failure to do this would distort results (Figures S3 and S4).
-
-All of the road projection methods underestimate, road presence and forestry disturbance footprint (Figure \@ref(fig:aspat-perf-fig)). In other words, these road network projection methods project fewer roads than we observe. Projections of distance to road, the forestry disturbance footprint, and the road disturbance footprint were more accurate than projections of road density and road presence (Figure \@ref(fig:aspat-perf-fig)), suggesting that these measures were more robust to our coarse assumptions about road projection. One reason for underestimation of road density is that all these methods generate straight road segments within a pixel. As raster resolution increases, the discrepancy within pixels between real roads and straight projected segments increases, which explains why projections of road density are less accurate when the raster resolution is coarse (Figure D.1).
-
 ```{r get-data}
 # load csv
 meanTable <- read.csv(here(data_path_drvd,"../TSA27/dem", "mean_table.csv"))
@@ -301,11 +295,34 @@ meanTableRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts/dem",
 matchDataRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts/dem",
                                    "agree_table.csv"))
 
+aspat_perf <- doAspatPlot(meanTableRealCuts)
+
+# need to make plots more comparable
+# One option is removing extreme value in distance to road
+aspat_perf$plt$data <- aspat_perf$plt$data %>% mutate(prop_dif = ifelse(metric == "Distance\nto road" & sampleDens == "Cutblocks only", NA, prop_dif))
+
+# Other option is setting limits but want to avoid excess white space
+ann_plus <- aspat_perf$prop_dif %>% 
+  filter(abs(prop_dif) > 0.5) %>% 
+  mutate(lab = round(prop_dif, 2), 
+         prop_dif = 0.37*sign(prop_dif))
+
+aspat_perf$plt+coord_flip(ylim = c(-0.35, 0.35))+
+  geom_text(aes(label = lab), data = ann_plus, hjust = "inward", vjust = 0.2,
+            size = 10, size.unit = "pt")
+
 perf_tbl <- doSpatPerf(matchDataRealCuts)
 perf_tbl_rng <- perf_tbl %>% group_by(metric) %>% 
   summarise(rng_F = range(F_measure, na.rm = TRUE) %>% round(3) %>% paste0(collapse = " - "), .groups = "drop") %>% pull(rng_F, name = metric)
-
 ```
+
+According to all aspatial performance measures, the grade penalty method for setting edge weights yields better results than our simple cost methods (compare Figure \@ref(fig:aspat-perf-fig) and Figure B.1). We therefore recommend using the grade penalty method, and focus on further examining variation in performance among grade penalty method variants (Figure \@ref(fig:aspat-perf-fig)). The MST regular high density method yields the best projections of road density overall, while the MST random high density method had the best projections within cutblocks, and all MST variants yield comparably good projections outside cutblocks. All MST variants yield better projections of the forestry disturbance footprint than the Hardy or ILCP methods, and the Hardy and MST regular high density methods yield comparably accurate projections of road presence and distance to road.
+
+Maps (Figures \@ref(fig:proj-meth-fig) and \@ref(fig:proj-map-fig)) help clarify exactly how the projection methods differ from one another, and from observed roads. While, the Hardy et al.(2023) method and the grade penalty MST and ILCP methods project similar mean road densities within cutblocks, they create distinctly different road patterns within cutblocks. In particular, the grade penalty method incentivized roads to follow slope contours, while the Hardy method created more road curvatures (Figure \@ref(fig:proj-meth-fig)). Although the grade penalty method improved realism by following elevation contours, all these methods created dead ends, intersections, and abrupt turns that would be avoided in the engineering of operational roads in steep terrain (Figures \@ref(fig:proj-meth-fig) and \@ref(fig:proj-map-fig)c). All of the projected road methods also crossed valley bottoms far more often than observed roads which often run parallel to one another on each side of rivers (Figure \@ref(fig:proj-map-fig)a), but this discrepancy could likely be remedied by improved costs of crossing streams, rivers and other wet areas in valley bottoms. Finally, it is important to note that some discrepancies between observed and projected road networks were caused by errors in the observed data, such as cutblocks that were incorrectly classified (e.g. \@ref(fig:proj-map-fig)b). We omitted cutblocks with no associated access roads from our analysis, and note that failure to do this would distort results (Figures S3 and S4).
+
+All of the road projection methods underestimate, road presence and forestry disturbance footprint (Figure \@ref(fig:aspat-perf-fig)). In other words, these road network projection methods project fewer roads than we observe. Projections of distance to road, the forestry disturbance footprint, and the road disturbance footprint were more accurate than projections of road density and road presence (Figure \@ref(fig:aspat-perf-fig)), suggesting that these measures were more robust to our coarse assumptions about road projection. One reason for underestimation of road density is that all these methods generate straight road segments within a pixel. As raster resolution increases, the discrepancy within pixels between real roads and straight projected segments increases, which explains why projections of road density are less accurate when the raster resolution is coarse (Figure D.1).
+
+
 
 
 
@@ -577,7 +594,7 @@ Figure 2: Proportional difference of projected mean from observed mean road metr
 
 ```{r aspat-perf-fig, fig.height=4, fig.width=fig_widths["two"], out.width=paste0(fig_widths["two"], "in"), out.height="4in", fig.cap="."}
 # organize data for ggplot
-doAspatPlot(meanTableRealCuts)
+aspat_perf$plt
 ```
 
 \newpage

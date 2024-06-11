@@ -120,7 +120,8 @@ matchDataRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts",
 
 ```{r aspat-perf-fig-simp, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different simple cost projection method variants within cutblocks, outside cutblocks, and overall (1 ha cost raster). Values greater than zero indicate overprojection and negative values indicate underprojection. Cutblocks not accessible via the observed road network were excluded from analysis. Performance varies among metrics (columns), projection method variants (colours), and within and outside cutblocks."}
 # organize data for ggplot
-doAspatPlot(meanTableRealCuts)
+aspat_simp <- doAspatPlot(meanTableRealCuts)
+aspat_simp$plt
 ```
 
 <!-- I have not remade Figure 4 with the old results but we could pull it out of GitHub if we want it.-->
@@ -138,7 +139,8 @@ doSpatPlot(perf_tbl)
 
 ```{r aspat-perf-fig-all, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants with a 1 ha resolution weight raster in analysis that includes false cutblocks with no observed access roads. Metrics were summarised within cutblocks, outside cutblocks, and overall. Values greater than 0 indicate overprojection of the metric and negative values indicate an underprojection. "}
 meanTable <- read.csv(here(data_path_drvd, "dem", "mean_table.csv"))
-doAspatPlot(meanTable)
+aspat_all <- doAspatPlot(meanTable)
+aspat_all$plt
 ```
 
 ```{r spat-perf-fig-all, fig.height=4.5, fig.width=fig_widths["two"], fig.cap="Comparison of performance metrics for each projection method variant using the 1 ha resolution weight raster, including false cutblocks with no observed access roads. F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted roads that are observed roads and sensitivity is the proportion of observed roads that were correctly predicted. Values closer to one indicate better performance."}

@@ -604,7 +604,7 @@ doAspatPlot <- function(tab){
   pal <- met.brewer(pal_nm, 8) %>% .[c(8, 1:7)]
   names(pal) <- levels(prop_dif$sampleDens) %>% setdiff("Observed")
 
-  prop_dif %>%
+  plt <- prop_dif %>%
     ggplot(aes(x = sampleDens, prop_dif, fill = sampleDens))+
     geom_hline(aes(yintercept = 0), color = "grey")+
     geom_col(position = position_dodge2(preserve = "single",
@@ -618,6 +618,7 @@ doAspatPlot <- function(tab){
           legend.position = "right",
           axis.text.x=element_text(size=11, angle=50, vjust=1, hjust=1))+
     coord_flip()
+  return(lst(prop_dif, plt))
 }
 
 doSpatPerf <- function(tab){
