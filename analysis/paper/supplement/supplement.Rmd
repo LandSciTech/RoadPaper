@@ -121,26 +121,45 @@ matchDataRealCuts <- read.csv(here(data_path_drvd,"../TSA27_real_cuts",
 ```{r aspat-perf-fig-simp, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different simple cost projection method variants within cutblocks, outside cutblocks, and overall (1 ha cost raster). Values greater than zero indicate overprojection and negative values indicate underprojection. Cutblocks not accessible via the observed road network were excluded from analysis. Performance varies among metrics (columns), projection method variants (colours), and within and outside cutblocks."}
 # organize data for ggplot
 aspat_simp <- doAspatPlot(meanTableRealCuts)
-aspat_simp$plt
+
+ann_plus <- aspat_simp$prop_dif %>% 
+  filter(abs(prop_dif) > 0.5) %>% 
+  mutate(lab = round(prop_dif, 2), 
+         prop_dif = 0.37*sign(prop_dif))
+
+aspat_simp$plt+
+  coord_flip(ylim = c(-0.35, 0.35))+
+  geom_text(aes(label = lab), data = ann_plus, hjust = "inward", vjust = 0.5,
+            size = 10, size.unit = "pt")
+
 ```
 
 <!-- I have not remade Figure 4 with the old results but we could pull it out of GitHub if we want it.-->
 
 ```{r spat-perf-fig-simp, fig.height=4.5, fig.width=fig_widths["two"], fig.cap="Spatial variation of in performance among simple cost projection method variants (1 ha cost raster). F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted pixels that were observed and sensitivity is the proportion of observed pixels that were correctly predicted. Values closer to one indicate better performance. Cutblocks not accessible via the observed road network were excluded from analysis."}
-perf_tbl <- doSpatPerf(matchDataRealCuts)
-perf_tbl_rng <- perf_tbl %>% group_by(metric) %>% 
+perf_tbl_simp <- doSpatPerf(matchDataRealCuts)
+perf_tbl_rng_simp <- perf_tbl_simp %>% group_by(metric) %>% 
   summarise(rng_F = range(F_measure, na.rm = TRUE) %>% round(3) %>% paste0(collapse = " - "), .groups = "drop") %>% pull(rng_F, name = metric)
 
-doSpatPlot(perf_tbl)
+doSpatPlot(perf_tbl_simp)
 
 ```
 
 ## All cutblocks results
 
-```{r aspat-perf-fig-all, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants with a 1 ha resolution weight raster in analysis that includes false cutblocks with no observed access roads. Metrics were summarised within cutblocks, outside cutblocks, and overall. Values greater than 0 indicate overprojection of the metric and negative values indicate an underprojection. "}
+```{r aspat-perf-fig-all, fig.height=4, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants with a 1 ha resolution weight raster in analysis that includes false cutblocks with no observed access roads. Metrics were summarised within cutblocks, outside cutblocks, and overall. Values greater than 0 indicate overprojection of the metric and negative values indicate an underprojection. Note that extreme values for the cutblocks only method within cutblocks are cut off to ensure patterns in the other methods to remain visible. Bars that are cutoff are labeled with the total value."}
 meanTable <- read.csv(here(data_path_drvd, "dem", "mean_table.csv"))
 aspat_all <- doAspatPlot(meanTable)
-aspat_all$plt
+
+ann_plus <- aspat_all$prop_dif %>% 
+  filter(abs(prop_dif) > 0.5) %>% 
+  mutate(lab = round(prop_dif, 2), 
+         prop_dif = 0.37*sign(prop_dif))
+
+aspat_all$plt+
+  coord_flip(ylim = c(-0.35, 0.35))+
+  geom_text(aes(label = lab), data = ann_plus, hjust = "inward", vjust = 0.5,
+            size = 10, size.unit = "pt")
 ```
 
 ```{r spat-perf-fig-all, fig.height=4.5, fig.width=fig_widths["two"], fig.cap="Comparison of performance metrics for each projection method variant using the 1 ha resolution weight raster, including false cutblocks with no observed access roads. F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted roads that are observed roads and sensitivity is the proportion of observed roads that were correctly predicted. Values closer to one indicate better performance."}
@@ -173,7 +192,7 @@ matchData <- matchData %>% mutate(resolution = "100") %>% bind_rows(matchData2) 
 
 ```
 
-```{r figA1, fig.height=6, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods for the fine resolutiom (1 ha) and coarse resolution (100 ha) weight rasters. Metrics were summarised within cutblocks, outside cutblocks, and overall. Values greater than 0 indicate the projection overestimated the metric and negative values indicate an underestimation."}
+```{r figA1, fig.height=6, fig.width=fig_widths["two"], fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection methods for the fine resolutiom (1 ha) and coarse resolution (100 ha) weight rasters. Metrics were summarised within cutblocks, outside cutblocks, and overall. Values greater than 0 indicate the projection overestimated the metric and negative values indicate an underestimation. Note that each panel has a different scale so bars cannot be compared across metrics."}
 # organize data for ggplot
 meanTable_long <- meanTable %>% dplyr::select(-runTime, -order) %>% 
   pivot_longer(-c(sampleType, sampleDens, areaMean, resolution, method),
