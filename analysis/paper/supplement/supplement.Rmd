@@ -10,7 +10,7 @@ editor_options:
   chunk_output_type: inline
 ---
 
-# (APPENDIX) Supplementary Material for Implementation and assessment of tools for integrating forest roads into projections of the cumulative effects of disturbance on wildlife {.unnumbered}
+# (APPENDIX) Supplementary Material for Development and assessment of automated forest road projection methods using performance metrics relevant for wildlife {.unnumbered}
 
 ```{r setup, echo = FALSE}
 knitr::opts_chunk$set(
