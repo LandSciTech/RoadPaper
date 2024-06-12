@@ -579,6 +579,8 @@ Data generated or analyzed during this study are available in the Open Science F
 
 Figure 1: Road construction cost surface and an elevation surface used to calculate grade penalties. Costs are calculated using a simple model informed by slope and major barriers (Table 1, Supplement 1-1) in the Revelstoke timber supply area in British Colombia, Canada. In both layers, pixels containing existing roads are assigned a value of 0.
 
+Alt text: Two raster maps of Revelstoke timber supply area in grey scale, with an inset map showing the location of the study area within Canada.  
+
 ```{r study-area, fig.cap="."}
 
 knitr::include_graphics(here("analysis/figures/Figure1_StudyArea_both.tiff"))
@@ -586,7 +588,8 @@ knitr::include_graphics(here("analysis/figures/Figure1_StudyArea_both.tiff"))
 
 \newpage
 
-Figure 2: Proportional difference of projected mean from observed mean road metrics using different projection method variants within cutblocks, outside cutblocks, and overall (1 ha weight raster). Values greater than zero indicate overprojection and negative values indicate underprojection. Cutblocks not accessible via the observed road network were excluded from analysis. Performance varies among metrics (columns), projection method variants (colours), and within and outside cutblocks. Projection method variants are defined in Table 2. Note that extreme values for the cutblocks only method within cutblocks are cut off to ensure patterns in the other methods to remain visible. Bars that are cutoff are labeled with the total value.  
+Figure 2: Proportional difference of projected mean from observed mean road metrics using different projection method variants within cutblocks, outside cutblocks, and overall (1 ha weight raster). Values greater than zero indicate overprojection and negative values indicate underprojection. Cutblocks not accessible via the observed road network were excluded from analysis. Performance varies among metrics (columns), projection method variants (colours), and within and outside cutblocks. Projection method variants are defined in Table 2. Note that extreme values for the cutblocks only method within cutblocks are cut off to ensure patterns in the other methods to remain visible. Bars that are cutoff are labeled with the total value. 
+Alt text: A faceted bar chart with one bar for each projection method variant and a panel for each combination of performance metrics and within cutblock, outside cutblock and overall. 
 
 ```{r aspat-perf-fig, fig.height=4, fig.width=fig_widths["two"], out.width=paste0(fig_widths["two"], "in"), out.height="4in", fig.cap="."}
 # organize data for ggplot
@@ -606,6 +609,8 @@ aspat_perf$plt+coord_flip(ylim = c(-0.35, 0.35))+
 
 Figure 3: Comparison of road projection method variants (Table 2). The large four sided cutblock in the top right was added to more clearly show algorithm behaviour within cutblocks.The grade penalty method for setting edge weights (top row) encourages roads to follow slope contours, and yields fewer obviously unrealistic 90 degree turns in steep terrain than our simple cost method (middle row). Selecting a single landing at the centroid of each cutblock (bottom left) creates too few roads within cutblocks. In this 1 ha resolution example the Hardy QGIS plugin (bottom middle) creates more curved roads than our simple cost method (middle row), and does not follow slope contours like the grade penalty method (top row). Landing density is high for all except the centroid and Hardy variants.
 
+Alt text: A series of 8 maps showing roads projected with different method variants. 
+
 ```{r proj-meth-fig, out.width=paste0(fig_widths["two"], "in"), out.height="8in", fig.cap="."}
 knitr::include_graphics(here("analysis/figures/projection_methods_figure.tiff"),
                         dpi = knitr::opts_chunk$get("dpi"))
@@ -615,6 +620,7 @@ knitr::include_graphics(here("analysis/figures/projection_methods_figure.tiff"),
 
 Figure 4: Comparison of the minimum spanning tree projection with regular high density sampling to the observed road network. The main map shows observed distance to the nearest road minus the projected distance. Insets highlight areas of interest with satellite imagery (Google 2022) for context: (a) Projected and observed road networks follow valleys but projected roads cross valley bottoms more frequently; (b) some open areas are misidentified as cutblocks; (c) projected roads follow contours but do not avoid turns and dead ends like observed switchbacks.
 
+Alt text: A raster map of the Revelstoke TSA where the colour indicates the difference between obeserve and projected distance to road. Three inset maps zoom in of specific areas with Google satelite imagery in the background.
 ```{r proj-map-fig, fig.height=9, fig.width=fig_widths["two"], fig.cap="."}
 
 knitr::include_graphics(here("analysis/figures/Figure4_map_update.tif"))
@@ -625,6 +631,7 @@ knitr::include_graphics(here("analysis/figures/Figure4_map_update.tif"))
 
 Figure 5: Variation in spatial performance among projection method variants (1 ha weight raster). F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted pixels that were observed and sensitivity is the proportion of observed pixels that were correctly predicted. Values closer to one indicate better performance. Cutblocks not accessible via the observed road network were excluded from analysis. Projection method variants are defined in Table 2.
 
+Alt text: A faceted bar chart with one bar for each projection method variant and a panel for each combination of binary performance metrics and within cutblock, outside cutblock and overall.
 ```{r spat-perf-fig, fig.height=4.5, fig.width=fig_widths["two"], out.width=paste0(fig_widths["two"], "in"), out.height="4.5in", fig.cap="."}
 
 doSpatPlot(perf_tbl)
