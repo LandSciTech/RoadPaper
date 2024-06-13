@@ -43,7 +43,7 @@ output:
 bibliography: Roads.bib
 csl: "../templates/chicago-author-date.csl" # Insert path for the bib-style
 keywords: |
-   forest roads, road networks, forest dynamics, spatially explicit modeling, predictive ecology, least cost paths
+   forest roads, forest dynamics, spatially explicit modeling, predictive ecology, least cost paths
 editor_options: 
   chunk_output_type: inline
 ---
@@ -92,7 +92,7 @@ rerun <- TRUE
 
 # Abstract
 
-Despite a rapidly growing body of evidence of complex and varied impacts of road networks on wildlife and other forest values, and the increasing use of spatial stochastic models for forecasting impacts of forest disturbance across regions, very few spatial stochastic projections of forest disturbance dynamics have included automated road network projections, in part because tools suited for this purpose have not been available. Hardy et al. [-@hardy_landis-ii_2023] partially addressed this need with a LANDIS-II extension. As a complementary and comparable alternative, we provide implementations of simple iterative least cost path and minimum spanning tree methods with grade penalties in an open source R package that can be easily integrated into R workflows and modelling frameworks used for forecasting forest change in Canada and elsewhere. Grade penalties improve performance in a mountainous region of British Columbia, as does our minimum spanning tree method. However, the minimum spanning tree method requires more computing time and memory, so users must weigh the benefits of improved performance against computational costs. Our road network simulation methods can improve projections of anticipated resource development impacts on wildlife across large areas, and we hope that more easily useable open source implementations will encourage integration of resource roads into forest change projections.
+Despite rapidly growing evidence of complex and varied impacts of road networks on wildlife and other forest values, and the increasing use of spatial stochastic models for forecasting impacts of forest disturbance across regions, very few spatial stochastic projections of forest disturbance dynamics have included automated road network projections, in part because tools suited for this purpose have not been available. Hardy et al. [-@hardy_landis-ii_2023] partially addressed this need with a LANDIS-II extension. As a complementary and comparable alternative, we provide implementations of simple iterative least cost path and minimum spanning tree methods with grade penalties in an open source R package that can be easily integrated into R workflows and modelling frameworks used for forecasting forest change in Canada and elsewhere. Grade penalties improve performance in a mountainous region of British Columbia, as does our minimum spanning tree method. However, the minimum spanning tree method requires more computing time and memory, so users must weigh the benefits of improved performance against computational costs. Our road network simulation methods can improve projections of anticipated resource development impacts on wildlife across large areas, and we hope that more accessible open source implementations will encourage integration of resource roads into forest change projections.
 
 # Study Implications
 
