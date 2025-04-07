@@ -4,7 +4,7 @@ output:
     bookdown::html_document2:
       number_sections: yes
 bibliography: ../Roads.bib
-csl: "../../templates/canadian-journal-of-forest-research.csl" # Insert path for the bib-style
+csl: "../../templates/landscape-ecology.csl" # Insert path for the bib-style
 
 editor_options: 
   chunk_output_type: inline
@@ -47,6 +47,12 @@ pal_nm <- "Redon"
 fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 
 ```
+Journal: Landscape Ecology
+
+Authors: Josie Hughes, Sarah Endicott, David Lapins, Kyle Lochhead, and Gregory Paradis
+
+Corresponding author: Josie Hughes; josie.hughes@ec.gc.ca; Landscape Science and Technology Division, National Wildlife Research Center, Environment and Climate Change Canada, Ottawa, ON, Canada
+
 
 ## Grade penalty and simple cost methods for setting edge weights
 

@@ -41,7 +41,8 @@ output:
       - --lua-filter=../templates/author-info-blocks.lua
       - --lua-filter=../templates/pagebreak.lua
 bibliography: Roads.bib
-csl: "../templates/chicago-author-date.csl" # Insert path for the bib-style
+csl: "../templates/landscape-ecology.csl" # Insert path for the bib-style
+citation-abbreviations: "../templates/ncbi-abbreviations.json"
 keywords: |
    forest roads, forest dynamics, spatially explicit modeling, predictive ecology, least cost paths
 editor_options: 
@@ -66,6 +67,7 @@ editor_options:
 * review figure guidance
 -->
 ```
+
 Keywords: `r rmarkdown::metadata$keywords`
 
 [To do list](https://docs.google.com/document/d/1msHZuJGv0C67Avbl67YXm_P6fBSAvGw-m9qIzNDic64/edit?usp=sharing)
@@ -104,7 +106,7 @@ This study offers open source tools for automated forest road network projection
 
 The impacts of roads on wildlife are complex and varied. Mortality risk and stress on or near roads can be elevated due to vehicle collisions, hunting pressure, predation, noise and other stressors, but roads can also provide food, facilitate movement, and provide refuge [@hill_review_2021; @trombulak_review_2000; @fahrig_effects_2009]. In Canadian forests, there is ample evidence of linear features attracting predators such as bears (*Ursus americanus*, *Ursus arctos*) and wolves (*Canis lupus*) seeking food or easy movement, while repelling prey such as woodland caribou (*Rangifer tarandus caribou*) and moose (*Alces americanus*) [@dickie_corridors_2020; @polfus_identifying_2011; @mumma_predation_2018; @beauchesne_disentangling_2013; @leblond_avoidance_2013; @laurian_interactions_2012; @st-pierre_stairway_2022]; there is also evidence of predators avoiding features heavily used by humans [@muhly_human_2011; @whittington_towns_2022; @proctor_effects_2020]. Changes in mortality risks, habitat quality, and connectivity associated with anthropogenic disturbance can in turn alter use and movement patterns [@tucker_moving_2018; @apps_factors_2006; @proctor_effects_2020], demography and population viability [@johnson_science_2020; @decesare_linking_2014; @barrientos_lost_2021; @apps_spatial_2013; @pinard_calving_2012; @fahrig_effects_2009; @lochhead_linking_2022; @apps_spatial_2013; @proctor_effects_2020], and genetics [@habrich_varying_2021]. Roads can also facilitate spread of invasive species [@riitters_landscape_2017], and enable other development activities [@johnson_growth-inducing_2020]. Impacts on wildlife persist after roads are no longer driveable as they continue to be used by wildlife and soil compaction impedes vegetation recovery [@st-pierre_drivers_2021; @lacerte_determinants_2021]. Measures of road impacts are important for informing wildlife management decisions, and there is therefore a need to include roads in ecological forecasting models.
 
-Increasingly rapid environmental change, improvements in available cyberinfrastructure, and development of open source data, tools and methods have contributed to growing interest in ecological forecasting models [@bodner_bridging_2021; @dietze_ecological_2017; @mcintire_perfict_2022]. In particular, forest landscape models that can account for harvest, fire, and other disturbances are increasingly used to project the cumulative effects of climate change and forest management [@petter_how_2020; @albrich_simulating_2020; @hof_editorial_2021; @tremblay_harvesting_2018; @snell_importance_2018; @daniel_incorporating_2017; @stewart_climate-informed_2023; @micheletti_assessing_2021; @leblond_there_2022; @bouderbala_long-term_2022; @barros_empowering_2023; @labadie_global_2023], building on a rich history of spatial-stochastic models of forest growth and succession following disturbance [@sturtevant_understanding_2021]. Despite the importance of roads for wildlife, very few of these projections have included road networks [@labadie_global_2023; @leston_quantifying_2020]. For example, in a recent collection of articles focused on "Using Landscape Simulation Models to Help Balance Conflicting Goals in Changing Forests" [@hof_editorial_2021], only one includes a road projection [@leston_quantifying_2020]. In the absence of road projection methods, researchers are left to conservatively infer the amount and randomly assign the location of roaded areas [e.g. @johnson_witnessing_2015].
+Increasingly rapid environmental change, improvements in available cyberinfrastructure, and development of open source data, tools and methods have contributed to growing interest in ecological forecasting models [@bodner_bridging_2021; @dietze_ecological_2017; @mcintire_perfict_2022]. In particular, forest landscape models that can account for harvest, fire, and other disturbances are increasingly used to project the cumulative effects of climate change and forest management [@petter_how_2020; @albrich_simulating_2020; @hof_editorial_2021; @tremblay_harvesting_2018; @snell_importance_2018; @daniel_incorporating_2017; @stewart_climate-informed_2023; @micheletti_assessing_2021; @leblond_there_2022; @bouderbala_long-term_2023; @barros_empowering_2023; @labadie_global_2023], building on a rich history of spatial-stochastic models of forest growth and succession following disturbance [@sturtevant_understanding_2021]. Despite the importance of roads for wildlife, very few of these projections have included road networks [@labadie_global_2023; @leston_quantifying_2020]. For example, in a recent collection of articles focused on "Using Landscape Simulation Models to Help Balance Conflicting Goals in Changing Forests" [@hof_editorial_2021], only one includes a road projection [@leston_quantifying_2020]. In the absence of road projection methods, researchers are left to conservatively infer the amount and randomly assign the location of roaded areas [e.g. @johnson_witnessing_2015].
 
 While road projections are not typically integrated with forest landscape models, methods have been developed to support harvest planning [@anderson_projecting_2004; @clark_three-stage_2000; @dean_finding_1997; @epstein_combinatorial_2006; @meignan_heuristic_2012; @stuckelberger_improved_2007], and some forest management planning software suites [e.g. @remsoft_remsoft_nodate; @spatial_planning_systems_patchworks_nodate] include road projection tools. These methods have occasionally been incorporated into forest landscape models [e.g. @leston_quantifying_2020] but they were not designed for that purpose. Existing road projection algorithms contained in proprietary closed-source software are difficult to fully integrate into stochastic models, which often require numerous replicates [@sturtevant_understanding_2021; @de_pellegrin_llorente_recognizing_2017]. Further, costs of licensing are generally prohibitive, deploying large commercial software suites designed for desktops to cloud or high performance computing resources is difficult or impossible, and closed-source software is often not sufficiently transparent for use in research. At the operational scale, road planning methods and tools [e.g. @anderson_projecting_2004; @clark_three-stage_2000; @dean_finding_1997; @epstein_combinatorial_2006; @meignan_heuristic_2012; @stuckelberger_improved_2007; @remsoft_remsoft_nodate; @spatial_planning_systems_patchworks_nodate] may produce more accurate road projections but the costs of applying more complex methods across large spatial extents can be prohibitive in contexts where a coarser approximation of the road network may suffice. There is a need for open-source road network projection tools that can be integrated into the open modular platforms that are used for large-scale stochastic landscape simulations [@scheller_design_2007; @barros_empowering_2023; @daniel_state-and-transition_2016].
 
@@ -122,6 +124,7 @@ We expect these simple graph-based road projection methods to represent a reason
 - summarize road metric types used in cited papers more systematically.
 -->
 ```
+
 ```{=html}
 <!--
 See notes here:
@@ -143,6 +146,7 @@ For more careful reading: Flyal et al. 2019; Jaeger et al. 2005; Laurance et al.
 
 -->
 ```
+
 # Methods
 
 ## Study Area and Data
@@ -155,6 +159,7 @@ We chose the Revelstoke timber supply area (TSA 27) in British Columbia, Canada 
 •        Maybe add a table of descriptive statistics presenting information about roads in the Revelstoke TSA and the other TSAs you mention? By Caribou Range? – road density, road length, cutblock area, cutblock density, etc
 -->
 ```
+
 ```{r setup2}
 library(sf)
 library(ggplot2)
@@ -244,9 +249,13 @@ save_plot(here("analysis/figures/Figure1_StudyArea_both.tiff"),
           base_height = 6*0.9)
 ```
 
+```{r study-area, fig.alt="Two raster maps of Revelstoke timber supply area in grey scale, with an inset map showing the location of the study area within Canada.", fig.cap="Road construction cost surface and an elevation surface used to calculate grade penalties. Costs are calculated using a simple model informed by slope and major barriers (Table 1, Online Resource 1-1) in the Revelstoke timber supply area in British Colombia, Canada. In both layers, pixels containing existing roads are assigned a value of 0"}
+knitr::include_graphics(here("analysis/figures/Figure1_StudyArea_both.tiff"))
+```
+
 Road network data was obtained by combining the digital road atlas [@data_bc_digital_2021] and forest tenure road [@british_columbia_ministry_of_forests_lands_natural_resource_operations_and_rural_development_forest_2021] data sets for British Columbia. We removed all roads from the digital road atlas that were within 50 m of forest tenure roads to avoid duplication. To obtain a starting point for projections we filtered out forest tenure roads with an award date greater than 1990, and assumed everything in the digital road atlas was built before 1990. Cutblock information was obtained from the Harvest Areas of BC (Consolidated Cutblocks) dataset [@government_of_british_columbia_harvested_2021], compiled from provincial Forest Cover, the RESULTS Reporting system, Forest Tenure applications, and satellite imagery using change detection processes. We used cutblocks harvested after 1990 as targets for the projections, and removed cutblocks that do not contain observed roads to reduce errors associated with open areas that have been misidentified as cutblocks.
 
-Following the Interior Appraisal Manual of BC, we assume the base cost of construction per kilometer of road is a linear function of slope [@government_of_british_columbia_interior_2021], and that road construction across major water bodies is prohibitively expensive (Table \@ref(tab:cost-tbl)). Existing roads are assigned a construction cost of 0. We compare two methods for integrating these costs into the cost of connections between adjacent raster cells. In the "simple cost" method, we first calculate a slope raster from a digital elevation model, then calculate an input cost raster that depends on slope (Table 1, Supplement 1-1). The cost of the connection between two adjacent cells is simply the mean of the cost raster (Figure \@ref(fig:study-area)a) value at each of those cells, adjusted for euclidean distance to penalize longer diagonal road segments. In the "grade penalty" method (Supplement 1-1) we use the same construction costs (Table 1), but calculate the cost of a connection between neighbouring cells from the elevation difference between the cells, using an elevation raster as input (Figure \@ref(fig:study-area)b), and penalizing edge grades as suggested by Anderson and Nelson (2004). The most important difference between these two approaches is that grade is a property of the edge between two nodes in the grade penalty method, while slope is a property of each node in the simple cost method. When slope is a node property, the same slope penalty applies regardless of the alignment of the road segment. Calculating grade from the difference in elevation between pairs of nodes allows us to penalize roads that follow elevation contours differently from roads that go up or down. We examined sensitivity to pixel resolution by comparing results from 1 ha (1.7 million pixels) and 100 ha (17 thousand pixels) weight rasters. We did not consider finer resolutions because stochastic forest landscape models typically simulate dynamics at resolutions \>= 1 ha.
+Following the Interior Appraisal Manual of BC, we assume the base cost of construction per kilometer of road is a linear function of slope [@government_of_british_columbia_interior_2021], and that road construction across major water bodies is prohibitively expensive (Table \@ref(tab:cost-tbl)). Existing roads are assigned a construction cost of 0. We compare two methods for integrating these costs into the cost of connections between adjacent raster cells. In the "simple cost" method, we first calculate a slope raster from a digital elevation model, then calculate an input cost raster that depends on slope (Table 1, Online Resource 1-1). The cost of the connection between two adjacent cells is simply the mean of the cost raster (Figure \@ref(fig:study-area)a) value at each of those cells, adjusted for euclidean distance to penalize longer diagonal road segments. In the "grade penalty" method (Online Resource 1-1) we use the same construction costs (Table 1), but calculate the cost of a connection between neighbouring cells from the elevation difference between the cells, using an elevation raster as input (Figure \@ref(fig:study-area)b), and penalizing edge grades as suggested by Anderson and Nelson (2004). The most important difference between these two approaches is that grade is a property of the edge between two nodes in the grade penalty method, while slope is a property of each node in the simple cost method. When slope is a node property, the same slope penalty applies regardless of the alignment of the road segment. Calculating grade from the difference in elevation between pairs of nodes allows us to penalize roads that follow elevation contours differently from roads that go up or down. We examined sensitivity to pixel resolution by comparing results from 1 ha (1.7 million pixels) and 100 ha (17 thousand pixels) weight rasters. We did not consider finer resolutions because stochastic forest landscape models typically simulate dynamics at reso
 
 All data sets were accessed using the `bcdata` R package and filtered to the extent of the Revelstoke Timber Supply Area [@teucher_bcdata_2021]. These data sets are continuously updated so we have stored the versions used in our analysis in an Open Science Framework repository [@endicott_assessment_2024]. We were not granted permission to share the digital road atlas so it must be accessed from the B.C. Data Catalogue [@data_bc_digital_2021]. Scripts used for data acquisition and analysis are available on GitHub [@endicott_roadpaper_2024].
 
@@ -254,24 +263,25 @@ All data sets were accessed using the `bcdata` R package and filtered to the ext
 
 Our road projection methods link multiple target locations (also known as landings within harvest cutblocks (i.e., log decks)) to an existing road network by finding minimum-cost locations for new roadways that link landings within harvest cutblocks (i.e., log decks) to the existing road network, described by Dean [-@dean_finding_1997] as the multiple target access problem (MTAP). Specifically, we compared iterative least cost path (ILCP) and minimum spanning tree approaches (MST) proposed by Lochhead et al [-@lochhead_demo_2018; -@lochhead_linking_2022] for solving the MTAP to another iterative least cost path method developed by Hardy [-@hardy_forest_2019; -@hardy_landis-ii_2023] (Figure \@ref(fig:proj-meth-fig)). We used the QGIS version of Hardy’s method (2019), which was easier for us to apply and does not differ substantially from the LANDIS extension (Hardy, personal communication).
 
-The ILCP approaches solve the MTAP by decomposing the problem into several smaller single target access problems (STAPs). For each landing (target location), the least cost path to the existing road network was solved using a mathematical graph and Dijkstra's shortest path algorithm [@dijkstra_note_1959]. There are a variety of possible methods for building graphs, choosing branch locations, and ordering target locations [@anderson_projecting_2004; @hardy_forest_2019; @hardy_landis-ii_2023; @picard_finding_2006]. The ILCP algorithm we used [@lochhead_demo_2018; @lochhead_linking_2022] is parameterized with a weighted graph wherein each node corresponds to a raster pixel representing one of three components of the potential forest road network: a landing, a point on an existing road, or an intermediate point that is a plausible location for road construction. Each node is connected with up to eight neighbours, and the cost of construction along edges is either the average of the cost raster value at the source and destination nodes, or a more complex function of the difference in elevation between the source and destination nodes (Table \@ref(tab:cost-tbl), Supplement 1-1), which is then weighted by the distance to neighbouring nodes. Both the grade penalty and simple cost methods involve setting edge weights on a graph from adjacent locations on a single input grid. We use a greedy heuristic method that starts with the landing nearest to an existing road, builds a least cost path from the landing to the nearest (by Euclidean distance) point on the existing road, and updates the existing road network and weight raster with each new road segment before moving on to the next nearest landing.
+The ILCP approaches solve the MTAP by decomposing the problem into several smaller single target access problems (STAPs). For each landing (target location), the least cost path to the existing road network was solved using a mathematical graph and Dijkstra's shortest path algorithm [@dijkstra_note_1959]. There are a variety of possible methods for building graphs, choosing branch locations, and ordering target locations [@anderson_projecting_2004; @hardy_forest_2019; @hardy_landis-ii_2023; @picard_finding_2006]. The ILCP algorithm we used [@lochhead_demo_2018; @lochhead_linking_2022] is parameterized with a weighted graph wherein each node corresponds to a raster pixel representing one of three components of the potential forest road network: a landing, a point on an existing road, or an intermediate point that is a plausible location for road construction. Each node is connected with up to eight neighbours, and the cost of construction along edges is either the average of the cost raster value at the source and destination nodes, or a more complex function of the difference in elevation between the source and destination nodes (Table \@ref(tab:cost-tbl), Online Resource 1-1), which is then weighted by the distance to neighbouring nodes. Both the grade penalty and simple cost methods involve setting edge weights on a graph from adjacent locations on a single input grid. We use a greedy heuristic method that starts with the landing nearest to an existing road, builds a least cost path from the landing to the nearest (by Euclidean distance) point on the existing road, and updates the existing road network and weight raster with each new road segment before moving on to the next nearest landing.
 
 The method described in Hardy et al. [-@hardy_forest_2019; -@hardy_landis-ii_2023] is similar to our simple cost ILCP method in that it breaks the MTAP down into many STAPs and finds the least cost path for each with the ordering of road construction determined by the Euclidean distance from the existing road network. A key difference is that Hardy uses the Dijkstra algorithm to solve a “single-source many-targets shortest path problem”, which is a special case of STAPs that finds the path between the landing cell and one of multiple potential connection points on the road network. In contrast, our algorithm first finds the closest point on the road network to the selected landing point and then uses the Dijkstra algorithm to solve the least cost path between the two. However, since the cost of construction on existing roads is zero we expect that in practice these two approaches are similar and the algorithm will select the least cost location for the road to connect to the existing road network. Within cutblocks, the Hardy et al. method iterates over each cell in the harvest area and builds a road if it is not within skidding distance of an existing road, while we create landing points to serve as target locations for road construction.
 
-One of the limitations with ILCP methods is the sensitivity of the road projection to the ordering of the landings (Anderson and Nelson 2004). Minimum spanning trees (MST) offer an alternative approach to link landings and evaluate road branching opportunities [@picard_finding_2006; @clark_three-stage_2000]. MST algorithms do not require users to select the order in which landings are processed, but it remains necessary to select a set of points on the existing road network to include in the tree. As with the ILCP approach, the first step is to construct a graph in which each node is connected with up to eight neighbours, and set the cost of construction along edges using either the grade penalty or simple cost methods. This graph is used to estimate the least cost paths that link each of the landings and the least cost paths that link each landing to the nearest point on the existing road network. These results are used to create a second weighted graph wherein nodes are either landings or nearest points on the existing road network, and edge weights correspond to the total cost of the least cost path between pairs of nodes. The minimum spanning tree for this graph is solved using Kruskal's algorithm [@kruskal_shortest_1956], which links all nodes with a tree that minimizes the sum of edge weights. This method differs from Clark et al. [-@clark_three-stage_2000] who used Euclidean distances for edge weights, and thus did not incorporate spatial variation in road construction costs. 
+One of the limitations with ILCP methods is the sensitivity of the road projection to the ordering of the landings (Anderson and Nelson 2004). Minimum spanning trees (MST) offer an alternative approach to link landings and evaluate road branching opportunities [@picard_finding_2006; @clark_three-stage_2000]. MST algorithms do not require users to select the order in which landings are processed, but it remains necessary to select a set of points on the existing road network to include in the tree. As with the ILCP approach, the first step is to construct a graph in which each node is connected with up to eight neighbours, and set the cost of construction along edges using either the grade penalty or simple cost methods. This graph is used to estimate the least cost paths that link each of the landings and the least cost paths that link each landing to the nearest point on the existing road network. These results are used to create a second weighted graph wherein nodes are either landings or nearest points on the existing road network, and edge weights correspond to the total cost of the least cost path between pairs of nodes. The minimum spanning tree for this graph is solved using Kruskal's algorithm [@kruskal_shortest_1956], which links all nodes with a tree that minimizes the sum of edge weights. This method differs from Clark et al. [-@clark_three-stage_2000] who used Euclidean distances for edge weights, and thus did not incorporate spatial variation in road construction costs.
 
 ```{=html}
 <!--
 TO DO: should this paragraph about speed and memory go in the results or discussion rather than methods?
 -->
 ```
+
 Note that the evolution of a road network over time can be modeled by iteratively applying any of the methods, but in this study we focus on comparing a single application of each of the methods to a network of forest roads developed since 1990.
 
-To help make these methods accessible, we implemented the ILCP and MST methods in the open source R package `roads` [@endicott_roads_2023] which depends on several other R packages: `igraph` for calculating least cost paths and minimum spanning trees [@csardi_igraph_2006; @csardi_igraph_2024]; `terra` for manipulating spatial raster data [@hijmans_terra_2023]; and `sf` for manipulating spatial vector data [@pebesma_simple_2018; @pebesma_sf_2022]. We experimented with using graph construction methods in the package `gdistance` [@van_etten_r_2017], but opted to use Lochhead et al's [-@lochhead_demo_2018; -@lochhead_linking_2022] more computationally efficient methods (Supplement 1-7) by default. The package is available on CRAN (The Comprehensive R Archive Network) and the source code, tutorials and documentation are available on GitHub [@endicott_roads_2023].
+To help make these methods accessible, we implemented the ILCP and MST methods in the open source R package `roads` [@endicott_roads_2023] which depends on several other R packages: `igraph` for calculating least cost paths and minimum spanning trees [@csardi_igraph_2006; @csardi_igraph_2024]; `terra` for manipulating spatial raster data [@hijmans_terra_2023]; and `sf` for manipulating spatial vector data [@pebesma_simple_2018; @pebesma_sf_2022]. We experimented with using graph construction methods in the package `gdistance` [@van_etten_r_2017], but opted to use Lochhead et al's [-@lochhead_demo_2018; -@lochhead_linking_2022] more computationally efficient methods (Online Resource 1-7) by default. The package is available on CRAN (The Comprehensive R Archive Network) and the source code, tutorials and documentation are available on GitHub [@endicott_roads_2023].
 
 ## Comparison of Method Variants
 
-The ILCP and MST methods connect landings within each cutblock to the existing road network, so an important first step is to select one or more landing locations in each block. We investigated the sensitivity of results to the pattern and density of landing locations by comparing results derived from the centroid of each cutblock to regular or randomly selected landing densities of 1 (low) and 10 (high) points per km^2^ (Figure \@ref(fig:proj-meth-fig)). We used default settings in the Hardy QGIS plugin except for skidding distance which was set to 200 m which gives \~ 9 pts/km^2^. We compared two resolutions of the weight raster (1 ha and 100 ha). In total, we compared 12 road projection method variants to a cutblocks only scenario with no projected roads (Table \@ref(tab:method-tbl)). We recorded compute time and peak RAM usage for each run, and ran some projections at 25 ha to show how speed and memory requirements vary with number of landings and number of nodes in the graph (Supplement 1-5), but did not assess other aspects of performance at that resolution.
+The ILCP and MST methods connect landings within each cutblock to the existing road network, so an important first step is to select one or more landing locations in each block. We investigated the sensitivity of results to the pattern and density of landing locations by comparing results derived from the centroid of each cutblock to regular or randomly selected landing densities of 1 (low) and 10 (high) points per km^2^ (Figure \@ref(fig:proj-meth-fig)). We used default settings in the Hardy QGIS plugin except for skidding distance which was set to 200 m which gives \~ 9 pts/km^2^. We compared two resolutions of the weight raster (1 ha and 100 ha). In total, we compared 12 road projection method variants to a cutblocks only scenario with no projected roads (Table \@ref(tab:method-tbl)). We recorded compute time and peak RAM usage for each run, and ran some projections at 25 ha to show how speed and memory requirements vary with number of landings and number of nodes in the graph (Online Resource 1-5), but did not assess other aspects of performance at that resolution.
 
 ## Performance Metrics
 
@@ -316,7 +326,32 @@ all_over_fordens <- aspat_perf$prop_dif %>%
 
 According to all aspatial performance measures, the grade penalty method for setting edge weights yields better results than our simple cost methods (compare Figure \@ref(fig:aspat-perf-fig) and Figure S1). We therefore recommend using the grade penalty method, and focus on further examining variation in performance among grade penalty method variants (Figure \@ref(fig:aspat-perf-fig)). The MST regular high density method yields the best projections of road density overall (projected density: `r mst_reg_dens$response_proj %>% round(2)` m roads/ha, observed density: `r mst_reg_dens$response_obs %>% round(2)` m roads/ha), while the MST random high density method had the best projections within cutblocks (projected density: `r mst_ran_dens$response_proj %>% round(2)` m roads/ha, observed density: `r mst_ran_dens$response_obs %>% round(2)` m roads/ha), and all MST variants yield comparably good projections outside cutblocks (projected density: `r mst_out_dens$response_proj %>% range() %>% round(2) %>% paste0(collapse = " - ")` m roads/ha, observed density: `r mst_out_dens$response_obs %>% unique() %>% round(2)` m roads/ha). All MST variants yield better projections of the forestry disturbance footprint (projected: `r all_over_fordens %>% filter(method == "mst") %>% pull(response_proj) %>% range() %>% round(2) %>% unique()`, observed: `r all_over_fordens %>% filter(method == "mst") %>% pull(response_obs) %>% unique() %>% round(2)`) than the Hardy or ILCP methods (`r all_over_fordens %>% filter(sampleDens %in% c("Hardy QGIS", "ILCP regular high density")) %>% pull(response_proj) %>% round(2) %>% unique()`), and the Hardy and MST regular high density methods yield comparably accurate projections of road presence and distance to road.
 
+```{r aspat-perf-fig, fig.height=4, fig.width=fig_widths["two"], out.width=paste0(fig_widths["two"], "in"), out.height="4in", fig.alt="A faceted bar chart with one bar for each projection method variant and a panel for each combination of performance metrics and within cutblock, outside cutblock and overall.", fig.cap="Proportional difference of projected mean from observed mean road metrics using different projection method variants within cutblocks, outside cutblocks, and overall (1 ha weight raster). Values greater than zero indicate overprojection and negative values indicate underprojection. Cutblocks not accessible via the observed road network were excluded from analysis. Performance varies among metrics (columns), projection method variants (colours), and within and outside cutblocks. Projection method variants are defined in Table 2. Note that extreme values for the cutblocks only method within cutblocks are cut off to ensure patterns in the other methods to remain visible. Bars that are cutoff are labeled with the total value"}
+# organize data for ggplot
+# need to make plots more comparable
+# Other option is setting limits but want to avoid excess white space
+ann_plus <- aspat_perf$prop_dif %>% 
+  filter(abs(prop_dif) > 0.5) %>% 
+  mutate(lab = round(prop_dif, 2), 
+         prop_dif = 0.37*sign(prop_dif))
+
+aspat_perf$plt+coord_flip(ylim = c(-0.35, 0.35))+
+  geom_text(aes(label = lab), data = ann_plus, hjust = "inward", vjust = 0.5,
+            size = 8, size.unit = "pt")
+```
+
 Maps (Figures \@ref(fig:proj-meth-fig) and \@ref(fig:proj-map-fig)) help clarify exactly how the projection methods differ from one another, and from observed roads. While the Hardy et al. (2023) method and the grade penalty MST and ILCP methods project similar mean road densities within cutblocks, they create distinctly different road patterns within cutblocks. In particular, the grade penalty method incentivized roads to follow slope contours, while the Hardy method created more road curvatures (Figure \@ref(fig:proj-meth-fig)). Although the grade penalty method improved realism by following elevation contours, all these methods created dead ends, intersections, and abrupt turns that would be avoided in the engineering of operational roads in steep terrain (Figures \@ref(fig:proj-meth-fig) and \@ref(fig:proj-map-fig)c). All of the projected road methods also crossed valley bottoms far more often than observed roads which often run parallel to one another on each side of rivers (Figure \@ref(fig:proj-map-fig)a), but this discrepancy could likely be remedied by improved costs of crossing streams, rivers and other wet areas in valley bottoms. Finally, it is important to note that some discrepancies between observed and projected road networks were caused by errors in the observed data, such as cutblocks that were incorrectly classified (e.g. \@ref(fig:proj-map-fig)b). We omitted cutblocks with no associated access roads from our analysis, and note that failure to do this would distort results (Figures S3 and S4).
+
+```{r proj-meth-fig, out.width=paste0(fig_widths["two"], "in"), out.height="8in", fig.alt="A series of 8 maps showing roads projected with different method variants.", fig.cap="Comparison of road projection method variants (Table 2). The large four sided cutblock in the top right was added to more clearly show algorithm behaviour within cutblocks.The grade penalty method for setting edge weights (top row) encourages roads to follow slope contours, and yields fewer obviously unrealistic 90 degree turns in steep terrain than our simple cost method (middle row). Selecting a single landing at the centroid of each cutblock (bottom left) creates too few roads within cutblocks. In this 1 ha resolution example the Hardy QGIS plugin (bottom middle) creates more curved roads than our simple cost method (middle row), and does not follow slope contours like the grade penalty method (top row). Landing density is high for all except the centroid and Hardy variants"}
+knitr::include_graphics(here("analysis/figures/projection_methods_figure.tiff"),
+                        dpi = knitr::opts_chunk$get("dpi"))
+```
+
+```{r proj-map-fig, fig.height=9, fig.width=fig_widths["two"], fig.alt="A raster map of the Revelstoke TSA where the colour indicates the difference between obeserve and projected distance to road. Three inset maps zoom in of specific areas with Google satelite imagery in the background.", fig.cap="Comparison of the minimum spanning tree projection with regular high density sampling to the observed road network. The main map shows observed distance to the nearest road minus the projected distance. Insets highlight areas of interest with satellite imagery (Google 2022) for context: (a) Projected and observed road networks follow valleys but projected roads cross valley bottoms more frequently; (b) some open areas are misidentified as cutblocks; (c) projected roads follow contours but do not avoid turns and dead ends like observed switchbacks"}
+
+knitr::include_graphics(here("analysis/figures/Figure4_map_update.tif"))
+
+```
 
 Projections of the forestry disturbance footprint, the road disturbance footprint, and, to a lesser extent, distance to road were more accurate than projections of road density and road presence (Figure \@ref(fig:aspat-perf-fig)). However, all of the road projection methods underestimate road presence and forestry disturbance footprint (Figure \@ref(fig:aspat-perf-fig)), projecting fewer roads than we observe. One reason for underestimation of road density is that all these methods generate straight road segments within a pixel. As raster resolution increases, the discrepancy within pixels between real roads and straight projected segments increases, making coarse resolution projections less accurate (Figure S6).
 
@@ -501,6 +536,12 @@ mst_time <- bench_res %>%
 
 Although these methods underestimate road presence, they represent a substantial improvement over the "cutblocks only" scenario, which assumes no new roads are built (Figure \@ref(fig:aspat-perf-fig)). The methods were not designed to project the exact spatial location of new roads (within 100 m), so it is not surprising that they did not yield accurate spatial projections of road presence (F-Measure: `r perf_tbl_rng["Road presence"]`). It is somewhat more surprising that none of the methods provide better information about the exact location of the forestry disturbance footprint than the locations of cutblocks only (F-Measure: `r perf_tbl_rng["Forestry disturbance\nfootprint"]`). This is likely because many of the projected roads are within 500 m of either the existing road network or a cutblock so the false negatives created by failing to project roads are balanced by the lack of false positives. All methods other than "cutblocks only" provided comparably good projections of the road disturbance footprint (F-Measure: `r perf_tbl_rng["Road disturbance\nfootprint"]`), though higher sampling densities yielded fewer false negatives and more false positives (Figure \@ref(fig:spat-perf-fig)).
 
+```{r spat-perf-fig, fig.height=4.5, fig.width=fig_widths["two"], out.width=paste0(fig_widths["two"], "in"), out.height="4.5in", fig.alt="A faceted bar chart with one bar for each projection method variant and a panel for each combination of binary performance metrics and within cutblock, outside cutblock and overall.", fig.cap="Variation in spatial performance among projection method variants (1 ha weight raster). F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted pixels that were observed and sensitivity is the proportion of observed pixels that were correctly predicted. Values closer to one indicate better performance. Cutblocks not accessible via the observed road network were excluded from analysis. Projection method variants are defined in Table 2"}
+
+doSpatPlot(perf_tbl)
+
+```
+
 Although the MST method performed better than the alternatives we tested according to several important wildlife habitat metrics (Figure \@ref(fig:aspat-perf-fig)), it is also more costly to compute (Figure S7). All of these methods require construction of a mathematical graph with a node for each pixel in the weight raster where road construction is possible (i.e. not NA), and memory requirements increase with the number of nodes in the graph (Figure S7). Compute time also increases with the number of landing targets (Figure S7). Lochhead et al's [-@lochhead_demo_2018; -@lochhead_linking_2022] method of graph construction is more computationally efficient than the adjacency matrix approach used in the R package `gdistance` [@van_etten_r_2017] (Figure S8), in part because it avoids the additional cost of constructing a transition matrix, and in part because it ignores variation in the size of raster cells that is accounted for in the `gdistance` *geoCorrection* function. For our example landscape the Hardy QGIS plugin was 65 times faster than the MST and ILCP methods implemented in R (Figure S7).
 
 # Discussion
@@ -517,7 +558,7 @@ Although the grade penalty method improves performance by aligning roads with el
 
 Examination of spatial mismatch between observed and projected roads also highlighted errors in our input data that are not unique to our study area; there is considerable variation in the consistency and accuracy of available resource road information across Canada and elsewhere [@poley_identifying_2022; @british_columbia_ministry_of_forests_lands_natural_resource_operations_and_rural_development_resource_nodate] that users should keep in mind when interpreting discrepancies between observed and projected road networks.
 
-These road projection methods require construction of large graphs, with a node for each pixel in which road construction is possible. In our example landscape we were able to project at 100 m resolution in a reasonable amount of time (\< 2.4 hours) using modest amounts of memory (\<3 GB RAM). However, our example landscape is fairly small, and memory requirements increase rapidly with landscape size (Supplement 1-5). Although it is possible to use machines with more RAM, the computational cost of adding road projections to spatial stochastic simulations of forest change relevant for wide-ranging wildlife is not trivial. For example, in a study of the effects of forest management and climate change scenarios on wildlife in a single boreal caribou range (100 stochastic realizations of 6 scenarios), we projected roads at 50 m resolution using graph with ~21 million nodes. Each ILCP road projection required 2.7 hours and 11 GB of RAM, for a total of 1620 compute hours.
+These road projection methods require construction of large graphs, with a node for each pixel in which road construction is possible. In our example landscape we were able to project at 100 m resolution in a reasonable amount of time (\< 2.4 hours) using modest amounts of memory (\<3 GB RAM). However, our example landscape is fairly small, and memory requirements increase rapidly with landscape size (Online Resource 1-5). Although it is possible to use machines with more RAM, the computational cost of adding road projections to spatial stochastic simulations of forest change relevant for wide-ranging wildlife is not trivial. For example, in a study of the effects of forest management and climate change scenarios on wildlife in a single boreal caribou range (100 stochastic realizations of 6 scenarios), we projected roads at 50 m resolution using graph with \~21 million nodes. Each ILCP road projection required 2.7 hours and 11 GB of RAM, for a total of 1620 compute hours.
 
 Options for reducing computational requirements include restricting the area where road construction is possible (by setting some portions of the weight raster to NA), reducing landing density within cutblocks (by using the centroid method), increasing raster resolution, or using Hardy's more efficient implementations. The first three options are available to users of the `roads` R package. However, those contemplating reducing computational cost by decreasing raster resolution should be cautious of the results given that all of these methods become less accurate as raster cell size increases (Figures S5 and S6). The distance to road metric is less sensitive to changes in cell resolution, and distance metrics may also be more ecologically meaningful [@rowland_elk_2000]. Those considering reducing computational cost by reducing landing density within cutblocks should be clear that their projected road network will be incomplete and metrics such as total road length and road density will be underestimated. More involved possibilities for reducing computational costs include adopting faster routing algorithms [@larmet_cppRouting_2022], implementing slow components of the R package (Figure S8) in a faster compiled language, parallel processing, and implementing a multi-scale approach in which coarse resolution results are used to limit the area considered in finer resolution projections. Several of these options have been implemented in the `cppRouting` R package [@larmet_cppRouting_2022], and future versions of the `roads` R package could borrow and build on `cppRouting` functionality.
 
@@ -534,21 +575,24 @@ Our open source automated forest road projection tools can be integrated into sp
 
 Discuss challenges on large landscapes & solutions...
 ```
+
 # Acknowledgements
 
 This work was motivated by discussions with Colin Daniel (Apex Resource Management Solutions) and needs of the Western Boreal Initiative, an effort to project cumulative effects of disturbances on forests and wildlife led by Eliot McIntire (Canadian Forest Service, Natural Resources Canada) and Samuel Haché (Canadian Wildlife Service, Environment and Climate Change Canada). Questions from Steve Cumming (Université Laval) and Lisa Venier (Canadian Forest Service, Natural Resources Canada) helped refine our focus and approach. We thank Clément Hardy for answering our questions about his method.
 
-# Competing interests
+# Statements & Declarations
+
+## Funding
+
+Funding for this work was provided by Environment and Climate Change Canada.
+
+## Competing interests
 
 The authors declare there are no competing interests.
 
-# Author Contributions
+## Author Contributions
 
 Conceptualization: JH, SE, DL, GP, KL Data curation: SE, DL Formal analysis: JH, SE, DL Funding acquisition: JH Investigation: JH, SE Methodology: JH, SE, DL, KL Project administration: JH Resources: JH Software: JH, SE, KL Supervision: JH Visualization: SE Writing – original draft: JH, SE, DL Writing – review & editing: JH, SE, DL, GP, KL
-
-# Funding
-
-Funding for this work was provided by Environment and Climate Change Canada.
 
 # Data availability
 
@@ -569,72 +613,7 @@ Data generated or analyzed during this study are available in the Open Science F
 
 # Supplementary Material
 
-*Supplement 1.* Detailed methods and additional results and figures, including: detailed methods for the grade penalty function; results using simple cost, all cutblocks, and a coarse resolution raster; projection method benchmarking and profiling; and a map of roads in Fort Nelson timber supply area.
-
-\newpage
-
-# Figures
-
-Figure 1: Road construction cost surface and an elevation surface used to calculate grade penalties. Costs are calculated using a simple model informed by slope and major barriers (Table 1, Supplement 1-1) in the Revelstoke timber supply area in British Colombia, Canada. In both layers, pixels containing existing roads are assigned a value of 0.
-
-Alt text: Two raster maps of Revelstoke timber supply area in grey scale, with an inset map showing the location of the study area within Canada.  
-
-```{r study-area, fig.cap="."}
-
-knitr::include_graphics(here("analysis/figures/Figure1_StudyArea_both.tiff"))
-```
-
-\newpage
-
-Figure 2: Proportional difference of projected mean from observed mean road metrics using different projection method variants within cutblocks, outside cutblocks, and overall (1 ha weight raster). Values greater than zero indicate overprojection and negative values indicate underprojection. Cutblocks not accessible via the observed road network were excluded from analysis. Performance varies among metrics (columns), projection method variants (colours), and within and outside cutblocks. Projection method variants are defined in Table 2. Note that extreme values for the cutblocks only method within cutblocks are cut off to ensure patterns in the other methods to remain visible. Bars that are cutoff are labeled with the total value. 
-Alt text: A faceted bar chart with one bar for each projection method variant and a panel for each combination of performance metrics and within cutblock, outside cutblock and overall. 
-
-```{r aspat-perf-fig, fig.height=4, fig.width=fig_widths["two"], out.width=paste0(fig_widths["two"], "in"), out.height="4in", fig.cap="."}
-# organize data for ggplot
-# need to make plots more comparable
-# Other option is setting limits but want to avoid excess white space
-ann_plus <- aspat_perf$prop_dif %>% 
-  filter(abs(prop_dif) > 0.5) %>% 
-  mutate(lab = round(prop_dif, 2), 
-         prop_dif = 0.37*sign(prop_dif))
-
-aspat_perf$plt+coord_flip(ylim = c(-0.35, 0.35))+
-  geom_text(aes(label = lab), data = ann_plus, hjust = "inward", vjust = 0.5,
-            size = 8, size.unit = "pt")
-```
-
-\newpage
-
-Figure 3: Comparison of road projection method variants (Table 2). The large four sided cutblock in the top right was added to more clearly show algorithm behaviour within cutblocks.The grade penalty method for setting edge weights (top row) encourages roads to follow slope contours, and yields fewer obviously unrealistic 90 degree turns in steep terrain than our simple cost method (middle row). Selecting a single landing at the centroid of each cutblock (bottom left) creates too few roads within cutblocks. In this 1 ha resolution example the Hardy QGIS plugin (bottom middle) creates more curved roads than our simple cost method (middle row), and does not follow slope contours like the grade penalty method (top row). Landing density is high for all except the centroid and Hardy variants.
-
-Alt text: A series of 8 maps showing roads projected with different method variants. 
-
-```{r proj-meth-fig, out.width=paste0(fig_widths["two"], "in"), out.height="8in", fig.cap="."}
-knitr::include_graphics(here("analysis/figures/projection_methods_figure.tiff"),
-                        dpi = knitr::opts_chunk$get("dpi"))
-```
-
-\newpage
-
-Figure 4: Comparison of the minimum spanning tree projection with regular high density sampling to the observed road network. The main map shows observed distance to the nearest road minus the projected distance. Insets highlight areas of interest with satellite imagery (Google 2022) for context: (a) Projected and observed road networks follow valleys but projected roads cross valley bottoms more frequently; (b) some open areas are misidentified as cutblocks; (c) projected roads follow contours but do not avoid turns and dead ends like observed switchbacks.
-
-Alt text: A raster map of the Revelstoke TSA where the colour indicates the difference between obeserve and projected distance to road. Three inset maps zoom in of specific areas with Google satelite imagery in the background.
-```{r proj-map-fig, fig.height=9, fig.width=fig_widths["two"], fig.cap="."}
-
-knitr::include_graphics(here("analysis/figures/Figure4_map_update.tif"))
-
-```
-
-\newpage
-
-Figure 5: Variation in spatial performance among projection method variants (1 ha weight raster). F-measure is the harmonic mean of precision and sensitivity, precision is the proportion of predicted pixels that were observed and sensitivity is the proportion of observed pixels that were correctly predicted. Values closer to one indicate better performance. Cutblocks not accessible via the observed road network were excluded from analysis. Projection method variants are defined in Table 2.
-
-Alt text: A faceted bar chart with one bar for each projection method variant and a panel for each combination of binary performance metrics and within cutblock, outside cutblock and overall.
-```{r spat-perf-fig, fig.height=4.5, fig.width=fig_widths["two"], out.width=paste0(fig_widths["two"], "in"), out.height="4.5in", fig.cap="."}
-
-doSpatPlot(perf_tbl)
-
-```
+*Online Resource 1.* Detailed methods and additional results and figures, including: detailed methods for the grade penalty function; results using simple cost, all cutblocks, and a coarse resolution raster; projection method benchmarking and profiling; and a map of roads in Fort Nelson timber supply area.
 
 \newpage
 
