@@ -94,11 +94,26 @@ rerun <- TRUE
 
 # Abstract
 
-Despite rapidly growing evidence of complex and varied impacts of road networks on wildlife and other forest values, and the increasing use of spatial stochastic models for forecasting impacts of forest disturbance across regions, very few spatial stochastic projections of forest disturbance dynamics have included automated road network projections, in part because tools suited for this purpose have not been available. Hardy et al. [-@hardy_landis-ii_2023] partially addressed this need with a LANDIS-II extension. As a complementary and comparable alternative, we provide implementations of simple iterative least cost path and minimum spanning tree methods with grade penalties in an open source R package that can be easily integrated into R workflows and modelling frameworks used for forecasting forest change in Canada and elsewhere. Grade penalties improve performance in a mountainous region of British Columbia, as does our minimum spanning tree method. However, the minimum spanning tree method requires more computing time and memory, so users must weigh the benefits of improved performance against computational costs. Our road network simulation methods can improve projections of anticipated resource development impacts on wildlife across large areas, and we hope that more accessible open source implementations will encourage integration of resource roads into forest change projections.
+## Context
 
-# Study Implications
+Road networks have complex and varied impacts on wildlife and other forest values, yet spatial stochastic models forecasting impacts of forest disturbance rarely include automated road network projections. Hardy et al. [-@hardy_landis-ii_2023] partially addressed this need with a LANDIS-II extension, but there remains a need for tools that can be integrated into other modelling frameworks.
 
-This study offers open source tools for automated forest road network projection that are suited for integration into modelling frameworks used to project the implications of forest change for wildlife. We assess road network projection methods using ecologically relevant metrics, and show that grade penalties can improve performance in a topographically complex landscape. These tools can help improve projections of the cumulative effects of natural and anthropogenic disturbances on wildlife in an era of rapid change.
+## Objectives
+
+Our goal is an open source forest road network projection tool that can be easily applied and integrated into modelling frameworks used for projecting the implications of forest change for wildlife. We assess the performance of our road network projection methods using ecologically relevant metrics.
+
+## Methods
+
+We implemented simple iterative least cost path and minimum spanning tree methods with grade penalties in an open source R package. We assessed performance by comparing projections to observed resource road development since 1990 in a mountainous region of British Columbia.
+
+## Results
+
+Grade penalties improve performance, as does our minimum spanning tree method. However, the minimum spanning tree method requires more computing time and memory, so users must weigh the benefits of improved performance against computational costs.
+
+## Conclusions
+
+Our road network simulation methods can improve projections of anticipated resource development impacts on wildlife across large areas, and we hope that more accessible open source implementations will encourage integration of resource roads into forest change projections. These tools can help improve projections of the cumulative effects of natural and anthropogenic disturbances on wildlife in an era of rapid change.
+
 
 <!-- The actual document text starts here: -->
 
@@ -602,7 +617,7 @@ Data generated or analyzed during this study are available in the Open Science F
 
 \newpage
 
-# Literature Cited
+# Reference list
 
 <!-- The following line ensures the references appear here for the MS Word or HTML output files, rather than right at the end of the document (this will not work for PDF files):  -->
 
