@@ -1,4 +1,4 @@
 language:
   label:
     fig: !expr function(x) sprintf("**Fig. %s** ", x)
-    tab: "Table"
+    tab: !expr function(x) sprintf("**Table %s** ", x)
