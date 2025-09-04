@@ -47,12 +47,12 @@ pal_nm <- "Redon"
 fig_widths <- c(min = 1.18, single = 3.543, mid = 5.51, two = 7.48)
 
 ```
+
 Journal: Landscape Ecology
 
 Authors: Josie Hughes, Sarah Endicott, David Lapins, Kyle Lochhead, and Gregory Paradis
 
-Corresponding author: Josie Hughes; josie.hughes@ec.gc.ca; Landscape Science and Technology Division, National Wildlife Research Center, Environment and Climate Change Canada, Ottawa, ON, Canada
-
+Corresponding author: Josie Hughes; [josie.hughes\@ec.gc.ca](mailto:josie.hughes@ec.gc.ca){.email}; Landscape Science and Technology Division, National Wildlife Research Center, Environment and Climate Change Canada, Ottawa, ON, Canada
 
 ## Grade penalty and simple cost methods for setting edge weights
 
@@ -89,16 +89,15 @@ gradePenaltyFn <- function(x1, x2, hdistance, baseCost = 16178, limit = 20,
 
 ```
 
-In the simple cost method, we first calculate a slope raster $S$, then calculate an input cost raster $X$ that depends on slope $S$:
-\begin{equation}
+In the simple cost method, we first calculate a slope raster $S$, then calculate an input cost raster $X$ that depends on slope $S$: \begin{equation}
    X = 
    \begin{cases}
      0 \text{ if existing road} \\
      65000 \text{ if lake}\\
      16178+504S \text{ otherwise}
    \end{cases}
-\end{equation}
-The weight of an edge between two nodes is the mean value of the input cost raster at each of those nodes, adjusted for the euclidean distance between the nodes: 
+\end{equation} The weight of an edge between two nodes is the mean value of the input cost raster at each of those nodes, adjusted for the euclidean distance between the nodes:
+
 ```{r echo=TRUE}
 simpleCostFn <- function(x1,x2,hdistance){
   # Multiply by hdistance to penalize diagonals.
@@ -110,7 +109,7 @@ simpleCostFn <- function(x1,x2,hdistance){
 
 ## Simple cost results
 
-The simple cost method for setting edge weights generally performed worse than the grade penalty and Hardy methods (compare Figures 2 and S\@ref(fig:aspat-perf-fig-simp), and Figures 5 and S\@ref(fig:spat-perf-fig-simp)). 
+The simple cost method for setting edge weights generally performed worse than the grade penalty and Hardy methods (compare Figures 2 and S\@ref(fig:aspat-perf-fig-simp), and Figures 5 and S\@ref(fig:spat-perf-fig-simp)).
 
 ```{r get-data}
 # load csv
@@ -331,7 +330,7 @@ perf_tbl %>%
 
 ## Benchmarking road projection methods
 
-We compared the speed and peak RAM usage of the MST and ILCP methods with landings regularly sampled at 10 per km^2^ (high density) or using only the cutblock centroids as landings on weight rasters of 3 different resolutions (1000 m, 500 m, 100 m), giving 18 297, 72 633, and 1 815 825 nodes in the cost graph, respectively. Each cell in the raster becomes a node in the graph used to determine the shortest path which increases the time and memory requirements of the projection. Benchmarking was done using Azure Standard A4 v2 nodes which have 4 cores and 8 GB of RAM, chosen to match a typical laptop. Each projection was run on a separate node and the `peakRAM` package was used to measure the total time to run the projection and the maximum memory used at any point in the analysis [@quinn_peakram_2024]. We also timed the execution of the Hardy QGIS plugin with the 100 m resolution weights raster. 
+We compared the speed and peak RAM usage of the MST and ILCP methods with landings regularly sampled at 10 per km^2^ (high density) or using only the cutblock centroids as landings on weight rasters of 3 different resolutions (1000 m, 500 m, 100 m), giving 18 297, 72 633, and 1 815 825 nodes in the cost graph, respectively. Each cell in the raster becomes a node in the graph used to determine the shortest path which increases the time and memory requirements of the projection. Benchmarking was done using Azure Standard A4 v2 nodes which have 4 cores and 8 GB of RAM, chosen to match a typical laptop. Each projection was run on a separate node and the `peakRAM` package was used to measure the total time to run the projection and the maximum memory used at any point in the analysis [@quinn_peakram_2024]. We also timed the execution of the Hardy QGIS plugin with the 100 m resolution weights raster.
 
 Execution time and memory requirements increase with the number of nodes in the graph, and the slope of that increase is highest for the MST method (Figure S\@ref(fig:speed-fig)). Except on the very small landscape the ILCP method is faster than the MST method. Reducing the number of landings by targeting centroids also reduces execution time (Figure S\@ref(fig:speed-fig)). The Hardy method is significantly faster than any of the R package methods.
 
@@ -413,7 +412,7 @@ bench_res %>%
 
 ## Profiling
 
-Profiling with the `Rprof` function shows which parts of a function take the longest. On a test run with 1 million cells in the weight raster and 10 landings we profiled the performance of the ILCP and MST methods. Both methods begin by constructing a full graph, which took 3-5 s. For the ILCP method, iteratively determining the shortest paths is the only other step that takes more than a second to run, and this run time will increase with the number of landings (Figure S\@ref(fig:profiling)). For the MST method, calculating cost distances among landings and from each landing to the nearest point on the existing road takes the most time, which also increases with the number of landings (Figure S\@ref(fig:profiling)). Determining the locations of the paths in the minimum spanning tree also takes about 6 seconds. We experimented with using graph construction methods in the package `gdistance` [@van_etten_r_2017], but Lochhead et al's [-@lochhead_demo_2018; -@lochhead_linking_2022] method is faster (Figure S\@ref(fig:profiling)).     
+Profiling with the `Rprof` function shows which parts of a function take the longest. On a test run with 1 million cells in the weight raster and 10 landings we profiled the performance of the ILCP and MST methods. Both methods begin by constructing a full graph, which took 3-5 s. For the ILCP method, iteratively determining the shortest paths is the only other step that takes more than a second to run, and this run time will increase with the number of landings (Figure S\@ref(fig:profiling)). For the MST method, calculating cost distances among landings and from each landing to the nearest point on the existing road takes the most time, which also increases with the number of landings (Figure S\@ref(fig:profiling)). Determining the locations of the paths in the minimum spanning tree also takes about 6 seconds. We experimented with using graph construction methods in the package `gdistance` [@van_etten_r_2017], but Lochhead et al's [-@lochhead_demo_2018; -@lochhead_linking_2022] method is faster (Figure S\@ref(fig:profiling)).
 
 ```{r profiling, fig.cap="Profiling results for the ILCP, MST, and ILCP using the gdistance package methods, showing functions that take more than one second to run on a cost raster with 1 million cells and 10 landings. Functions higher in the call stack are called by functions lower down.", fig.height=6, fig.width=fig_widths["two"]}
 
@@ -439,6 +438,18 @@ bind_rows(ILCP = ilcp_100, MST = mst_100, `ILCP gdistance` = ilcp_gd_100, .id = 
   facet_grid(method~.)
 # interactive version
 # profvis::profvis(prof_input = here::here("analysis/data/derived_data/ilcp_100_Rprof.out"))
+```
+
+## Integrating roads with a spatial stochastic model
+
+To demonstrate how the roads R package can be integrated with an existing spatial stochastic model we projected roads to accompany expected harvest blocks in the state-and-transition simulation models described in @daniel_incorporating_2017. These models are created using SyncroSim and we used the rsyncrosim package to interacte with the SyncroSim session from R [@daniel2025]. The the script "8_integrate_roads_stsim_model.R" demonstrates how this can be done and an updated version of the Caribou Forest SyncroSim library originally included in @daniel_incorporating_2017 is available in our [OSF repository](https://osf.io/8vmqh/?view_only=d168967961914f22af89e44c19aec019)
+
+We projected roads for one iteration of the model with 10 timesteps using a 250 m resolution weight raster that resulted in 177555 nodes in the graph. Projecting roads took an average of 15 seconds per timestep and the whole script took 3.2 minutes to complete on a laptop with 16 cores, 64 GB of RAM and a 13th Gen Intel(R) Core(TM) i7-13850HX (2.10 GHz) processor. The weight raster was a very simple cost raster with water bodies set to a cost of 1000 and all other areas set to 1, except existing roads which were simply drawn as a diagonal line across the raster extent to enable the demonstration.
+
+```{r integrating, fig.height=3, fig.width=fig_widths["single"], fig.cap= "Projected roads for the Caribou Forest Management Unit within the boreal forest region of the province of Ontario, Canada. The figures below show the harvest blocks for the current timestep in dark grey and the cumulative roads built in the simulation in red.", fig.show='hold', out.width="450px", fig.align='center'}
+knitr::include_graphics(here("analysis/figures/stsim_roads_tg_12545.it1.ts1.png"))
+knitr::include_graphics(here("analysis/figures/stsim_roads_tg_12545.it1.ts5.png"))
+knitr::include_graphics(here("analysis/figures/stsim_roads_tg_12545.it1.ts10.png"))
 ```
 
 ## Fort Nelson map

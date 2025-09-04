@@ -158,7 +158,7 @@ for (timestep in GLOBAL_MinTimestep:GLOBAL_MaxTimestep) {
   timing[timestep, 3] <- nrow(clandings)
 
   if(timestep %in% c(1, 5, 10)){
-    png(paste0("analysis/figures/stsim_roads_", cm))
+    png(paste0("analysis/figures/stsim_roads_", cm, ".png"))
     plot(sim$weightRaster,
          col = data.frame(value = c(0, 1, 1000),
                           color = c("black", "grey80", "white")),
@@ -172,7 +172,7 @@ for (timestep in GLOBAL_MinTimestep:GLOBAL_MaxTimestep) {
 
     plotRoads <- sim$roads
     plotRoads[!plotRoads] <- NA
-    plot(sim$roads, add = TRUE, col = "red", legend = FALSE)
+    plot(plotRoads, add = TRUE, col = "red", legend = FALSE)
     dev.off()
   }
 
