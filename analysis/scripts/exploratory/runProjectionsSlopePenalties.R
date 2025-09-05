@@ -149,7 +149,7 @@ allMaps <- purrr::map(
         raster.style = "cont", raster.palette = "Greys",
         raster.alpha = 0.25, raster.title = NA, raster.legend.show = FALSE)+
     qtm(roads, lines.col = "#0571b0", lines.lwd = 2,lines.lty="solid")+
-    qtm(read_sf(here(allProj$output[[.x]])), lines.col = "#ca0020", lines.lwd = 2)+
+    qtm(read_sf(here(allProj$output[[.x]])), lines.col = "##d7191c", lines.lwd = 2)+
     qtm(exRoads, lines.col = "black", lines.lwd = 2)+
     tm_layout(legend.show = .x == nrow(allProj),
               legend.only = .x == nrow(allProj),
@@ -164,7 +164,7 @@ allMaps[[nrow(allProj)]] <- allMaps[[nrow(allProj)]]+
                 title = "weightRaster")+
   tm_add_legend(type = "line",
                 labels = c("Existing roads", "Projected roads", "Observed roads"),
-                col = c("black", "#ca0020", "#0571b0"),lty=c("solid","solid","solid"))+
+                col = c("black", "##d7191c", "#0571b0"),lty=c("solid","solid","solid"))+
   tm_add_legend(type = "fill",
                 labels = "Cutblocks",
                 col = "#92c5de", border.col ="#92c5de")+
