@@ -8,7 +8,7 @@
 # (https://syncrosim.com/download/) and open the raw_data/CaribouForest/Caribou Forest.ssim
 # file to launch SyncroSim.
 
-decommisionTime = NA
+decommisionTime = 5
 
 #devtools::install_github("LandSciTech/roads")
 library(rsyncrosim)
@@ -122,7 +122,7 @@ cumRoads[!is.na(cumRoads)] <- 0
 timing <- data.frame(timestep = GLOBAL_MinTimestep:GLOBAL_MaxTimestep, elapsed = 0, nlandings = 0)
 
 for (timestep in GLOBAL_MinTimestep:GLOBAL_MaxTimestep) {
-  # iteration = 1;timestep=2
+  # iteration = 1;timestep=1
   startTS <- Sys.time()
   cm <- paste0(tag, ".ts", timestep)
   if (!is.element(cm, names(newBlocks))) {
@@ -190,7 +190,7 @@ for (timestep in GLOBAL_MinTimestep:GLOBAL_MaxTimestep) {
       if(timestep<decommisionTime){
         colAll <- colAll[1:timestep]
       }
-      plot(plotRoads, add = TRUE, legend = TRUE,col=colAll)
+      plot(plotRoads, add = TRUE, legend = "bottomright",col=colAll)
     }
     dev.off()
   }
