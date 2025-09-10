@@ -1,5 +1,5 @@
 # Project roads based on STSIM model in SyncroSim
-# If decommisionTime is not NA, roads are decommisioned after decommisionTime timesteps.
+# If decommissionTime is not NA, roads are decommissioned after decommissionTime timesteps.
 
 # This script extracts harvest blocks from SyncroSim and projects roads to the
 # center of each harvest block, and decomissions roads after 5 timesteps.
@@ -8,7 +8,7 @@
 # (https://syncrosim.com/download/) and open the raw_data/CaribouForest/Caribou Forest.ssim
 # file to launch SyncroSim.
 
-decommisionTime = 5
+decommissionTime = 5
 
 #devtools::install_github("LandSciTech/roads")
 library(rsyncrosim)
@@ -134,7 +134,7 @@ for (timestep in GLOBAL_MinTimestep:GLOBAL_MaxTimestep) {
 
   clandings <- getLandingsFromTarget(newBlocks[[cm]])
 
-  if (!is.na(decommisionTime)||length(sim) == 0) {
+  if (!is.na(decommissionTime)||length(sim) == 0) {
     sim <- projectRoads(clandings, cost, initialRoads, roadMethod = "mst")
   } else {
     sim <- projectRoads(clandings, sim = sim)
@@ -146,19 +146,19 @@ for (timestep in GLOBAL_MinTimestep:GLOBAL_MaxTimestep) {
 
   writeRaster(sim$roads, outRoadPath, overwrite = T)
 
-  if(!is.na(decommisionTime)){
+  if(!is.na(decommissionTime)){
     #age cum roads
     cumRoads[cumRoads>0] <- cumRoads[cumRoads>0]+1
 
-    # remove roads over decommisionTime years old from network
-    cumRoads <- mask(cumRoads, cumRoads > decommisionTime, maskvalues = 1, updatevalue = 0)
+    # remove roads over decommissionTime years old from network
+    cumRoads <- mask(cumRoads, cumRoads > decommissionTime, maskvalues = 1, updatevalue = 0)
 
     #set cost low but not 0 to make new roads follow old paths without burning old roads into the current network.
     cost[sim$roads>0]<-0.0001
   }
 
   #reset currently used roads to 1.
-  #Note that when decommisionTime is NA sim$roads includes the whole cumulative network
+  #Note that when decommissionTime is NA sim$roads includes the whole cumulative network
   cumRoads[sim$roads>0]<-1
 
   endTS <- Sys.time()
@@ -169,7 +169,7 @@ for (timestep in GLOBAL_MinTimestep:GLOBAL_MaxTimestep) {
   timing[timestep, 3] <- nrow(clandings)
 
   if(timestep %in% seq(1:10)){
-    png(paste0("analysis/figures/stsim_roads_dt",decommisionTime, cm, ".png"))
+    png(paste0("analysis/figures/stsim_roads_dt",decommissionTime, cm, ".png"))
     plot(myStratum,
          col = data.frame(value = c(1),
                           color = c("grey95")),
@@ -184,10 +184,10 @@ for (timestep in GLOBAL_MinTimestep:GLOBAL_MaxTimestep) {
     plotRoads <- cumRoads
     plotRoads[!plotRoads] <- NA
     colAll <- rev(c('#bae4bc','#7bccc4','#43a2ca','#0868ac','black'))
-    if(is.na(decommisionTime)){
+    if(is.na(decommissionTime)){
       plot(plotRoads, add = TRUE, legend = FALSE,col="black")
     }else{
-      if(timestep<decommisionTime){
+      if(timestep<decommissionTime){
         colAll <- colAll[1:timestep]
       }
       plot(plotRoads, add = TRUE, legend = "bottomright",col=colAll)

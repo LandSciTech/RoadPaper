@@ -452,13 +452,13 @@ In these example, the location of roads has no effect on subsequent harvest or o
 
 In a more complex case, interactions between road network construction and other landscape change processes could be enabled by creating an [add-on package](https://docs.syncrosim.com/how_to_guides/package_addon.html) to the SyncroSim stsim base package, or a [SpaDES module](https://cran.r-project.org/web/packages/SpaDES.core/vignettes/ii-modules.html). Writing, documenting, publishing and supporting an stsim add-on package or a SpaDES module is beyond the scope of this project, but we note that much of the required code is included in our ["8_integrate_roads_stsim_model.R"](https://github.com/LandSciTech/RoadPaper/blob/master/analysis/scripts/8_integrate_roads_stsim_model.R) script.
 
-```{r integrating, fig.height=3, fig.width=fig_widths["single"], fig.cap= "Projected roads for the Caribou Forest Management Unit without decommisioning. The figures below show the harvest blocks for the current timestep in dark grey and the cumulative roads built in the simulation in black.", fig.show='hold', out.width="450px", fig.align='center'}
+```{r integrating, fig.height=3, fig.width=fig_widths["single"], fig.cap= "Projected roads for the Caribou Forest Management Unit without decommissioning. The figures below show the harvest blocks for the current timestep in dark grey and the cumulative roads built in the simulation in black.", fig.show='hold', out.width="450px", fig.align='center'}
 knitr::include_graphics(here("analysis/figures/stsim_roads_dtNAtg_12545.it1.ts1.png"))
 knitr::include_graphics(here("analysis/figures/stsim_roads_dtNAtg_12545.it1.ts5.png"))
 knitr::include_graphics(here("analysis/figures/stsim_roads_dtNAtg_12545.it1.ts10.png"))
 ```
 
-```{r integrating2, fig.height=3, fig.width=fig_widths["single"], fig.cap= "Projected roads for the Caribou Forest Management Unit with decommisioning after 5 timesteps of disuse. The figures below show the harvest blocks for the current timestep in dark grey. Road colour indicates timesteps since last use.", fig.show='hold', out.width="450px", fig.align='center'}
+```{r integrating2, fig.height=3, fig.width=fig_widths["single"], fig.cap= "Projected roads for the Caribou Forest Management Unit with decommissioning after 5 timesteps of disuse. The figures below show the harvest blocks for the current timestep in dark grey. Road colour indicates timesteps since last use.", fig.show='hold', out.width="450px", fig.align='center'}
 knitr::include_graphics(here("analysis/figures/stsim_roads_dt5tg_12545.it1.ts1.png"))
 knitr::include_graphics(here("analysis/figures/stsim_roads_dt5tg_12545.it1.ts5.png"))
 knitr::include_graphics(here("analysis/figures/stsim_roads_dt5tg_12545.it1.ts10.png"))
