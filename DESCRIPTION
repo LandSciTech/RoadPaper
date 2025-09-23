@@ -42,7 +42,7 @@ Imports:
     terra (>= 1.7.71),
     tibble (>= 3.1.6),
     tidyr (>= 1.1.4),
-    tmap (>= 3.3-3),
+    tmap (>= 4.1.0.9000),
     units (>= 0.7-2)
 URL: https://github.com/LandSciTech/RoadPaper
 BugReports: https://github.com/LandSciTech/RoadPaper/issues
