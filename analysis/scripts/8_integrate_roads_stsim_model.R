@@ -20,10 +20,10 @@ library(caribouMetrics)
 Sys.setenv(TZ = "EST")
 
 # path to SyncroSim library, including file name of .ssim file
-sslib <- "C:/Users/HughesJo/Documents/gitprojects/RoadPaper/analysis/data/raw_data/CaribouForest/Caribou Forest"
+sslib <- here::here("analysis/data/raw_data/CaribouForest/Caribou Forest")
 
 # output directory for projected roads
-roadDir <- "C:/Users/HughesJo/Documents/gitprojects/RoadPaper/analysis/data/raw_data/CaribouForest/caribouRoads"
+roadDir <- here::here("analysis/data/raw_data/CaribouForest/caribouRoads")
 
 if(!file.exists(roadDir)){
   dir.create(roadDir,recursive=T)
